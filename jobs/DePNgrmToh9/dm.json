@@ -1,0 +1,5 @@
+{
+ "keyword": "COLLAGE",
+ "offer": "Anleitung: Collage-Animationen mit Claude",
+ "message": "Hier die Anleitung 👇\n\n1) Claude öffnen → Einstellungen → Connectors → „Custom Connector hinzufügen“\n2) Name: invideo · URL: https://mcp.invideo.io/mcp\n\nIn Claude Code stattdessen:\nclaude mcp add --transport http --scope user invideo https://mcp.invideo.io/mcp\n\nDann einfach schreiben: „Mach mir eine Collage-Animation im Vox-Stil über …“\nMehr Infos: https://invideo.io/agents.md"
+}

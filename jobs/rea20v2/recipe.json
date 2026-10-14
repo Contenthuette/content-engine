@@ -1,0 +1,43 @@
+{
+ "id": "rea20v2",
+ "brand": "ULTRA",
+ "format": "breaking",
+ "concept": "Jede App wird zerlegt: Explosion → Mosaik → Glas-Ebenen → Pinnwand → kompletter Code → nachgebaut",
+ "structure": "hook-face-explode / beweis-repo / zahl / zerlegen / nachbauen / cta-keyword",
+ "hook": "KC-13+AV-01",
+ "palette": "hell-bunt-dicht",
+ "materials": [
+  "KC-13",
+  "KC-16",
+  "KC-10",
+  "KC-26",
+  "3D-14",
+  "KC-35",
+  "KC-17",
+  "KC-30",
+  "KC-08",
+  "KC-06",
+  "KC-01",
+  "UI-13",
+  "UI-12",
+  "ME-03",
+  "ME-05",
+  "ME-01",
+  "ME-02",
+  "ME-09",
+  "ME-07"
+ ],
+ "transitions": [
+  "KX-04",
+  "TR-01",
+  "TR-13",
+  "TR-08",
+  "hard-cut+punch"
+ ],
+ "effects": [
+  "punch",
+  "pills",
+  "FX-10",
+  "FX-09"
+ ]
+}

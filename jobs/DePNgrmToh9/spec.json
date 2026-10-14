@@ -1,0 +1,674 @@
+{
+ "duration": 37.89,
+ "vo": "fast_DePNgrmToh9_vo.wav",
+ "words": "fast_DePNgrmToh9_words.json",
+ "duck": "fast_DePNgrmToh9_duck.json",
+ "music": {
+  "src": "nick1_music.wav",
+  "trimBefore": 0.5,
+  "volume": 0.34,
+  "duckDepth": 0.17,
+  "fadeOut": 0.5
+ },
+ "face": {
+  "src": "face/fast_DePNgrmToh9.mp4",
+  "windows": [
+   {
+    "a": 0,
+    "b": 6.0,
+    "x": 290,
+    "y": 190,
+    "w": 500,
+    "h": 560,
+    "slam": true
+   },
+   {
+    "a": 35.1,
+    "b": 37.89,
+    "x": 330,
+    "y": 210,
+    "w": 420,
+    "h": 480
+   }
+  ]
+ },
+ "captions": {
+  "y": 1330,
+  "maxWords": 3,
+  "keywords": [],
+  "hide": [
+   [
+    0,
+    37.89
+   ]
+  ]
+ },
+ "scenes": [
+  {
+   "a": 0,
+   "b": 1.1,
+   "type": "title",
+   "bg": {
+    "rays": "orange",
+    "base": "black"
+   },
+   "props": {
+    "y": 830,
+    "slam": true,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "Du",
+        "at": 0.0
+       },
+       {
+        "w": "kannst",
+        "at": 0.08
+       },
+       {
+        "w": "jetzt",
+        "at": 0.26
+       }
+      ],
+      "size": 112
+     },
+     {
+      "words": [
+       {
+        "w": "mit",
+        "at": 0.5
+       },
+       {
+        "w": "Claude",
+        "at": 0.7,
+        "color": "orange"
+       }
+      ],
+      "size": 124
+     }
+    ],
+    "shocks": [
+     {
+      "t": 0.0,
+      "x": 540,
+      "y": 470,
+      "c": "orange",
+      "s": 1300
+     }
+    ]
+   },
+   "dark": true,
+   "exit": "none"
+  },
+  {
+   "a": 1.1,
+   "b": 2.3,
+   "type": "big",
+   "bg": {
+    "glow": "orange",
+    "base": "black"
+   },
+   "props": {
+    "text": "COLLAGE",
+    "at": 1.12,
+    "size": 250,
+    "y": 1000,
+    "slam": true,
+    "glow": "orange",
+    "shocks": [
+     {
+      "t": 1.12,
+      "x": 540,
+      "y": 1130,
+      "c": "orange",
+      "s": 1400
+     }
+    ]
+   },
+   "dark": true,
+   "enter": "cut"
+  },
+  {
+   "a": 2.3,
+   "b": 3.3,
+   "type": "title",
+   "bg": "ink",
+   "props": {
+    "y": 1020,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "Animationen",
+        "at": 2.32
+       }
+      ],
+      "size": 104
+     },
+     {
+      "words": [
+       {
+        "w": "im",
+        "at": 2.36
+       },
+       {
+        "w": "Vox-Stil",
+        "at": 2.44,
+        "serif": true,
+        "color": "orange"
+       }
+      ],
+      "size": 140
+     }
+    ]
+   },
+   "dark": true
+  },
+  {
+   "a": 3.3,
+   "b": 6.05,
+   "type": "emoji",
+   "bg": {
+    "glow": "red",
+    "base": "white"
+   },
+   "props": {
+    "items": [
+     {
+      "name": "prohibited",
+      "at": 3.32,
+      "y": 1000,
+      "size": 300,
+      "glow": "red"
+     }
+    ],
+    "text": [
+     {
+      "w": "ohne",
+      "at": 3.3
+     },
+     {
+      "w": "ein",
+      "at": 3.74
+     },
+     {
+      "w": "einziges",
+      "at": 4.02
+     },
+     {
+      "w": "Bild",
+      "at": 4.56,
+      "serif": true,
+      "color": "red"
+     }
+    ],
+    "textY": 1300,
+    "textSize": 92
+   }
+  },
+  {
+   "a": 6.05,
+   "b": 8.8,
+   "type": "stack",
+   "bg": "paper",
+   "props": {
+    "layout": "fan",
+    "title": [
+     {
+      "w": "Papier-Look",
+      "at": 6.5,
+      "serif": true
+     }
+    ],
+    "titleAt": 6.5,
+    "y": 900,
+    "cards": [
+     {
+      "title": "1952",
+      "sub": "Erklärvideo",
+      "emoji": "camera",
+      "color": "yellow",
+      "at": 6.2
+     },
+     {
+      "title": "Doku",
+      "sub": "Collage",
+      "emoji": "memo",
+      "color": "orange",
+      "dark": true,
+      "at": 6.3
+     },
+     {
+      "title": "Weltkarte",
+      "sub": "Papier-Ausschnitt",
+      "emoji": "globe_with_meridians",
+      "color": "blue",
+      "at": 6.4
+     }
+    ],
+    "cycle": [
+     7.38,
+     8.34
+    ]
+   }
+  },
+  {
+   "a": 8.8,
+   "b": 12.6,
+   "type": "mac",
+   "bg": "black",
+   "props": {
+    "title": "invideo · Editor",
+    "at": 8.84,
+    "cmd": "claude baut dein Video",
+    "cps": 32,
+    "lines": [
+     {
+      "text": "✓ Szene 1 · Collage",
+      "at": 10.28,
+      "color": "green"
+     },
+     {
+      "text": "✓ Szene 2 · Papier-Look",
+      "at": 11.12,
+      "color": "green"
+     },
+     {
+      "text": "✓ Timeline steht",
+      "at": 11.9,
+      "color": "green"
+     },
+     {
+      "text": "✓ Export bereit",
+      "at": 12.25,
+      "color": "green"
+     }
+    ],
+    "emojis": [
+     {
+      "name": "magic_wand",
+      "at": 10.7,
+      "x": 230,
+      "y": 1330,
+      "size": 200,
+      "glow": "orange"
+     },
+     {
+      "name": "check_mark_button",
+      "at": 11.85,
+      "x": 840,
+      "y": 1330,
+      "size": 190,
+      "glow": "green"
+     }
+    ]
+   }
+  },
+  {
+   "a": 12.6,
+   "b": 13.8,
+   "type": "title",
+   "bg": {
+    "wall": "orange"
+   },
+   "props": {
+    "y": 920,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "So",
+        "at": 12.72
+       },
+       {
+        "w": "geht's",
+        "at": 12.96,
+        "serif": true
+       }
+      ],
+      "size": 150,
+      "color": "white"
+     }
+    ],
+    "emojis": [
+     {
+      "name": "backhand_index_pointing_down",
+      "at": 13.1,
+      "x": 540,
+      "y": 1250,
+      "size": 220,
+      "glow": "yellow"
+     }
+    ]
+   }
+  },
+  {
+   "a": 13.8,
+   "b": 16.1,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 14.24,
+    "icon": {
+     "letter": "i",
+     "bg": "ink"
+    },
+    "text": "invideo MCP",
+    "w": 700,
+    "expandAt": 15.3,
+    "sub": [
+     "mcp.invideo.io"
+    ],
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Schritt",
+        "at": 13.84
+       },
+       {
+        "w": "1",
+        "at": 13.94,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 16.1,
+   "b": 17.2,
+   "type": "checks",
+   "bg": "white",
+   "props": {
+    "label": "Claude verbinden?",
+    "at": 16.14,
+    "clickAt": 16.62,
+    "pick": "yes",
+    "y": 760,
+    "cursor": {
+     "path": [
+      {
+       "t": 16.2,
+       "x": 900,
+       "y": 1300
+      },
+      {
+       "t": 16.55,
+       "x": 345,
+       "y": 950
+      }
+     ],
+     "clicks": [
+      16.62
+     ],
+     "hand": 16.4,
+     "out": 17.1
+    }
+   }
+  },
+  {
+   "a": 17.2,
+   "b": 20.6,
+   "type": "siri",
+   "bg": {
+    "wall": "indigo"
+   },
+   "props": {
+    "at": 17.3,
+    "text": "Richte invideo für mich ein …",
+    "cps": 24,
+    "y": 760,
+    "chips": [
+     {
+      "text": "Prompt eingefügt",
+      "emoji": "clipboard",
+      "at": 19.64
+     }
+    ]
+   }
+  },
+  {
+   "a": 20.6,
+   "b": 22.8,
+   "type": "live",
+   "bg": "white",
+   "props": {
+    "at": 20.74,
+    "text": "richtet alles ein",
+    "label": "Claude",
+    "accent": "orange",
+    "y": 520,
+    "emojis": [
+     {
+      "name": "gear",
+      "at": 21.5,
+      "x": 820,
+      "y": 1150,
+      "size": 220,
+      "glow": "orange"
+     }
+    ]
+   }
+  },
+  {
+   "a": 22.8,
+   "b": 25.6,
+   "type": "emoji",
+   "bg": {
+    "glow": "yellow",
+    "base": "white"
+   },
+   "props": {
+    "items": [
+     {
+      "name": "file_folder",
+      "at": 22.86,
+      "y": 700,
+      "size": 420,
+      "glow": "yellow"
+     },
+     {
+      "name": "camera",
+      "at": 23.3,
+      "x": 250,
+      "y": 1380,
+      "size": 200,
+      "glow": false
+     },
+     {
+      "name": "books",
+      "at": 24.22,
+      "x": 800,
+      "y": 1380,
+      "size": 200,
+      "glow": false
+     }
+    ],
+    "text": [
+     {
+      "w": "Ordner",
+      "at": 23.72
+     },
+     {
+      "w": "mit",
+      "at": 24.08
+     },
+     {
+      "w": "Referenzen",
+      "at": 24.22,
+      "serif": true,
+      "color": "orange"
+     }
+    ],
+    "textY": 1060,
+    "textSize": 96
+   }
+  },
+  {
+   "a": 25.6,
+   "b": 28.0,
+   "type": "bubbles",
+   "bg": "white",
+   "props": {
+    "y": 560,
+    "items": [
+     {
+      "from": "me",
+      "text": "Mach mir ein Erklärvideo über die Geschichte von Apple",
+      "at": 25.74
+     },
+     {
+      "from": "them",
+      "text": "Bin dran 🎬",
+      "at": 27.36,
+      "sticker": "video_camera"
+     }
+    ],
+    "emojis": [
+     {
+      "name": "sparkles",
+      "at": 26.6,
+      "x": 250,
+      "y": 1350,
+      "size": 200,
+      "glow": "yellow"
+     }
+    ]
+   }
+  },
+  {
+   "a": 28.0,
+   "b": 29.3,
+   "type": "big",
+   "bg": "black",
+   "props": {
+    "text": "BESTE",
+    "serif": "und das",
+    "at": 28.3,
+    "size": 250,
+    "y": 700
+   }
+  },
+  {
+   "a": 29.3,
+   "b": 33.0,
+   "type": "versus",
+   "bg": "white",
+   "props": {
+    "left": {
+     "icon": {
+      "emoji": "package",
+      "bg": "gray"
+     },
+     "title": "Fertige Datei",
+     "sub": "nur anschauen"
+    },
+    "right": {
+     "icon": {
+      "emoji": "video_camera",
+      "bg": "orange"
+     },
+     "title": "Timeline",
+     "sub": "selbst schneiden"
+    },
+    "winner": "r",
+    "verdictAt": 32.48,
+    "title": [
+     {
+      "w": "nicht",
+      "at": 29.7
+     },
+     {
+      "w": "nur",
+      "at": 29.82,
+      "serif": true
+     }
+    ],
+    "emojis": [
+     {
+      "name": "hammer_and_wrench",
+      "at": 31.88,
+      "x": 780,
+      "y": 1300,
+      "size": 190,
+      "glow": "orange"
+     }
+    ]
+   }
+  },
+  {
+   "a": 33.0,
+   "b": 35.1,
+   "type": "mac",
+   "bg": "white",
+   "props": {
+    "light": true,
+    "title": "Timeline",
+    "at": 33.04,
+    "h": 620,
+    "y": 760,
+    "lines": [
+     {
+      "text": "V1  ▮▮▮▮▮▮  Collage",
+      "at": 33.1
+     },
+     {
+      "text": "V2  ▮▮▮  Musik",
+      "at": 33.4
+     },
+     {
+      "text": "A1  ▮▮▮▮▮▮▮  Stimme",
+      "at": 33.7
+     },
+     {
+      "text": "T1  ▮▮  Titel",
+      "at": 34.0
+     },
+     {
+      "text": "✂ du schneidest weiter",
+      "at": 34.36,
+      "color": "blue"
+     }
+    ],
+    "emojis": [
+     {
+      "name": "writing_hand",
+      "at": 33.85,
+      "x": 260,
+      "y": 1330,
+      "size": 200,
+      "glow": "orange"
+     }
+    ]
+   }
+  },
+  {
+   "a": 35.1,
+   "b": 37.89,
+   "type": "cta",
+   "bg": "white",
+   "props": {
+    "at": 35.16,
+    "keyword": "COLLAGE",
+    "typeAt": 35.6,
+    "sendAt": 36.36,
+    "dmAt": 36.7,
+    "dmText": "Hier ist die Anleitung 🎬",
+    "y": 1010,
+    "lift": 230,
+    "dmY": 1130
+   }
+  }
+ ],
+ "punch": [
+  0.0,
+  1.12
+ ]
+}

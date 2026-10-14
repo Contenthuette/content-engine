@@ -1,0 +1,762 @@
+[
+ {
+  "file": "sfx3/camera_shutters_camera_shutter.wav",
+  "cat": "shutter",
+  "dur": 0.2,
+  "eff": 0.11,
+  "attack_s": 0.04,
+  "peak_db": -4.0,
+  "rms_db": -27.7,
+  "bright_hz": 6464,
+  "trimmed": 0.032
+ },
+ {
+  "file": "sfx3/camera_shutters_little_bit_hard_cammera_shutter.wav",
+  "cat": "shutter",
+  "dur": 0.39,
+  "eff": 0.35,
+  "attack_s": 0.024,
+  "peak_db": -4.0,
+  "rms_db": -25.2,
+  "bright_hz": 5231
+ },
+ {
+  "file": "sfx3/camera_shutters_smooth_cammera_shutter.wav",
+  "cat": "shutter",
+  "dur": 0.53,
+  "eff": 0.3,
+  "attack_s": 0.04,
+  "peak_db": 0.3,
+  "rms_db": -25.1,
+  "bright_hz": 4795
+ },
+ {
+  "file": "sfx3/clicks_cinematic_click.wav",
+  "cat": "clicks",
+  "dur": 0.09,
+  "eff": 0.05,
+  "attack_s": 0.002,
+  "peak_db": -5.6,
+  "rms_db": -29.5,
+  "bright_hz": 4766
+ },
+ {
+  "file": "sfx3/clicks_click_1.wav",
+  "cat": "clicks",
+  "dur": 0.84,
+  "eff": 0.17,
+  "attack_s": 0.048,
+  "peak_db": 3.0,
+  "rms_db": -17.3,
+  "bright_hz": 230
+ },
+ {
+  "file": "sfx3/clicks_click_2.wav",
+  "cat": "clicks",
+  "dur": 0.2,
+  "eff": 0.11,
+  "attack_s": 0.04,
+  "peak_db": -4.0,
+  "rms_db": -27.7,
+  "bright_hz": 6464,
+  "trimmed": 0.032
+ },
+ {
+  "file": "sfx3/clicks_high_click.wav",
+  "cat": "clicks",
+  "dur": 0.08,
+  "eff": 0.03,
+  "attack_s": 0.008,
+  "peak_db": 3.4,
+  "rms_db": -17.6,
+  "bright_hz": 6459
+ },
+ {
+  "file": "sfx3/clicks_mouse_click_198485.wav",
+  "cat": "clicks",
+  "dur": 1.12,
+  "eff": 7.13,
+  "attack_s": 0.04,
+  "peak_db": 0.0,
+  "rms_db": -33.5,
+  "bright_hz": 5509,
+  "trimmed": 6.882
+ },
+ {
+  "file": "sfx3/data_collect_cinematic_data.wav",
+  "cat": "data",
+  "dur": 2.2,
+  "eff": 2.2,
+  "attack_s": 0.302,
+  "peak_db": -26.0,
+  "rms_db": -49.1,
+  "bright_hz": 5836
+ },
+ {
+  "file": "sfx3/data_collect_cinematic_data_collect_2.wav",
+  "cat": "data",
+  "dur": 3.45,
+  "eff": 3.44,
+  "attack_s": 1.403,
+  "peak_db": -8.4,
+  "rms_db": -23.8,
+  "bright_hz": 7396
+ },
+ {
+  "file": "sfx3/data_collect_data_collect.wav",
+  "cat": "data",
+  "dur": 0.95,
+  "eff": 0.96,
+  "attack_s": 0.781,
+  "peak_db": -20.2,
+  "rms_db": -29.7,
+  "bright_hz": 10161
+ },
+ {
+  "file": "sfx3/data_collect_data_collect.wav",
+  "cat": "data",
+  "dur": 0.95,
+  "eff": 0.92,
+  "attack_s": 0.018,
+  "peak_db": -2.5,
+  "rms_db": -32.3,
+  "bright_hz": 5228
+ },
+ {
+  "file": "sfx3/data_collect_ma_tuttkile_stopwatch_3.wav",
+  "cat": "data",
+  "dur": 5.62,
+  "eff": 5.51,
+  "attack_s": 2.125,
+  "peak_db": -10.7,
+  "rms_db": -38.8,
+  "bright_hz": 9190
+ },
+ {
+  "file": "sfx3/gear_fast_gear.wav",
+  "cat": "gear",
+  "dur": 2.82,
+  "eff": 2.76,
+  "attack_s": 1.824,
+  "peak_db": -3.6,
+  "rms_db": -26.3,
+  "bright_hz": 4453
+ },
+ {
+  "file": "sfx3/gear_fast_gear_2.wav",
+  "cat": "gear",
+  "dur": 2.16,
+  "eff": 2.16,
+  "attack_s": 1.959,
+  "peak_db": -1.0,
+  "rms_db": -19.6,
+  "bright_hz": 3968
+ },
+ {
+  "file": "sfx3/gear_long_speed_gear.wav",
+  "cat": "gear",
+  "dur": 0.44,
+  "eff": 0.41,
+  "attack_s": 0.084,
+  "peak_db": -3.2,
+  "rms_db": -25.5,
+  "bright_hz": 7518
+ },
+ {
+  "file": "sfx3/gear_middle_gear.wav",
+  "cat": "gear",
+  "dur": 0.66,
+  "eff": 0.64,
+  "attack_s": 0.242,
+  "peak_db": -2.7,
+  "rms_db": -29.6,
+  "bright_hz": 7334
+ },
+ {
+  "file": "sfx3/gear_smooth_and_premium_gear.wav",
+  "cat": "gear",
+  "dur": 1.34,
+  "eff": 1.25,
+  "attack_s": 1.149,
+  "peak_db": 1.8,
+  "rms_db": -27.5,
+  "bright_hz": 6137
+ },
+ {
+  "file": "sfx3/gear_soft_gear_1.wav",
+  "cat": "gear",
+  "dur": 0.63,
+  "eff": 0.53,
+  "attack_s": 0.002,
+  "peak_db": -16.8,
+  "rms_db": -43.5,
+  "bright_hz": 7494
+ },
+ {
+  "file": "sfx3/gear_soft_gear_2.wav",
+  "cat": "gear",
+  "dur": 2.06,
+  "eff": 1.36,
+  "attack_s": 1.338,
+  "peak_db": -10.4,
+  "rms_db": -45.7,
+  "bright_hz": 6935
+ },
+ {
+  "file": "sfx3/money_cinematic_money_1.wav",
+  "cat": "money",
+  "dur": 2.98,
+  "eff": 1.07,
+  "attack_s": 0.315,
+  "peak_db": -6.2,
+  "rms_db": -30.3,
+  "bright_hz": 4291
+ },
+ {
+  "file": "sfx3/money_cinematic_money_2.wav",
+  "cat": "money",
+  "dur": 1.48,
+  "eff": 0.65,
+  "attack_s": 0.503,
+  "peak_db": -0.7,
+  "rms_db": -23.8,
+  "bright_hz": 4195
+ },
+ {
+  "file": "sfx3/money_high_volume_money.wav",
+  "cat": "money",
+  "dur": 3.63,
+  "eff": 0.93,
+  "attack_s": 0.475,
+  "peak_db": 2.1,
+  "rms_db": -21.9,
+  "bright_hz": 5054
+ },
+ {
+  "file": "sfx3/money_mediam_volume_mone.wav",
+  "cat": "money",
+  "dur": 3.75,
+  "eff": 1.59,
+  "attack_s": 0.078,
+  "peak_db": 0.1,
+  "rms_db": -28.2,
+  "bright_hz": 4576
+ },
+ {
+  "file": "sfx3/pop_meadia_pop.wav",
+  "cat": "pop",
+  "dur": 1.15,
+  "eff": 0.03,
+  "attack_s": 0.019,
+  "peak_db": 2.0,
+  "rms_db": -19.2,
+  "bright_hz": 590
+ },
+ {
+  "file": "sfx3/pop_normal_pop.wav",
+  "cat": "pop",
+  "dur": 1.1,
+  "eff": 2.78,
+  "attack_s": 0.04,
+  "peak_db": 0.2,
+  "rms_db": -24.6,
+  "bright_hz": 1060,
+  "trimmed": 1.981
+ },
+ {
+  "file": "sfx3/pop_premium_and_smooth_pop.wav",
+  "cat": "pop",
+  "dur": 1.03,
+  "eff": 3.05,
+  "attack_s": 0.04,
+  "peak_db": -0.1,
+  "rms_db": -28.7,
+  "bright_hz": 1748,
+  "trimmed": 2.956
+ },
+ {
+  "file": "sfx3/pop_slow_and_smooth_pop.wav",
+  "cat": "pop",
+  "dur": 0.64,
+  "eff": 0.13,
+  "attack_s": 0.04,
+  "peak_db": -0.2,
+  "rms_db": -23.0,
+  "bright_hz": 798,
+  "trimmed": 0.053
+ },
+ {
+  "file": "sfx3/pop_smooth_pop.wav",
+  "cat": "pop",
+  "dur": 0.5,
+  "eff": 0.03,
+  "attack_s": 0.015,
+  "peak_db": -2.2,
+  "rms_db": -25.5,
+  "bright_hz": 2725
+ },
+ {
+  "file": "sfx3/pop_sweet_ui_open.wav",
+  "cat": "pop",
+  "dur": 1.05,
+  "eff": 0.07,
+  "attack_s": 0.004,
+  "peak_db": 1.9,
+  "rms_db": -22.5,
+  "bright_hz": 1865
+ },
+ {
+  "file": "sfx3/risers_premium_riser.wav",
+  "cat": "risers",
+  "dur": 2.44,
+  "eff": 2.44,
+  "attack_s": 0.033,
+  "peak_db": -9.6,
+  "rms_db": -36.8,
+  "bright_hz": 5025
+ },
+ {
+  "file": "sfx3/risers_riser.wav",
+  "cat": "risers",
+  "dur": 1.76,
+  "eff": 0.49,
+  "attack_s": 0.461,
+  "peak_db": -8.8,
+  "rms_db": -33.6,
+  "bright_hz": 1939
+ },
+ {
+  "file": "sfx3/risers_riser_2.wav",
+  "cat": "risers",
+  "dur": 5.92,
+  "eff": 3.65,
+  "attack_s": 2.98,
+  "peak_db": 1.8,
+  "rms_db": -18.5,
+  "bright_hz": 1519
+ },
+ {
+  "file": "sfx3/risers_rjd_riser.wav",
+  "cat": "risers",
+  "dur": 0.87,
+  "eff": 0.55,
+  "attack_s": 0.045,
+  "peak_db": 0.4,
+  "rms_db": -21.0,
+  "bright_hz": 3524
+ },
+ {
+  "file": "sfx3/risers_smooth_riser.wav",
+  "cat": "risers",
+  "dur": 2.38,
+  "eff": 2.2,
+  "attack_s": 1.787,
+  "peak_db": -15.9,
+  "rms_db": -28.7,
+  "bright_hz": 1281
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui.wav",
+  "cat": "ui",
+  "dur": 0.48,
+  "eff": 0.66,
+  "attack_s": 0.04,
+  "peak_db": -0.0,
+  "rms_db": -27.4,
+  "bright_hz": 7849,
+  "trimmed": 0.316
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_all_in_one.wav",
+  "cat": "ui",
+  "dur": 2.5,
+  "eff": 7.9,
+  "attack_s": 0.04,
+  "peak_db": 2.3,
+  "rms_db": -19.2,
+  "bright_hz": 4035,
+  "trimmed": 4.002
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_backspace.wav",
+  "cat": "ui",
+  "dur": 0.41,
+  "eff": 0.17,
+  "attack_s": 0.011,
+  "peak_db": -5.3,
+  "rms_db": -24.0,
+  "bright_hz": 493
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_beatbox_click_01.wav",
+  "cat": "ui",
+  "dur": 0.11,
+  "eff": 0.13,
+  "attack_s": 0.04,
+  "peak_db": -13.4,
+  "rms_db": -30.5,
+  "bright_hz": 3467,
+  "trimmed": 0.059
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_button.wav",
+  "cat": "ui",
+  "dur": 0.23,
+  "eff": 0.18,
+  "attack_s": 0.026,
+  "peak_db": 1.0,
+  "rms_db": -14.9,
+  "bright_hz": 4049
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_click.wav",
+  "cat": "ui",
+  "dur": 1.11,
+  "eff": 0.92,
+  "attack_s": 0.04,
+  "peak_db": -1.1,
+  "rms_db": -22.3,
+  "bright_hz": 592,
+  "trimmed": 0.192
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_click_digital_03.wav",
+  "cat": "ui",
+  "dur": 0.2,
+  "eff": 0.14,
+  "attack_s": 0.047,
+  "peak_db": -7.8,
+  "rms_db": -32.8,
+  "bright_hz": 3996
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_click_digital_04.wav",
+  "cat": "ui",
+  "dur": 0.14,
+  "eff": 0.16,
+  "attack_s": 0.04,
+  "peak_db": -27.9,
+  "rms_db": -47.6,
+  "bright_hz": 5073,
+  "trimmed": 0.034
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_digital_click.wav",
+  "cat": "ui",
+  "dur": 0.89,
+  "eff": 0.45,
+  "attack_s": 0.04,
+  "peak_db": -5.7,
+  "rms_db": -19.9,
+  "bright_hz": 3292,
+  "trimmed": 0.076
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_enter.wav",
+  "cat": "ui",
+  "dur": 0.74,
+  "eff": 0.25,
+  "attack_s": 0.018,
+  "peak_db": -5.3,
+  "rms_db": -25.0,
+  "bright_hz": 354
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_glitch_click.wav",
+  "cat": "ui",
+  "dur": 0.37,
+  "eff": 0.24,
+  "attack_s": 0.043,
+  "peak_db": 2.1,
+  "rms_db": -21.3,
+  "bright_hz": 5390
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_glitch_flicker_text_2.wav",
+  "cat": "ui",
+  "dur": 0.41,
+  "eff": 0.32,
+  "attack_s": 0.04,
+  "peak_db": -6.8,
+  "rms_db": -21.4,
+  "bright_hz": 4662,
+  "trimmed": 0.11
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_granular_button_select.wav",
+  "cat": "ui",
+  "dur": 0.07,
+  "eff": 0.17,
+  "attack_s": 0.04,
+  "peak_db": 1.9,
+  "rms_db": -12.0,
+  "bright_hz": 2332,
+  "trimmed": 0.093
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_granular_button_select_9.wav",
+  "cat": "ui",
+  "dur": 0.15,
+  "eff": 0.16,
+  "attack_s": 0.04,
+  "peak_db": 1.7,
+  "rms_db": -19.4,
+  "bright_hz": 4267,
+  "trimmed": 0.081
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_open.wav",
+  "cat": "ui",
+  "dur": 0.65,
+  "eff": 1.13,
+  "attack_s": 0.04,
+  "peak_db": -12.3,
+  "rms_db": -32.8,
+  "bright_hz": 4524,
+  "trimmed": 0.885
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_premium_open.wav",
+  "cat": "ui",
+  "dur": 2.5,
+  "eff": 3.02,
+  "attack_s": 0.04,
+  "peak_db": -2.1,
+  "rms_db": -20.1,
+  "bright_hz": 796,
+  "trimmed": 0.692
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_stretch.wav",
+  "cat": "ui",
+  "dur": 1.45,
+  "eff": 0.79,
+  "attack_s": 0.04,
+  "peak_db": 2.6,
+  "rms_db": -15.6,
+  "bright_hz": 2533,
+  "trimmed": 0.314
+ },
+ {
+  "file": "sfx3/ui_sound_effects_ui_typing.wav",
+  "cat": "ui",
+  "dur": 1.48,
+  "eff": 1.98,
+  "attack_s": 0.04,
+  "peak_db": 0.0,
+  "rms_db": -13.9,
+  "bright_hz": 271,
+  "trimmed": 0.692
+ },
+ {
+  "file": "sfx3/ui_sound_effects_uu_click_digital_01.wav",
+  "cat": "ui",
+  "dur": 0.36,
+  "eff": 0.37,
+  "attack_s": 0.04,
+  "peak_db": -18.7,
+  "rms_db": -39.1,
+  "bright_hz": 5554,
+  "trimmed": 0.074
+ },
+ {
+  "file": "sfx3/ui_sound_effects_v4_type_delete_2.wav",
+  "cat": "ui",
+  "dur": 0.11,
+  "eff": 0.02,
+  "attack_s": 0.002,
+  "peak_db": -4.0,
+  "rms_db": -25.8,
+  "bright_hz": 2220
+ },
+ {
+  "file": "sfx3/whooshes_cinematic_fast_normal_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 0.82,
+  "eff": 0.68,
+  "attack_s": 0.277,
+  "peak_db": -8.2,
+  "rms_db": -24.9,
+  "bright_hz": 966
+ },
+ {
+  "file": "sfx3/whooshes_cinematic_fast_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 1.17,
+  "eff": 1.17,
+  "attack_s": 0.308,
+  "peak_db": -13.9,
+  "rms_db": -30.6,
+  "bright_hz": 1592
+ },
+ {
+  "file": "sfx3/whooshes_cinematic_long_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 8.0,
+  "eff": 7.96,
+  "attack_s": 1.435,
+  "peak_db": -12.8,
+  "rms_db": -35.9,
+  "bright_hz": 730
+ },
+ {
+  "file": "sfx3/whooshes_cinematic_low_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 1.98,
+  "eff": 1.56,
+  "attack_s": 0.567,
+  "peak_db": -8.8,
+  "rms_db": -25.3,
+  "bright_hz": 230
+ },
+ {
+  "file": "sfx3/whooshes_cinematic_mediam_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 1.88,
+  "eff": 1.18,
+  "attack_s": 0.608,
+  "peak_db": -9.3,
+  "rms_db": -27.7,
+  "bright_hz": 1071
+ },
+ {
+  "file": "sfx3/whooshes_data_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 2.48,
+  "eff": 0.92,
+  "attack_s": 0.424,
+  "peak_db": -13.7,
+  "rms_db": -32.1,
+  "bright_hz": 2625
+ },
+ {
+  "file": "sfx3/whooshes_epic_fast_whoosh_345469.wav",
+  "cat": "whooshes",
+  "dur": 0.5,
+  "eff": 0.37,
+  "attack_s": 0.195,
+  "peak_db": -4.9,
+  "rms_db": -19.9,
+  "bright_hz": 95
+ },
+ {
+  "file": "sfx3/whooshes_fast_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 2.49,
+  "eff": 1.11,
+  "attack_s": 0.595,
+  "peak_db": -10.8,
+  "rms_db": -30.8,
+  "bright_hz": 1596
+ },
+ {
+  "file": "sfx3/whooshes_high_and_fast_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 1.52,
+  "eff": 0.72,
+  "attack_s": 0.383,
+  "peak_db": 1.8,
+  "rms_db": -18.1,
+  "bright_hz": 564
+ },
+ {
+  "file": "sfx3/whooshes_high_and_fast_woosh.wav",
+  "cat": "whooshes",
+  "dur": 2.36,
+  "eff": 1.87,
+  "attack_s": 0.896,
+  "peak_db": 0.1,
+  "rms_db": -17.0,
+  "bright_hz": 576
+ },
+ {
+  "file": "sfx3/whooshes_long_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 4.26,
+  "eff": 3.22,
+  "attack_s": 0.767,
+  "peak_db": -2.5,
+  "rms_db": -22.5,
+  "bright_hz": 475
+ },
+ {
+  "file": "sfx3/whooshes_simple_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 1.39,
+  "eff": 1.13,
+  "attack_s": 0.555,
+  "peak_db": -8.1,
+  "rms_db": -23.7,
+  "bright_hz": 254
+ },
+ {
+  "file": "sfx3/whooshes_simple_whoosh_2.wav",
+  "cat": "whooshes",
+  "dur": 1.99,
+  "eff": 0.87,
+  "attack_s": 0.506,
+  "peak_db": 1.0,
+  "rms_db": -13.9,
+  "bright_hz": 95
+ },
+ {
+  "file": "sfx3/whooshes_slow_and_smooth_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 3.7,
+  "eff": 1.64,
+  "attack_s": 0.704,
+  "peak_db": -1.1,
+  "rms_db": -17.4,
+  "bright_hz": 292
+ },
+ {
+  "file": "sfx3/whooshes_smooth_and_fast_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 1.62,
+  "eff": 0.96,
+  "attack_s": 0.544,
+  "peak_db": 2.4,
+  "rms_db": -14.1,
+  "bright_hz": 323
+ },
+ {
+  "file": "sfx3/whooshes_smooth_like_a_butter_whoosh.wav",
+  "cat": "whooshes",
+  "dur": 3.7,
+  "eff": 1.64,
+  "attack_s": 0.704,
+  "peak_db": -1.1,
+  "rms_db": -17.4,
+  "bright_hz": 292
+ },
+ {
+  "file": "sfx3/whooshes_whoosh_deep_light_2.wav",
+  "cat": "whooshes",
+  "dur": 3.69,
+  "eff": 2.09,
+  "attack_s": 0.768,
+  "peak_db": 0.0,
+  "rms_db": -14.1,
+  "bright_hz": 422
+ },
+ {
+  "file": "sfx3/whooshes_whoosh_deep_short.wav",
+  "cat": "whooshes",
+  "dur": 2.24,
+  "eff": 1.02,
+  "attack_s": 0.151,
+  "peak_db": -0.8,
+  "rms_db": -20.3,
+  "bright_hz": 178
+ },
+ {
+  "file": "sfx3/impact_sub_hit.wav",
+  "cat": "impact",
+  "dur": 1.4,
+  "eff": 0.9,
+  "attack_s": 0.004,
+  "peak_db": -1.0,
+  "rms_db": -14.0,
+  "bright_hz": 120
+ }
+]

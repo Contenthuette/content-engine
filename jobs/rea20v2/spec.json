@@ -1,0 +1,761 @@
+{
+ "dur": 20,
+ "bg": "BG-02",
+ "vo": "rea/vo20.wav",
+ "music": "rea/fast_DecMXypvoMF_music.wav",
+ "musicFrom": 0.49,
+ "musicVol": 0.5,
+ "words": [
+  "CLAUDE CODE",
+  "JEDE APP",
+  "REVERSE",
+  "OPEN SOURCE",
+  "180K ⭐",
+  "KOMPLETTER CODE",
+  "NACHBAUEN",
+  "FEATURE",
+  "GITHUB",
+  "DEIN PRODUKT",
+  "KI-AGENT",
+  "ZERLEGT"
+ ],
+ "face": {
+  "src": "rea/face_dark.mp4",
+  "segs": [
+   [
+    0,
+    4.6,
+    0
+   ],
+   [
+    14.7,
+    16.25,
+    0,
+    "rea/face_dark2.mp4"
+   ],
+   [
+    16.25,
+    17.25,
+    4.6
+   ]
+  ]
+ },
+ "punches": [
+  0,
+  0.5,
+  1.06,
+  2.12,
+  2.38,
+  3.2,
+  3.92,
+  4.54,
+  5.08,
+  5.78,
+  6.2,
+  6.9,
+  8.16,
+  9.28,
+  9.74,
+  10.28,
+  10.62,
+  11.9,
+  13.14,
+  14.32,
+  14.74,
+  16.34,
+  17.28,
+  18.04,
+  18.86
+ ],
+ "layers": [
+  {
+   "code": "KC-13",
+   "at": 0,
+   "dur": 1.35,
+   "props": {
+    "word": "CLAUDE CODE",
+    "n": 18
+   },
+   "skip": 0.2,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 0,
+   "dur": 1.1,
+   "place": [
+    540,
+    520
+   ],
+   "size": 0.45,
+   "z": 3,
+   "props": {
+    "src": "rea/face_dark.mp4",
+    "start": 0,
+    "live": false
+   },
+   "skip": 0.3,
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "KC-16",
+   "at": 1.06,
+   "dur": 1.61,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-14",
+   "at": 1.1,
+   "dur": 1.3,
+   "place": "mid",
+   "size": 1.5,
+   "z": 2,
+   "props": {
+    "text": "Jede App"
+   },
+   "fp": [
+    328,
+    932,
+    756,
+    1096
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 1.06,
+   "dur": 1.36,
+   "place": "br",
+   "size": 0.5,
+   "z": 3,
+   "props": {
+    "src": "rea/face_dark.mp4",
+    "start": 1.06,
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "KC-10",
+   "at": 2.38,
+   "dur": 1.11,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 2.4,
+   "dur": 0.84,
+   "place": "bottom",
+   "size": 1.4,
+   "z": 2,
+   "props": {
+    "text": "zurückentwickeln"
+   },
+   "fp": [
+    184,
+    928,
+    900,
+    1100
+   ]
+  },
+  {
+   "code": "KC-26",
+   "at": 3.2,
+   "dur": 1.63,
+   "fp": [
+    108,
+    348,
+    948,
+    1696
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 3.2,
+   "dur": 1.38,
+   "place": "tr",
+   "size": 0.6,
+   "z": 3,
+   "props": {
+    "src": "rea/face_dark.mp4",
+    "start": 3.2,
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "T-14",
+   "at": 3.6,
+   "dur": 0.98,
+   "place": "bottom",
+   "size": 1.3,
+   "z": 2,
+   "props": {
+    "text": "bis zum letzten Feature"
+   },
+   "fp": [
+    180,
+    932,
+    904,
+    1092
+   ]
+  },
+  {
+   "code": "3D-14",
+   "at": 4.54,
+   "dur": 2.65,
+   "props": {
+    "label": ""
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-05",
+   "at": 4.6,
+   "dur": 2.3,
+   "place": [
+    540,
+    1080
+   ],
+   "z": 2,
+   "props": {
+    "src": "media/rea20v2/shot_repo_m.png",
+    "url": "github.com/morluto/rea",
+    "scroll": 0.04
+   },
+   "size": 0.75,
+   "fp": [
+    64,
+    296,
+    1016,
+    1616
+   ]
+  },
+  {
+   "code": "KC-35",
+   "at": 6.9,
+   "dur": 1.55,
+   "skip": 0.12,
+   "fp": [
+    0,
+    424,
+    1080,
+    1436
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 6.9,
+   "dur": 0.6,
+   "place": "top",
+   "size": 1.4,
+   "z": 2,
+   "props": {
+    "text": "kostenlos"
+   },
+   "fp": [
+    320,
+    932,
+    764,
+    1096
+   ]
+  },
+  {
+   "code": "T-15",
+   "at": 7.38,
+   "dur": 0.82,
+   "place": "mid",
+   "size": 1.6,
+   "z": 2,
+   "props": {
+    "text": "Open Source"
+   },
+   "fp": [
+    264,
+    932,
+    812,
+    1096
+   ]
+  },
+  {
+   "code": "KC-17",
+   "at": 8.16,
+   "dur": 2.75,
+   "props": {},
+   "push": 0.14,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-07",
+   "at": 10.62,
+   "dur": 1.55,
+   "props": {
+    "srcs": [
+     "media/rea20v2/clip_readme.mp4",
+     "media/rea20v2/clip_terminal.mp4",
+     "media/rea20v2/shot_repo_m.png",
+     "media/rea20v2/clip_notion.mp4"
+    ],
+    "crops": [
+     {
+      "x": 46,
+      "y": 165,
+      "w": 628,
+      "h": 590,
+      "W": 720,
+      "H": 1280
+     },
+     {
+      "x": 50,
+      "y": 165,
+      "w": 620,
+      "h": 690,
+      "W": 720,
+      "H": 1280
+     },
+     null,
+     {
+      "x": 48,
+      "y": 165,
+      "w": 625,
+      "h": 450,
+      "W": 720,
+      "H": 1280
+     }
+    ],
+    "label": "zerlegt"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 11.9,
+   "dur": 1.53,
+   "props": {
+    "src": "media/rea20v2/clip_terminal.mp4",
+    "crop": {
+     "x": 50,
+     "y": 165,
+     "w": 620,
+     "h": 690,
+     "W": 720,
+     "H": 1280
+    },
+    "push": 0.12
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-30",
+   "at": 13.14,
+   "dur": 1.87,
+   "props": {
+    "label": "Features"
+   },
+   "fp": [
+    128,
+    588,
+    956,
+    1424
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 13.3,
+   "dur": 1.44,
+   "place": "bottom",
+   "size": 1.4,
+   "z": 2,
+   "props": {
+    "text": "Feature nachgebaut"
+   },
+   "fp": [
+    140,
+    924,
+    940,
+    1104
+   ]
+  },
+  {
+   "code": "KC-08",
+   "at": 14.74,
+   "dur": 1.87,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-15",
+   "at": 15.2,
+   "dur": 1.16,
+   "place": "bottom",
+   "size": 1.4,
+   "z": 2,
+   "props": {
+    "text": "für dein Produkt"
+   },
+   "fp": [
+    212,
+    928,
+    864,
+    1100
+   ]
+  },
+  {
+   "code": "KC-06",
+   "at": 16.34,
+   "dur": 1.21,
+   "props": {
+    "label": ""
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 16.34,
+   "dur": 0.96,
+   "place": "mid",
+   "size": 0.8,
+   "z": 3,
+   "props": {
+    "src": "rea/face_dark.mp4",
+    "start": 4.69,
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1488
+   ]
+  },
+  {
+   "code": "KC-01",
+   "at": 17.28,
+   "dur": 2.72,
+   "fp": [
+    0,
+    356,
+    1080,
+    1696
+   ]
+  },
+  {
+   "code": "UI-13",
+   "at": 17.28,
+   "dur": 2.72,
+   "place": "top",
+   "z": 2,
+   "props": {
+    "kw": "CODING"
+   },
+   "fp": [
+    80,
+    748,
+    992,
+    1224
+   ]
+  },
+  {
+   "code": "UI-12",
+   "at": 17.9,
+   "dur": 2.1,
+   "place": "bottom",
+   "z": 2,
+   "props": {
+    "items": [
+     {
+      "n": "max.builds",
+      "c": "CODING"
+     },
+     {
+      "n": "lena.creates",
+      "c": "CODING 🔥"
+     },
+     {
+      "n": "tim_v",
+      "c": "CODING"
+     },
+     {
+      "n": "sarah.ai",
+      "c": "CODING bitte!"
+     }
+    ]
+   },
+   "size": 1.0,
+   "fp": [
+    104,
+    424,
+    976,
+    1160
+   ]
+  },
+  {
+   "code": "KX-04",
+   "at": 2.2,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    0,
+    148,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "TR-01",
+   "at": 4.36,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "TR-13",
+   "at": 7.98,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    280,
+    664,
+    800,
+    1256
+   ]
+  },
+  {
+   "code": "TR-08",
+   "at": 17.08,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "FX-10",
+   "at": 0.5,
+   "dur": 0.9,
+   "z": 1,
+   "fp": [
+    0,
+    252,
+    1080,
+    1548
+   ]
+  },
+  {
+   "code": "T-14",
+   "at": 5.75,
+   "dur": 1.15,
+   "place": "top",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "Reverse Engineer Anything"
+   },
+   "fp": [
+    160,
+    932,
+    924,
+    1092
+   ]
+  },
+  {
+   "code": "FX-09",
+   "at": 3.95,
+   "dur": 0.6,
+   "z": 1,
+   "fp": [
+    252,
+    612,
+    828,
+    1188
+   ]
+  },
+  {
+   "code": "ME-03",
+   "at": 0.25,
+   "dur": 0.85,
+   "place": "bottom",
+   "size": 1.6,
+   "z": 4,
+   "props": {
+    "src": "media/rea20v2/logo_claude.svg",
+    "color": "#D97757"
+   },
+   "fp": [
+    16,
+    352,
+    1064,
+    1408
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 12.1,
+   "dur": 1.05,
+   "place": "bottom",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "kompletter Code"
+   },
+   "fp": [
+    204,
+    928,
+    876,
+    1100
+   ]
+  },
+  {
+   "code": "ME-02",
+   "at": 13.2,
+   "dur": 1.55,
+   "place": "top",
+   "size": 0.9,
+   "z": 2,
+   "props": {
+    "src": "media/rea20v2/clip_notion.mp4",
+    "crop": {
+     "x": 48,
+     "y": 165,
+     "w": 625,
+     "h": 450,
+     "W": 720,
+     "H": 1280
+    },
+    "w": 860
+   },
+   "fp": [
+    80,
+    584,
+    1004,
+    1284
+   ]
+  },
+  {
+   "code": "ME-09",
+   "at": 8.2,
+   "dur": 2.45,
+   "z": 2,
+   "props": {
+    "src": "media/rea20v2/logo_github.svg",
+    "to": 180000,
+    "prefix": "+",
+    "label": "Sterne auf GitHub",
+    "chip": "MIT"
+   },
+   "place": "mid",
+   "bare": false,
+   "fp": [
+    108,
+    692,
+    976,
+    1152
+   ]
+  }
+ ],
+ "theme": {
+  "topic": "Reverse Engineer Anything",
+  "words": [
+   "CLAUDE CODE",
+   "JEDE APP",
+   "REVERSE",
+   "OPEN SOURCE",
+   "180K ⭐",
+   "KOMPLETTER CODE",
+   "NACHBAUEN",
+   "FEATURE",
+   "GITHUB",
+   "DEIN PRODUKT",
+   "KI-AGENT",
+   "ZERLEGT"
+  ],
+  "names": [
+   "max.builds",
+   "lena.creates",
+   "tim_v",
+   "sarah.ai"
+  ],
+  "comments": [
+   "CODING",
+   "CODING 🔥",
+   "CODING bitte!"
+  ],
+  "numbers": [
+   180000,
+   4212,
+   12418
+  ],
+  "apps": [
+   "Claude Code",
+   "GitHub"
+  ],
+  "brand": "ULTRA",
+  "kw": "CODING"
+ }
+}

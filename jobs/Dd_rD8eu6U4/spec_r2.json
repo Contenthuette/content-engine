@@ -1,0 +1,993 @@
+{
+ "dur": 25.5,
+ "bg": "BG-02",
+ "vo": "fast_Dd_rD8eu6U4_vo.wav",
+ "music": "fast_Dd_rD8eu6U4_music.wav",
+ "musicVol": 0.55,
+ "theme": {
+  "topic": "Videos schneiden in 3 Levels",
+  "words": [
+   "ROHSCHNITT",
+   "SOUNDDESIGN",
+   "VISUALS",
+   "EDITOR",
+   "TEAM",
+   "B-ROLL",
+   "MUSIKWECHSEL",
+   "SPEZIALIST",
+   "SCHNELLER",
+   "GÜNSTIGER",
+   "LEVEL UP",
+   "VIRAL"
+  ],
+  "names": [
+   "editor.max",
+   "cut.lisa",
+   "sound.tom",
+   "motion.jo"
+  ],
+  "handles": [
+   "@editor.max",
+   "@cut.lisa"
+  ],
+  "comments": [
+   "TEAM",
+   "TEAM 🔥",
+   "TEAM bitte!"
+  ],
+  "numbers": [
+   3,
+   2,
+   3
+  ],
+  "apps": [
+   "DaVinci",
+   "Premiere",
+   "After Effects"
+  ],
+  "brand": "ULTRA",
+  "kw": "TEAM",
+  "views": false
+ },
+ "words": [
+  "ROHSCHNITT",
+  "SOUNDDESIGN",
+  "VISUALS",
+  "EDITOR",
+  "TEAM",
+  "B-ROLL",
+  "MUSIKWECHSEL",
+  "SPEZIALIST",
+  "LEVEL UP",
+  "VIRAL"
+ ],
+ "face": {
+  "src": "face/fast_Dd_rD8eu6U4.mp4",
+  "segs": [
+   [
+    0,
+    3.95,
+    0
+   ],
+   [
+    16.65,
+    17.95,
+    16.65
+   ],
+   [
+    22.65,
+    25.45,
+    22.65
+   ]
+  ]
+ },
+ "punches": [
+  0,
+  0.92,
+  1.76,
+  2.82,
+  3.64,
+  4.0,
+  4.5,
+  5.0,
+  5.54,
+  6.24,
+  7.32,
+  8.1,
+  8.8,
+  9.56,
+  9.95,
+  10.8,
+  11.58,
+  12.36,
+  12.95,
+  13.1,
+  14.36,
+  15.56,
+  16.0,
+  16.34,
+  17.04,
+  17.66,
+  18.92,
+  19.5,
+  20.0,
+  20.6,
+  20.9,
+  21.52,
+  22.1,
+  22.88,
+  23.32,
+  24.8
+ ],
+ "musicFrom": 0.4,
+ "layers": [
+  {
+   "code": "KC-21",
+   "at": 0,
+   "dur": 3.7,
+   "skip": 0.3,
+   "push": 0.1,
+   "words": [
+    "VIDEOS",
+    "SCHNITT",
+    "FRAGE",
+    "EDITOR",
+    "REEL",
+    "LEVEL"
+   ],
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-23",
+   "at": 0.15,
+   "dur": 1.6,
+   "z": 1,
+   "fp": [
+    56,
+    248,
+    1056,
+    1532
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 0,
+   "dur": 3.75,
+   "place": [
+    540,
+    560
+   ],
+   "size": 0.48,
+   "z": 4,
+   "skip": 0.3,
+   "props": {
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "KT-01",
+   "at": 0.15,
+   "dur": 1.6,
+   "place": "bottom",
+   "z": 3,
+   "props": {
+    "lines": [
+     "Die",
+     "ZWEITHÄUFIGSTE",
+     "Frage"
+    ]
+   },
+   "fp": [
+    0,
+    772,
+    1080,
+    1108
+   ]
+  },
+  {
+   "code": "T-14",
+   "at": 1.8,
+   "dur": 1.8,
+   "place": "bottom",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "Wie schneidest du deine Videos?"
+   },
+   "fp": [
+    168,
+    940,
+    912,
+    1084
+   ]
+  },
+  {
+   "code": "KC-02",
+   "at": 3.6,
+   "dur": 1.95,
+   "push": 0.1,
+   "props": {},
+   "fp": [
+    0,
+    148,
+    1080,
+    1652
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 3.75,
+   "dur": 1.6,
+   "place": "top",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "3 Ebenen"
+   },
+   "fp": [
+    328,
+    936,
+    752,
+    1092
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 4.4,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "3D-13",
+   "at": 5.5,
+   "dur": 1.4,
+   "push": 0.1,
+   "fp": [
+    0,
+    88,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KR-01",
+   "at": 5.5,
+   "dur": 1.35,
+   "place": [
+    540,
+    1000
+   ],
+   "size": 0.72,
+   "z": 2,
+   "props": {
+    "small": "Level 1",
+    "big": "Rohschnitt",
+    "icon": "sword",
+    "title": "SCHNITT-GAME"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KR-11",
+   "at": 5.55,
+   "dur": 1.3,
+   "place": "top",
+   "size": 0.75,
+   "z": 3,
+   "props": {
+    "label": "LEVEL UP!",
+    "coins": 3
+   },
+   "fp": [
+    60,
+    260,
+    1012,
+    1200
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 6.84,
+   "dur": 1.9,
+   "props": {
+    "src": "media/Dd_rD8eu6U4/clip_wave.mp4",
+    "crop": {
+     "x": 0,
+     "y": 320,
+     "w": 720,
+     "h": 420,
+     "W": 720,
+     "H": 1280
+    },
+    "push": 0.14
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-45",
+   "at": 6.9,
+   "dur": 0.9,
+   "place": "top",
+   "z": 3,
+   "props": {
+    "text": "Pausen raus."
+   },
+   "fp": [
+    176,
+    908,
+    908,
+    1012
+   ]
+  },
+  {
+   "code": "T-15",
+   "at": 7.8,
+   "dur": 0.95,
+   "place": "bottom",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "Spannung rein"
+   },
+   "fp": [
+    236,
+    928,
+    840,
+    1096
+   ]
+  },
+  {
+   "code": "3D-10",
+   "at": 8.75,
+   "dur": 1.55,
+   "push": 0.1,
+   "fp": [
+    0,
+    584,
+    1080,
+    1604
+   ]
+  },
+  {
+   "code": "KR-02",
+   "at": 8.75,
+   "dur": 1.5,
+   "place": [
+    540,
+    1000
+   ],
+   "size": 0.72,
+   "z": 2,
+   "props": {
+    "small": "Level 2",
+    "big": "Sounddesign",
+    "icon": "star",
+    "title": "SCHNITT-GAME"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KR-11",
+   "at": 8.8,
+   "dur": 1.45,
+   "place": "top",
+   "size": 0.75,
+   "z": 3,
+   "props": {
+    "label": "LEVEL UP!",
+    "coins": 3
+   },
+   "fp": [
+    60,
+    260,
+    1012,
+    1200
+   ]
+  },
+  {
+   "code": "ME-07",
+   "at": 10.25,
+   "dur": 2.1,
+   "props": {
+    "srcs": [
+     "media/Dd_rD8eu6U4/clip_wave.mp4",
+     "media/Dd_rD8eu6U4/clip_curve.mp4",
+     "media/Dd_rD8eu6U4/clip_retention.mp4"
+    ],
+    "crops": [
+     {
+      "x": 0,
+      "y": 320,
+      "w": 720,
+      "h": 420,
+      "W": 720,
+      "H": 1280
+     },
+     {
+      "x": 0,
+      "y": 370,
+      "w": 720,
+      "h": 600,
+      "W": 720,
+      "H": 1280
+     },
+     {
+      "x": 60,
+      "y": 280,
+      "w": 660,
+      "h": 600,
+      "W": 720,
+      "H": 1280
+     }
+    ]
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-09",
+   "at": 10.3,
+   "dur": 2.05,
+   "place": "mid",
+   "z": 3,
+   "bare": false,
+   "props": {
+    "src": "media/Dd_rD8eu6U4/logo_davinciresolve.svg",
+    "from": 2,
+    "to": 3,
+    "prefix": "2–",
+    "label": "Musikwechsel pro Video",
+    "icon": "♫",
+    "color": "#19C37D"
+   },
+   "fp": [
+    104,
+    684,
+    980,
+    1152
+   ]
+  },
+  {
+   "code": "KC-12",
+   "at": 12.3,
+   "dur": 1.5,
+   "push": 0.1,
+   "fp": [
+    84,
+    380,
+    1036,
+    1492
+   ]
+  },
+  {
+   "code": "KR-03",
+   "at": 12.3,
+   "dur": 1.45,
+   "place": [
+    540,
+    1000
+   ],
+   "size": 0.72,
+   "z": 2,
+   "props": {
+    "small": "Level 3",
+    "big": "Visuals",
+    "icon": "eye",
+    "title": "SCHNITT-GAME"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KR-11",
+   "at": 12.35,
+   "dur": 1.4,
+   "place": "top",
+   "size": 0.75,
+   "z": 3,
+   "props": {
+    "label": "LEVEL UP!",
+    "coins": 3
+   },
+   "fp": [
+    60,
+    260,
+    1012,
+    1200
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 13.75,
+   "dur": 1.4,
+   "props": {
+    "src": "media/Dd_rD8eu6U4/clip_curve.mp4",
+    "crop": {
+     "x": 0,
+     "y": 370,
+     "w": 720,
+     "h": 600,
+     "W": 720,
+     "H": 1280
+    },
+    "push": 0.12
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 13.85,
+   "dur": 1.25,
+   "place": "bottom",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "B-Roll + Animation"
+   },
+   "fp": [
+    168,
+    924,
+    912,
+    1100
+   ]
+  },
+  {
+   "code": "FX-16",
+   "at": 13.8,
+   "dur": 1.3,
+   "z": 1,
+   "fp": [
+    0,
+    348,
+    1080,
+    1516
+   ]
+  },
+  {
+   "code": "KC-11",
+   "at": 15.1,
+   "dur": 1.6,
+   "push": 0.1,
+   "fp": [
+    104,
+    380,
+    1036,
+    1492
+   ]
+  },
+  {
+   "code": "T-14",
+   "at": 15.2,
+   "dur": 1.4,
+   "place": "mid",
+   "size": 1.05,
+   "z": 3,
+   "props": {
+    "text": "Gesagt = gezeigt"
+   },
+   "fp": [
+    200,
+    924,
+    880,
+    1104
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 15.4,
+   "dur": 1.1,
+   "z": 2,
+   "fp": [
+    212,
+    452,
+    888,
+    1364
+   ]
+  },
+  {
+   "code": "3D-16",
+   "at": 16.6,
+   "dur": 1.0,
+   "push": 0.12,
+   "fp": [
+    100,
+    452,
+    984,
+    1344
+   ]
+  },
+  {
+   "code": "T-45",
+   "at": 16.65,
+   "dur": 0.95,
+   "place": "top",
+   "z": 3,
+   "props": {
+    "text": "Der Trick?"
+   },
+   "fp": [
+    196,
+    896,
+    892,
+    1020
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 16.65,
+   "dur": 0.95,
+   "place": "bottom",
+   "size": 0.95,
+   "z": 4,
+   "props": {
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1488
+   ]
+  },
+  {
+   "code": "KC-33",
+   "at": 17.6,
+   "dur": 1.9,
+   "push": 0.1,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KU-19",
+   "at": 17.65,
+   "dur": 1.8,
+   "place": "mid",
+   "z": 2,
+   "props": {
+    "rows": [
+     [
+      "Editor 1",
+      "Rohschnitt fertig ✓"
+     ],
+     [
+      "Editor 2",
+      "Sound sitzt ✓"
+     ],
+     [
+      "Editor 3",
+      "Animationen fertig ✓"
+     ]
+    ],
+    "typing": "arbeitet …"
+   },
+   "size": 1.0,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 17.75,
+   "dur": 1.6,
+   "place": "top",
+   "size": 1.1,
+   "z": 3,
+   "props": {
+    "text": "1 Ebene = 1 Editor"
+   },
+   "fp": [
+    196,
+    928,
+    884,
+    1100
+   ]
+  },
+  {
+   "code": "KR-25",
+   "at": 19.45,
+   "dur": 2.0,
+   "push": 0.08,
+   "props": {
+    "name": "A-PLAYER"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-45",
+   "at": 19.5,
+   "dur": 0.95,
+   "place": "bottom",
+   "z": 3,
+   "props": {
+    "text": "Keine A-Player."
+   },
+   "fp": [
+    196,
+    916,
+    892,
+    1020
+   ]
+  },
+  {
+   "code": "T-15",
+   "at": 20.5,
+   "dur": 0.95,
+   "place": "bottom",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "nur Spezialisten"
+   },
+   "fp": [
+    216,
+    928,
+    864,
+    1100
+   ]
+  },
+  {
+   "code": "FX-09",
+   "at": 20.6,
+   "dur": 0.8,
+   "place": "br",
+   "size": 0.6,
+   "z": 4,
+   "fp": [
+    224,
+    584,
+    856,
+    1216
+   ]
+  },
+  {
+   "code": "KC-31",
+   "at": 21.45,
+   "dur": 1.4,
+   "props": {
+    "a": "A-Player",
+    "b": "Team",
+    "caption": "KOSTEN PRO VIDEO",
+    "unit": ""
+   },
+   "fp": [
+    84,
+    392,
+    996,
+    1264
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 21.55,
+   "dur": 1.2,
+   "place": "top",
+   "size": 1.2,
+   "z": 3,
+   "props": {
+    "text": "schneller + günstiger"
+   },
+   "fp": [
+    180,
+    932,
+    900,
+    1092
+   ]
+  },
+  {
+   "code": "FX-09",
+   "at": 22.1,
+   "dur": 0.7,
+   "place": "br",
+   "size": 0.6,
+   "z": 4,
+   "fp": [
+    232,
+    592,
+    848,
+    1208
+   ]
+  },
+  {
+   "code": "KR-27",
+   "at": 22.8,
+   "dur": 2.7,
+   "push": 0.06,
+   "props": {
+    "title": "LEVEL COMPLETE",
+    "ask": "Kommentiere TEAM"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 22.75,
+   "dur": 2.75,
+   "place": [
+    540,
+    430
+   ],
+   "size": 0.38,
+   "z": 4,
+   "props": {
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "UI-46",
+   "at": 22.95,
+   "dur": 2.55,
+   "place": "bottom",
+   "z": 3,
+   "props": {
+    "kw": "TEAM"
+   },
+   "fp": [
+    80,
+    748,
+    992,
+    1224
+   ]
+  },
+  {
+   "code": "FX-01",
+   "at": 24.0,
+   "dur": 1.4,
+   "z": 1,
+   "fp": [
+    0,
+    144,
+    1080,
+    1872
+   ]
+  },
+  {
+   "code": "KX-04",
+   "at": 5.25,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    0,
+    148,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "TR-02",
+   "at": 8.5,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    240,
+    660,
+    840,
+    1260
+   ]
+  },
+  {
+   "code": "KX-12",
+   "at": 12.05,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    0,
+    132,
+    1080,
+    1724
+   ]
+  },
+  {
+   "code": "TR-11",
+   "at": 16.4,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    280,
+    664,
+    800,
+    1256
+   ]
+  },
+  {
+   "code": "KX-19",
+   "at": 22.55,
+   "dur": 0.5,
+   "z": 9,
+   "fp": [
+    76,
+    436,
+    1004,
+    1368
+   ]
+  },
+  {
+   "code": "3D-17",
+   "at": 3.78,
+   "dur": 1.72,
+   "place": "mid",
+   "size": 1.3,
+   "z": 2,
+   "props": {
+    "labels": [
+     "ROHSCHNITT",
+     "SOUND",
+     "VISUALS"
+    ]
+   },
+   "fp": [
+    220,
+    604,
+    740,
+    1076
+   ]
+  }
+ ]
+}

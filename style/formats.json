@@ -1,0 +1,218 @@
+{
+ "_regeln": "Jedes Reel hat genau ein Format (recipe.json: \"format\"). Nie dasselbe Format wie das letzte Reel derselben Marke. Gleiche DNA (Hook ≤1,5 s, Tempo, 3 Akzentfarben, Safe Zones, dunkler Studio-Avatar ≤6–8 s), aber erkennbar anderer Look. Bausteine außerhalb der Liste sind erlaubt, wenn sie zur Aussage passen – die Liste ist der Kern, nicht die Grenze. Bilddichte (Leif 14.10.): kein Beat mit einem Element auf leerem Grund – jeder Beat ist eine dichte Fläche (⭐-Bausteine) oder hat ≥ 3 Ebenen gleichzeitig.",
+ "keynote": {
+  "name": "Keynote",
+  "look": "Apple-Bühne: viel Weißraum, große Typo, ruhige Kamera, ein Gedanke pro Beat.",
+  "bg": [
+   "BG-01",
+   "BG-06",
+   "BG-08"
+  ],
+  "kern": [
+   "3D-14",
+   "3D-06",
+   "3D-11",
+   "T-01",
+   "T-03",
+   "T-07",
+   "T-18",
+   "T-30",
+   "DA-01",
+   "DA-03",
+   "DA-06",
+   "3D-11",
+   "3D-18"
+  ],
+  "uebergaenge": [
+   "TR-14",
+   "TR-15",
+   "TR-10",
+   "TR-06"
+  ],
+  "avatar": [
+   "AV-03",
+   "AV-09",
+   "AV-05"
+  ],
+  "sound": [
+   "whoosh",
+   "swish",
+   "glass",
+   "pluck",
+   "sparkle"
+  ],
+  "tempo_s": [
+   1.5,
+   2.5
+  ]
+ },
+ "iphone": {
+  "name": "iPhone-Screen",
+  "look": "Alles passiert auf/aus dem iPhone: Island, Mitteilungen, iMessage, Widgets, Homescreen. UI-Morphs statt Schnitte.",
+  "bg": [
+   "BG-02",
+   "BG-09",
+   "BG-12"
+  ],
+  "kern": [
+   "KC-30",
+   "3D-06",
+   "UI-04",
+   "UI-09",
+   "UI-10",
+   "UI-11",
+   "UI-12",
+   "UI-19",
+   "UI-26",
+   "W-17",
+   "W-18",
+   "3D-01"
+  ],
+  "uebergaenge": [
+   "TR-11",
+   "TR-12",
+   "TR-04",
+   "TR-14"
+  ],
+  "avatar": [
+   "AV-01",
+   "AV-08",
+   "AV-04"
+  ],
+  "sound": [
+   "tap",
+   "tick2",
+   "send",
+   "bubble",
+   "tock",
+   "swipe"
+  ],
+  "tempo_s": [
+   1.2,
+   2.0
+  ]
+ },
+ "desk3d": {
+  "name": "3D-Desk",
+  "look": "Tiefe und Raum: Mac-Fenster, Terminal, Karten-Fächer, Glas-Ebenen, Orbit – die Kamera fliegt durch Ebenen.",
+  "bg": [
+   "BG-04",
+   "BG-05",
+   "BG-15"
+  ],
+  "kern": [
+   "KC-08",
+   "KC-09",
+   "KC-10",
+   "KC-26",
+   "KC-06",
+   "KC-36",
+   "3D-14",
+   "UI-20",
+   "UI-21",
+   "UI-22",
+   "3D-05",
+   "3D-06",
+   "3D-08",
+   "3D-10",
+   "3D-13",
+   "3D-19",
+   "KC-01"
+  ],
+  "uebergaenge": [
+   "TR-10",
+   "TR-09",
+   "TR-05",
+   "TR-06"
+  ],
+  "avatar": [
+   "AV-05",
+   "AV-09",
+   "KA-05"
+  ],
+  "sound": [
+   "whoosh3",
+   "slide",
+   "data",
+   "digital",
+   "zip",
+   "snap"
+  ],
+  "tempo_s": [
+   1.2,
+   2.2
+  ]
+ },
+ "breaking": {
+  "name": "Breaking News",
+  "look": "Kleinecke-Energie: laute Typo-Salven, Bursts, Collagen, Stempel, alle 0,3–0,8 s ein neuer Reiz.",
+  "bg": [
+   "BG-03",
+   "BG-13",
+   "BG-16"
+  ],
+  "kern": [
+   "KC-13",
+   "KC-14",
+   "KC-16",
+   "KC-17",
+   "KC-19",
+   "KC-22",
+   "KC-35",
+   "T-45",
+   "T-20",
+   "KT-01",
+   "KC-13",
+   "KC-23",
+   "KB-01",
+   "KU-01",
+   "FX-02",
+   "FX-10",
+   "3D-04"
+  ],
+  "uebergaenge": [
+   "KX-04",
+   "KX-05",
+   "TR-01",
+   "TR-08",
+   "TR-13"
+  ],
+  "avatar": [
+   "KA-26",
+   "KA-17",
+   "KA-10"
+  ],
+  "sound": [
+   "swipe",
+   "snap",
+   "stamp",
+   "glitch",
+   "counter",
+   "rise2"
+  ],
+  "tempo_s": [
+   0.6,
+   1.4
+  ]
+ },
+ "_favoriten": [
+  "3D-14",
+  "3D-06",
+  "3D-11",
+  "KC-06",
+  "KC-08",
+  "KC-09",
+  "KC-10",
+  "KC-13",
+  "KC-14",
+  "KC-16",
+  "KC-17",
+  "KC-19",
+  "KC-22",
+  "KC-26",
+  "KC-30",
+  "KC-35",
+  "KC-36",
+  "M-08"
+ ]
+}

@@ -1,0 +1,2957 @@
+{
+"BG-01": {
+"status": "ok",
+"gruende": []
+},
+"BG-02": {
+"status": "ok",
+"gruende": []
+},
+"BG-03": {
+"status": "ok",
+"gruende": []
+},
+"BG-04": {
+"status": "ok",
+"gruende": []
+},
+"BG-05": {
+"status": "ok",
+"gruende": []
+},
+"BG-06": {
+"status": "ok",
+"gruende": []
+},
+"BG-07": {
+"status": "ok",
+"gruende": []
+},
+"BG-08": {
+"status": "ok",
+"gruende": []
+},
+"BG-09": {
+"status": "ok",
+"gruende": []
+},
+"BG-10": {
+"status": "ok",
+"gruende": []
+},
+"BG-11": {
+"status": "ok",
+"gruende": []
+},
+"BG-12": {
+"status": "ok",
+"gruende": []
+},
+"BG-13": {
+"status": "ok",
+"gruende": []
+},
+"BG-14": {
+"status": "ok",
+"gruende": []
+},
+"BG-15": {
+"status": "ok",
+"gruende": []
+},
+"BG-16": {
+"status": "ok",
+"gruende": []
+},
+"T-01": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-03": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"T-05": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-06": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-07": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-10": {
+"status": "ok",
+"gruende": []
+},
+"T-11": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"T-12": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-13": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-14": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-15": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-16": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"T-17": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-18": {
+"status": "ok",
+"gruende": []
+},
+"T-19": {
+"status": "ok",
+"gruende": []
+},
+"T-20": {
+"status": "ok",
+"gruende": []
+},
+"T-21": {
+"status": "ok",
+"gruende": []
+},
+"T-22": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-23": {
+"status": "ok",
+"gruende": []
+},
+"T-24": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"T-25": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-26": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-27": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-28": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"T-29": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.3s"
+]
+},
+"T-30": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-31": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-32": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-33": {
+"status": "ok",
+"gruende": []
+},
+"T-34": {
+"status": "ok",
+"gruende": []
+},
+"T-35": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-36": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-37": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-38": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-39": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-40": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-41": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-42": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-43": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-44": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-45": {
+"status": "ok",
+"gruende": []
+},
+"T-46": {
+"status": "ok",
+"gruende": []
+},
+"T-47": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-48": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-49": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"T-50": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-51": {
+"status": "ok",
+"gruende": []
+},
+"T-52": {
+"status": "ok",
+"gruende": []
+},
+"T-53": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"T-54": {
+"status": "ok",
+"gruende": []
+},
+"T-55": {
+"status": "ok",
+"gruende": []
+},
+"T-56": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"T-57": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"T-58": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"T-59": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"T-60": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-01": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-03": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.3s"
+]
+},
+"UI-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-05": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-06": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-07": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-11": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"UI-12": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-13": {
+"status": "ok",
+"gruende": []
+},
+"UI-14": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-15": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-16": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-17": {
+"status": "ok",
+"gruende": []
+},
+"UI-18": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-19": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-20": {
+"status": "ok",
+"gruende": []
+},
+"UI-21": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.4s"
+]
+},
+"UI-22": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-23": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-24": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-25": {
+"status": "ok",
+"gruende": []
+},
+"UI-26": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-27": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"UI-28": {
+"status": "ok",
+"gruende": []
+},
+"UI-29": {
+"status": "ok",
+"gruende": []
+},
+"UI-30": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"UI-31": {
+"status": "ok",
+"gruende": []
+},
+"UI-32": {
+"status": "ok",
+"gruende": []
+},
+"UI-33": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-34": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-35": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"UI-36": {
+"status": "ok",
+"gruende": []
+},
+"UI-37": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-38": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-39": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-40": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-41": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.3s"
+]
+},
+"UI-42": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-43": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-44": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"UI-45": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"UI-46": {
+"status": "ok",
+"gruende": []
+},
+"UI-47": {
+"status": "ok",
+"gruende": []
+},
+"UI-48": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"UI-49": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"UI-50": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-01": {
+"status": "ok",
+"gruende": []
+},
+"W-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-03": {
+"status": "ok",
+"gruende": []
+},
+"W-04": {
+"status": "ok",
+"gruende": []
+},
+"W-05": {
+"status": "ok",
+"gruende": []
+},
+"W-06": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-07": {
+"status": "ok",
+"gruende": []
+},
+"W-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-09": {
+"status": "ok",
+"gruende": []
+},
+"W-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-11": {
+"status": "ok",
+"gruende": []
+},
+"W-12": {
+"status": "ok",
+"gruende": []
+},
+"W-13": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-14": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-15": {
+"status": "ok",
+"gruende": []
+},
+"W-16": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"W-17": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"W-18": {
+"status": "ok",
+"gruende": []
+},
+"W-19": {
+"status": "ok",
+"gruende": []
+},
+"W-20": {
+"status": "ok",
+"gruende": []
+},
+"W-21": {
+"status": "ok",
+"gruende": []
+},
+"W-22": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"W-23": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"W-24": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"W-25": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"W-26": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"W-27": {
+"status": "ok",
+"gruende": []
+},
+"W-28": {
+"status": "ok",
+"gruende": []
+},
+"W-29": {
+"status": "ok",
+"gruende": []
+},
+"W-30": {
+"status": "ok",
+"gruende": []
+},
+"W-31": {
+"status": "ok",
+"gruende": []
+},
+"W-32": {
+"status": "ok",
+"gruende": []
+},
+"W-33": {
+"status": "ok",
+"gruende": []
+},
+"W-34": {
+"status": "ok",
+"gruende": []
+},
+"3D-01": {
+"status": "ok",
+"gruende": []
+},
+"3D-02": {
+"status": "ok",
+"gruende": []
+},
+"3D-03": {
+"status": "ok",
+"gruende": []
+},
+"3D-04": {
+"status": "ok",
+"gruende": []
+},
+"3D-05": {
+"status": "ok",
+"gruende": []
+},
+"3D-06": {
+"status": "ok",
+"gruende": []
+},
+"3D-07": {
+"status": "ok",
+"gruende": []
+},
+"3D-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"3D-09": {
+"status": "ok",
+"gruende": []
+},
+"3D-10": {
+"status": "ok",
+"gruende": []
+},
+"3D-11": {
+"status": "ok",
+"gruende": []
+},
+"3D-12": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Karten-Flip"
+]
+},
+"3D-13": {
+"status": "ok",
+"gruende": []
+},
+"3D-14": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"3D-15": {
+"status": "ok",
+"gruende": []
+},
+"3D-16": {
+"status": "ok",
+"gruende": []
+},
+"3D-17": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"3D-18": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.4s"
+]
+},
+"3D-19": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.4s"
+]
+},
+"3D-20": {
+"status": "ok",
+"gruende": []
+},
+"3D-21": {
+"status": "ok",
+"gruende": []
+},
+"3D-22": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"3D-23": {
+"status": "ok",
+"gruende": []
+},
+"3D-24": {
+"status": "ok",
+"gruende": []
+},
+"3D-25": {
+"status": "ok",
+"gruende": []
+},
+"3D-26": {
+"status": "ok",
+"gruende": []
+},
+"3D-27": {
+"status": "ok",
+"gruende": []
+},
+"3D-28": {
+"status": "ok",
+"gruende": []
+},
+"3D-29": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"3D-30": {
+"status": "ok",
+"gruende": []
+},
+"3D-31": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Karten-Flip"
+]
+},
+"3D-32": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"3D-33": {
+"status": "ok",
+"gruende": []
+},
+"3D-34": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"M-01": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"M-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.3s"
+]
+},
+"M-03": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.7s"
+]
+},
+"M-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"M-05": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: Radar überstreicht gewollt die ganze Karte, von Hand geprüft 14.10."
+]
+},
+"M-06": {
+"status": "ok",
+"gruende": []
+},
+"M-07": {
+"status": "ok",
+"gruende": []
+},
+"M-08": {
+"status": "ok",
+"gruende": []
+},
+"M-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"M-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"M-11": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"M-12": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"M-13": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"M-14": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: Radar überstreicht gewollt die ganze Karte, von Hand geprüft 14.10."
+]
+},
+"M-15": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"DA-01": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"DA-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"DA-03": {
+"status": "ok",
+"gruende": []
+},
+"DA-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"DA-05": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"DA-06": {
+"status": "ok",
+"gruende": []
+},
+"DA-07": {
+"status": "ok",
+"gruende": []
+},
+"DA-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"DA-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"DA-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"DA-11": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"DA-12": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"DA-13": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"DA-14": {
+"status": "ok",
+"gruende": []
+},
+"DA-15": {
+"status": "ok",
+"gruende": []
+},
+"DA-16": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10.",
+"hinweis-stillstand 0.8s"
+]
+},
+"DA-17": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10.",
+"hinweis-stillstand 0.8s"
+]
+},
+"DA-18": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"DA-19": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"DA-20": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"DA-21": {
+"status": "ok",
+"gruende": []
+},
+"DA-22": {
+"status": "ok",
+"gruende": []
+},
+"DA-23": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"DA-24": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"FX-01": {
+"status": "ok",
+"gruende": []
+},
+"FX-02": {
+"status": "ok",
+"gruende": []
+},
+"FX-03": {
+"status": "ok",
+"gruende": []
+},
+"FX-04": {
+"status": "ok",
+"gruende": []
+},
+"FX-05": {
+"status": "ok",
+"gruende": []
+},
+"FX-06": {
+"status": "ok",
+"gruende": []
+},
+"FX-07": {
+"status": "ok",
+"gruende": []
+},
+"FX-08": {
+"status": "ok",
+"gruende": []
+},
+"FX-09": {
+"status": "ok",
+"gruende": []
+},
+"FX-10": {
+"status": "ok",
+"gruende": []
+},
+"FX-11": {
+"status": "ok",
+"gruende": []
+},
+"FX-12": {
+"status": "ok",
+"gruende": []
+},
+"FX-13": {
+"status": "ok",
+"gruende": []
+},
+"FX-14": {
+"status": "ok",
+"gruende": []
+},
+"FX-15": {
+"status": "ok",
+"gruende": []
+},
+"FX-16": {
+"status": "ok",
+"gruende": []
+},
+"FX-17": {
+"status": "ok",
+"gruende": []
+},
+"FX-18": {
+"status": "ok",
+"gruende": []
+},
+"FX-19": {
+"status": "ok",
+"gruende": []
+},
+"FX-20": {
+"status": "ok",
+"gruende": []
+},
+"FX-21": {
+"status": "ok",
+"gruende": []
+},
+"FX-22": {
+"status": "ok",
+"gruende": []
+},
+"FX-23": {
+"status": "ok",
+"gruende": []
+},
+"FX-24": {
+"status": "ok",
+"gruende": []
+},
+"FX-25": {
+"status": "ok",
+"gruende": []
+},
+"TR-01": {
+"status": "ok",
+"gruende": []
+},
+"TR-02": {
+"status": "ok",
+"gruende": []
+},
+"TR-03": {
+"status": "ok",
+"gruende": []
+},
+"TR-04": {
+"status": "ok",
+"gruende": []
+},
+"TR-05": {
+"status": "ok",
+"gruende": []
+},
+"TR-06": {
+"status": "ok",
+"gruende": []
+},
+"TR-07": {
+"status": "ok",
+"gruende": []
+},
+"TR-08": {
+"status": "ok",
+"gruende": []
+},
+"TR-09": {
+"status": "ok",
+"gruende": []
+},
+"TR-10": {
+"status": "ok",
+"gruende": []
+},
+"TR-11": {
+"status": "ok",
+"gruende": []
+},
+"TR-12": {
+"status": "ok",
+"gruende": []
+},
+"TR-13": {
+"status": "ok",
+"gruende": []
+},
+"TR-14": {
+"status": "ok",
+"gruende": []
+},
+"TR-15": {
+"status": "ok",
+"gruende": []
+},
+"TR-16": {
+"status": "ok",
+"gruende": []
+},
+"TR-17": {
+"status": "ok",
+"gruende": []
+},
+"TR-18": {
+"status": "ok",
+"gruende": []
+},
+"TR-19": {
+"status": "ok",
+"gruende": []
+},
+"TR-20": {
+"status": "ok",
+"gruende": []
+},
+"TR-21": {
+"status": "ok",
+"gruende": []
+},
+"TR-22": {
+"status": "ok",
+"gruende": []
+},
+"AV-01": {
+"status": "ok",
+"gruende": []
+},
+"AV-02": {
+"status": "ok",
+"gruende": []
+},
+"AV-03": {
+"status": "ok",
+"gruende": []
+},
+"AV-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"AV-05": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"AV-06": {
+"status": "ok",
+"gruende": []
+},
+"AV-07": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"AV-08": {
+"status": "ok",
+"gruende": []
+},
+"AV-09": {
+"status": "ok",
+"gruende": []
+},
+"AV-10": {
+"status": "ok",
+"gruende": []
+},
+"AV-11": {
+"status": "ok",
+"gruende": []
+},
+"AV-12": {
+"status": "ok",
+"gruende": []
+},
+"AV-13": {
+"status": "ok",
+"gruende": []
+},
+"AV-14": {
+"status": "ok",
+"gruende": []
+},
+"AV-15": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"AV-16": {
+"status": "ok",
+"gruende": []
+},
+"AV-17": {
+"status": "ok",
+"gruende": []
+},
+"AV-18": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"AV-19": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"AV-20": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"ME-01": {
+"status": "ok",
+"gruende": []
+},
+"ME-02": {
+"status": "ok",
+"gruende": []
+},
+"ME-03": {
+"status": "ok",
+"gruende": []
+},
+"ME-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"ME-05": {
+"status": "ok",
+"gruende": []
+},
+"ME-06": {
+"status": "ok",
+"gruende": []
+},
+"ME-07": {
+"status": "ok",
+"gruende": []
+},
+"ME-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"ME-09": {
+"status": "ok",
+"gruende": []
+},
+"KT-01": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KT-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KT-03": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KT-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-05": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KT-06": {
+"status": "ok",
+"gruende": []
+},
+"KT-07": {
+"status": "ok",
+"gruende": []
+},
+"KT-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KT-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KT-11": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-12": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-13": {
+"status": "ok",
+"gruende": []
+},
+"KT-14": {
+"status": "ok",
+"gruende": []
+},
+"KT-15": {
+"status": "ok",
+"gruende": []
+},
+"KT-16": {
+"status": "ok",
+"gruende": []
+},
+"KT-17": {
+"status": "ok",
+"gruende": []
+},
+"KT-18": {
+"status": "ok",
+"gruende": []
+},
+"KT-19": {
+"status": "ok",
+"gruende": []
+},
+"KT-20": {
+"status": "ok",
+"gruende": []
+},
+"KT-21": {
+"status": "ok",
+"gruende": []
+},
+"KT-22": {
+"status": "ok",
+"gruende": []
+},
+"KT-23": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-24": {
+"status": "ok",
+"gruende": []
+},
+"KT-25": {
+"status": "ok",
+"gruende": []
+},
+"KT-26": {
+"status": "ok",
+"gruende": []
+},
+"KT-27": {
+"status": "ok",
+"gruende": []
+},
+"KT-28": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-29": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-30": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KT-31": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-32": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KT-33": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KT-34": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KT-35": {
+"status": "ok",
+"gruende": []
+},
+"KT-36": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-37": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KT-38": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KT-39": {
+"status": "ok",
+"gruende": []
+},
+"KT-40": {
+"status": "ok",
+"gruende": []
+},
+"KT-41": {
+"status": "ok",
+"gruende": []
+},
+"KT-42": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KT-43": {
+"status": "ok",
+"gruende": []
+},
+"KT-44": {
+"status": "ok",
+"gruende": []
+},
+"KT-45": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KC-01": {
+"status": "ok",
+"gruende": []
+},
+"KC-02": {
+"status": "ok",
+"gruende": []
+},
+"KC-03": {
+"status": "ok",
+"gruende": []
+},
+"KC-04": {
+"status": "ok",
+"gruende": []
+},
+"KC-05": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10."
+]
+},
+"KC-06": {
+"status": "ok",
+"gruende": []
+},
+"KC-07": {
+"status": "ok",
+"gruende": []
+},
+"KC-08": {
+"status": "ok",
+"gruende": []
+},
+"KC-09": {
+"status": "ok",
+"gruende": []
+},
+"KC-10": {
+"status": "ok",
+"gruende": []
+},
+"KC-11": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KC-12": {
+"status": "ok",
+"gruende": []
+},
+"KC-13": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KC-14": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KC-15": {
+"status": "ok",
+"gruende": []
+},
+"KC-16": {
+"status": "ok",
+"gruende": []
+},
+"KC-17": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10."
+]
+},
+"KC-18": {
+"status": "ok",
+"gruende": []
+},
+"KC-19": {
+"status": "ok",
+"gruende": []
+},
+"KC-20": {
+"status": "ok",
+"gruende": []
+},
+"KC-21": {
+"status": "ok",
+"gruende": []
+},
+"KC-22": {
+"status": "ok",
+"gruende": []
+},
+"KC-23": {
+"status": "ok",
+"gruende": []
+},
+"KC-24": {
+"status": "ok",
+"gruende": []
+},
+"KC-25": {
+"status": "ok",
+"gruende": []
+},
+"KC-26": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.3s"
+]
+},
+"KC-27": {
+"status": "ok",
+"gruende": []
+},
+"KC-28": {
+"status": "ok",
+"gruende": []
+},
+"KC-29": {
+"status": "ok",
+"gruende": []
+},
+"KC-30": {
+"status": "ok",
+"gruende": []
+},
+"KC-31": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KC-32": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KC-33": {
+"status": "ok",
+"gruende": []
+},
+"KC-34": {
+"status": "ok",
+"gruende": []
+},
+"KC-35": {
+"status": "ok",
+"gruende": []
+},
+"KC-36": {
+"status": "ok",
+"gruende": []
+},
+"KC-37": {
+"status": "ok",
+"gruende": []
+},
+"KC-38": {
+"status": "ok",
+"gruende": []
+},
+"KC-39": {
+"status": "ok",
+"gruende": []
+},
+"KC-40": {
+"status": "ok",
+"gruende": []
+},
+"KR-01": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KR-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KR-03": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KR-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KR-05": {
+"status": "ok",
+"gruende": []
+},
+"KR-06": {
+"status": "ok",
+"gruende": []
+},
+"KR-07": {
+"status": "ok",
+"gruende": []
+},
+"KR-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"KR-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KR-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.3s"
+]
+},
+"KR-11": {
+"status": "ok",
+"gruende": []
+},
+"KR-12": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10."
+]
+},
+"KR-13": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10."
+]
+},
+"KR-14": {
+"status": "ok",
+"gruende": []
+},
+"KR-15": {
+"status": "ok",
+"gruende": []
+},
+"KR-16": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KR-17": {
+"status": "ok",
+"gruende": []
+},
+"KR-18": {
+"status": "ok",
+"gruende": []
+},
+"KR-19": {
+"status": "ok",
+"gruende": []
+},
+"KR-20": {
+"status": "ok",
+"gruende": []
+},
+"KR-21": {
+"status": "ok",
+"gruende": []
+},
+"KR-22": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KR-23": {
+"status": "ok",
+"gruende": []
+},
+"KR-24": {
+"status": "ok",
+"gruende": []
+},
+"KR-25": {
+"status": "ok",
+"gruende": []
+},
+"KR-26": {
+"status": "ok",
+"gruende": []
+},
+"KR-27": {
+"status": "ok",
+"gruende": []
+},
+"KR-28": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KR-29": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KR-30": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KR-31": {
+"status": "ok",
+"gruende": []
+},
+"KR-32": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KR-33": {
+"status": "ok",
+"gruende": []
+},
+"KR-34": {
+"status": "ok",
+"gruende": []
+},
+"KR-35": {
+"status": "ok",
+"gruende": []
+},
+"KB-01": {
+"status": "ok",
+"gruende": []
+},
+"KB-02": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10."
+]
+},
+"KB-03": {
+"status": "ok",
+"gruende": []
+},
+"KB-04": {
+"status": "ok",
+"gruende": []
+},
+"KB-05": {
+"status": "ok",
+"gruende": []
+},
+"KB-06": {
+"status": "ok",
+"gruende": []
+},
+"KB-07": {
+"status": "ok",
+"gruende": []
+},
+"KB-08": {
+"status": "ok",
+"gruende": []
+},
+"KB-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KB-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KB-11": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KB-12": {
+"status": "ok",
+"gruende": []
+},
+"KB-13": {
+"status": "ok",
+"gruende": []
+},
+"KB-14": {
+"status": "ok",
+"gruende": []
+},
+"KB-15": {
+"status": "ok",
+"gruende": []
+},
+"KB-16": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KB-17": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KB-18": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KB-19": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KB-20": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Stroboskop"
+]
+},
+"KB-21": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Stroboskop"
+]
+},
+"KB-22": {
+"status": "ok",
+"gruende": []
+},
+"KB-23": {
+"status": "ok",
+"gruende": []
+},
+"KB-24": {
+"status": "ok",
+"gruende": []
+},
+"KB-25": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Strobe"
+]
+},
+"KB-26": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Strobe"
+]
+},
+"KB-27": {
+"status": "ok",
+"gruende": []
+},
+"KB-28": {
+"status": "ok",
+"gruende": []
+},
+"KB-29": {
+"status": "ok",
+"gruende": []
+},
+"KB-30": {
+"status": "ok",
+"gruende": []
+},
+"KB-31": {
+"status": "ok",
+"gruende": []
+},
+"KB-32": {
+"status": "ok",
+"gruende": []
+},
+"KB-33": {
+"status": "ok",
+"gruende": []
+},
+"KB-34": {
+"status": "ok",
+"gruende": []
+},
+"KB-35": {
+"status": "ok",
+"gruende": []
+},
+"KU-01": {
+"status": "ok",
+"gruende": []
+},
+"KU-02": {
+"status": "ok",
+"gruende": []
+},
+"KU-03": {
+"status": "ok",
+"gruende": []
+},
+"KU-04": {
+"status": "ok",
+"gruende": []
+},
+"KU-05": {
+"status": "ok",
+"gruende": []
+},
+"KU-06": {
+"status": "ok",
+"gruende": []
+},
+"KU-07": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KU-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KU-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KU-10": {
+"status": "ok",
+"gruende": []
+},
+"KU-11": {
+"status": "ok",
+"gruende": []
+},
+"KU-12": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KU-13": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KU-14": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KU-15": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KU-16": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KU-17": {
+"status": "ok",
+"gruende": []
+},
+"KU-18": {
+"status": "ok",
+"gruende": []
+},
+"KU-19": {
+"status": "ok",
+"gruende": []
+},
+"KU-20": {
+"status": "ok",
+"gruende": []
+},
+"KU-21": {
+"status": "ok",
+"gruende": []
+},
+"KU-22": {
+"status": "ok",
+"gruende": []
+},
+"KU-23": {
+"status": "ok",
+"gruende": []
+},
+"KU-24": {
+"status": "ok",
+"gruende": []
+},
+"KU-25": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"KU-26": {
+"status": "ok",
+"gruende": []
+},
+"KU-27": {
+"status": "ok",
+"gruende": []
+},
+"KU-28": {
+"status": "ok",
+"gruende": []
+},
+"KU-29": {
+"status": "ok",
+"gruende": []
+},
+"KU-30": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10."
+]
+},
+"KU-31": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10."
+]
+},
+"KU-32": {
+"status": "ok",
+"gruende": []
+},
+"KU-33": {
+"status": "ok",
+"gruende": []
+},
+"KU-34": {
+"status": "ok",
+"gruende": []
+},
+"KU-35": {
+"status": "ok",
+"gruende": []
+},
+"KU-36": {
+"status": "ok",
+"gruende": []
+},
+"KU-37": {
+"status": "ok",
+"gruende": []
+},
+"KU-38": {
+"status": "ok",
+"gruende": []
+},
+"KU-39": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KU-40": {
+"status": "ok",
+"gruende": []
+},
+"KU-41": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KU-42": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KU-43": {
+"status": "ok",
+"gruende": []
+},
+"KU-44": {
+"status": "ok",
+"gruende": []
+},
+"KU-45": {
+"status": "ok",
+"gruende": []
+},
+"KU-46": {
+"status": "ok",
+"gruende": []
+},
+"KU-47": {
+"status": "ok",
+"gruende": []
+},
+"KU-48": {
+"status": "ok",
+"gruende": []
+},
+"KU-49": {
+"status": "ok",
+"gruende": []
+},
+"KU-50": {
+"status": "ok",
+"gruende": []
+},
+"KD-01": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KD-02": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KD-03": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KD-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-05": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KD-06": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-07": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KD-10": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KD-11": {
+"status": "ok",
+"gruende": []
+},
+"KD-12": {
+"status": "ok",
+"gruende": [
+"hinweis-geprüft: OCR-Lesefehler (Kacheln/Raster/Pixel), von Hand geprüft 14.10.",
+"hinweis-stillstand 0.8s"
+]
+},
+"KD-13": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-14": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-15": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-16": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-17": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"KD-18": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KD-19": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KD-20": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KD-21": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KD-22": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KD-23": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KD-24": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KD-25": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-26": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-27": {
+"status": "ok",
+"gruende": []
+},
+"KD-28": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KD-29": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KD-30": {
+"status": "ok",
+"gruende": []
+},
+"KD-31": {
+"status": "ok",
+"gruende": []
+},
+"KD-32": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-33": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-34": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KD-35": {
+"status": "ok",
+"gruende": []
+},
+"KX-01": {
+"status": "ok",
+"gruende": []
+},
+"KX-02": {
+"status": "ok",
+"gruende": []
+},
+"KX-03": {
+"status": "ok",
+"gruende": []
+},
+"KX-04": {
+"status": "ok",
+"gruende": []
+},
+"KX-05": {
+"status": "ok",
+"gruende": []
+},
+"KX-06": {
+"status": "ok",
+"gruende": []
+},
+"KX-07": {
+"status": "ok",
+"gruende": []
+},
+"KX-08": {
+"status": "ok",
+"gruende": []
+},
+"KX-09": {
+"status": "ok",
+"gruende": []
+},
+"KX-10": {
+"status": "ok",
+"gruende": []
+},
+"KX-11": {
+"status": "ok",
+"gruende": []
+},
+"KX-12": {
+"status": "ok",
+"gruende": []
+},
+"KX-13": {
+"status": "ok",
+"gruende": []
+},
+"KX-14": {
+"status": "ok",
+"gruende": []
+},
+"KX-15": {
+"status": "ok",
+"gruende": []
+},
+"KX-16": {
+"status": "ok",
+"gruende": []
+},
+"KX-17": {
+"status": "ok",
+"gruende": []
+},
+"KX-18": {
+"status": "ok",
+"gruende": []
+},
+"KX-19": {
+"status": "ok",
+"gruende": []
+},
+"KX-20": {
+"status": "ok",
+"gruende": []
+},
+"KX-21": {
+"status": "ok",
+"gruende": []
+},
+"KX-22": {
+"status": "ok",
+"gruende": []
+},
+"KX-23": {
+"status": "ok",
+"gruende": []
+},
+"KX-24": {
+"status": "ok",
+"gruende": []
+},
+"KX-25": {
+"status": "ok",
+"gruende": []
+},
+"KX-26": {
+"status": "ok",
+"gruende": []
+},
+"KX-27": {
+"status": "ok",
+"gruende": []
+},
+"KX-28": {
+"status": "ok",
+"gruende": []
+},
+"KX-29": {
+"status": "ok",
+"gruende": []
+},
+"KX-30": {
+"status": "ok",
+"gruende": []
+},
+"KA-01": {
+"status": "ok",
+"gruende": []
+},
+"KA-02": {
+"status": "ok",
+"gruende": []
+},
+"KA-03": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KA-04": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.8s"
+]
+},
+"KA-05": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KA-06": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KA-07": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.0s"
+]
+},
+"KA-08": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.2s"
+]
+},
+"KA-09": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KA-10": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Zoom-Punch"
+]
+},
+"KA-11": {
+"status": "ok",
+"gruende": [
+"hinweis-gewollt Zoom-Punch"
+]
+},
+"KA-12": {
+"status": "ok",
+"gruende": []
+},
+"KA-13": {
+"status": "ok",
+"gruende": []
+},
+"KA-14": {
+"status": "ok",
+"gruende": []
+},
+"KA-15": {
+"status": "ok",
+"gruende": []
+},
+"KA-16": {
+"status": "ok",
+"gruende": []
+},
+"KA-19": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KA-20": {
+"status": "ok",
+"gruende": []
+},
+"KA-21": {
+"status": "ok",
+"gruende": []
+},
+"KA-22": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.7s"
+]
+},
+"KA-23": {
+"status": "ok",
+"gruende": []
+},
+"KA-24": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 0.9s"
+]
+},
+"KA-25": {
+"status": "ok",
+"gruende": []
+},
+"KA-26": {
+"status": "ok",
+"gruende": []
+},
+"KA-27": {
+"status": "ok",
+"gruende": []
+},
+"KA-28": {
+"status": "ok",
+"gruende": []
+},
+"KA-29": {
+"status": "ok",
+"gruende": [
+"hinweis-stillstand 1.1s"
+]
+},
+"KA-30": {
+"status": "ok",
+"gruende": []
+}
+}

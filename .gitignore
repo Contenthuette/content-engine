@@ -1,0 +1,46 @@
+# Secrets – nie committen
+secrets.env
+*.env
+.secrets/
+# Abhängigkeiten / Builds
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+# Ausgaben (groß, werden neu erzeugt)
+out/
+/tmp/
+# Job-Großdateien (Text-Dateien wie spec/recipe/brief/caption/dm/costs bleiben)
+jobs/*/source.mp4
+jobs/*/face_*
+jobs/*/vo_raw.mp3
+jobs/*/*.png
+jobs/*/fal_runs.json
+jobs/*/uploads.json
+# Medien pro Job + Gesichtsvideos + alte Testordner
+public/media/*/
+!public/media/logos/
+public/face/
+public/rea/
+public/v4/
+public/v5/
+public/v6/
+public/v7/
+public/v8/
+public/cut/
+public/broll/
+public/stock/
+public/fast_*.wav
+public/fast_*_duck.json
+public/*.wav
+avatar/
+avatar_lab/
+demo/
+demo2/
+nick/
+refs/
+sfx_raw/
+jobs/*/*.mp4
+jobs/*/*.wav
+jobs/*/*.mp3
+public/assets/leif_polo_front.png

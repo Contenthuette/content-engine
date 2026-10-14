@@ -1,0 +1,1084 @@
+{
+ "duration": 46.8,
+ "vo": "nick1_vo.wav",
+ "words": "fast_nick1_words.json",
+ "duck": "fast_nick1_duck.json",
+ "music": {
+  "src": "nick1_music.wav",
+  "trimBefore": 0.5,
+  "volume": 0.34,
+  "duckDepth": 0.17,
+  "fadeOut": 0.8
+ },
+ "face": {
+  "src": "face/aurora_nick1.mp4",
+  "windows": [
+   {
+    "a": 0,
+    "b": 0.78,
+    "x": 290,
+    "y": 300,
+    "w": 500,
+    "h": 580
+   },
+   {
+    "a": 2.32,
+    "b": 3.92,
+    "x": 70,
+    "y": 560,
+    "w": 470,
+    "h": 560
+   },
+   {
+    "a": 42.5,
+    "b": 45.42,
+    "x": 330,
+    "y": 210,
+    "w": 420,
+    "h": 480
+   }
+  ]
+ },
+ "captions": {
+  "y": 1330,
+  "maxWords": 3,
+  "keywords": [
+   "Plugins",
+   "gratis",
+   "Hacker",
+   "Lücken",
+   "Projekte",
+   "Session",
+   "Netz",
+   "Code",
+   "Skills",
+   "Hooks",
+   "Claude",
+   "Modell"
+  ],
+  "fix": {
+   "1.": "Eins:",
+   "2.": "Zwei:",
+   "3.": "Drei:",
+   "4.": "Vier:",
+   "5.": "Fünf:",
+   "Greif": "Greift",
+   "vibegecodeete": "vibe-gecodete",
+   "Gib": "Gibt",
+   "scant": "scannt",
+   "schicke": "schick",
+   "-Anbietern.": "-Anbietern."
+  },
+  "hide": [
+   [
+    0,
+    3.95
+   ],
+   [
+    3.95,
+    6.05
+   ],
+   [
+    7.3,
+    10.7
+   ],
+   [
+    13.95,
+    15.15
+   ],
+   [
+    17.4,
+    18.5
+   ],
+   [
+    20.55,
+    21.85
+   ],
+   [
+    22.6,
+    23.65
+   ],
+   [
+    23.65,
+    25.2
+   ],
+   [
+    25.2,
+    26.05
+   ],
+   [
+    27.05,
+    28.6
+   ],
+   [
+    30.0,
+    33.85
+   ],
+   [
+    33.85,
+    37.95
+   ],
+   [
+    39.1,
+    42.4
+   ],
+   [
+    42.4,
+    46.8
+   ]
+  ]
+ },
+ "scenes": [
+  {
+   "a": 0.0,
+   "b": 0.8,
+   "type": "title",
+   "bg": "white",
+   "props": {
+    "y": 960,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "Nutz",
+        "at": 0.0
+       },
+       {
+        "w": "Claude",
+        "at": 0.24,
+        "color": "blue"
+       },
+       {
+        "w": "Code",
+        "at": 0.58
+       }
+      ],
+      "size": 108
+     }
+    ]
+   }
+  },
+  {
+   "a": 0.8,
+   "b": 1.42,
+   "type": "big",
+   "bg": "black",
+   "props": {
+    "text": "NICHT.",
+    "at": 0.8,
+    "size": 300,
+    "y": 760
+   }
+  },
+  {
+   "a": 1.42,
+   "b": 2.3,
+   "type": "widget",
+   "bg": "white",
+   "props": {
+    "light": true,
+    "label": "Bevor du diese",
+    "value": 5,
+    "countDur": 0.5,
+    "at": 1.45,
+    "valueSize": 330,
+    "h": 600,
+    "icon": {
+     "emoji": "electric_plug",
+     "bg": "white"
+    }
+   }
+  },
+  {
+   "a": 2.3,
+   "b": 3.95,
+   "type": "title",
+   "bg": {
+    "wall": "blue"
+   },
+   "props": {
+    "y": 1180,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "Plugins",
+        "at": 2.36,
+        "bold": true
+       }
+      ],
+      "size": 120,
+      "color": "white"
+     },
+     {
+      "words": [
+       {
+        "w": "installiert",
+        "at": 2.82
+       },
+       {
+        "w": "hast.",
+        "at": 3.32,
+        "serif": true
+       }
+      ],
+      "size": 76,
+      "color": "#C7D7FF"
+     }
+    ],
+    "emojis": [
+     {
+      "name": "electric_plug",
+      "at": 2.45,
+      "x": 790,
+      "y": 820,
+      "size": 330,
+      "glow": "teal"
+     }
+    ]
+   }
+  },
+  {
+   "a": 3.95,
+   "b": 6.05,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 4.6,
+    "icon": {
+     "emoji": "rocket",
+     "bg": "white"
+    },
+    "text": "FreeLLMAPI",
+    "expandAt": 5.55,
+    "sub": [
+     "github",
+     "·",
+     "freellmapi"
+    ],
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 4.12
+       },
+       {
+        "w": "Nr. 1",
+        "at": 4.22,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 6.05,
+   "b": 8.35,
+   "type": "emoji",
+   "bg": "white",
+   "props": {
+    "items": [
+     {
+      "name": "money_bag",
+      "at": 6.1,
+      "y": 700,
+      "glow": "yellow"
+     },
+     {
+      "name": "coin",
+      "at": 6.66,
+      "x": 230,
+      "y": 560,
+      "size": 210
+     },
+     {
+      "name": "coin",
+      "at": 7.0,
+      "x": 860,
+      "y": 860,
+      "size": 230
+     }
+    ],
+    "text": [
+     {
+      "w": "Gratis",
+      "at": 7.36,
+      "color": "green"
+     },
+     {
+      "w": "Kontingente",
+      "at": 7.76
+     }
+    ],
+    "textY": 1060
+   }
+  },
+  {
+   "a": 8.35,
+   "b": 10.7,
+   "type": "stack",
+   "bg": "white",
+   "props": {
+    "title": [
+     {
+      "w": "12+",
+      "at": 9.12,
+      "bold": true
+     },
+     {
+      "w": "KI-Anbieter",
+      "at": 9.6
+     }
+    ],
+    "titleAt": 9.12,
+    "y": 930,
+    "cards": [
+     {
+      "icon": {
+       "letter": "G",
+       "bg": "blue"
+      },
+      "title": "Gemini",
+      "sub": "Gratis-Kontingent",
+      "emoji": "gem_stone",
+      "value": "0 €",
+      "color": "blue",
+      "at": 8.4
+     },
+     {
+      "icon": {
+       "letter": "G",
+       "bg": "orange"
+      },
+      "title": "Groq",
+      "sub": "Gratis-Kontingent",
+      "emoji": "high_voltage",
+      "value": "0 €",
+      "color": "orange",
+      "at": 8.5
+     },
+     {
+      "icon": {
+       "letter": "M",
+       "bg": "red"
+      },
+      "title": "Mistral",
+      "sub": "Gratis-Kontingent",
+      "emoji": "fire",
+      "value": "0 €",
+      "color": "red",
+      "at": 8.6
+     },
+     {
+      "icon": {
+       "letter": "O",
+       "bg": "ink"
+      },
+      "title": "OpenRouter",
+      "sub": "Gratis-Modelle",
+      "emoji": "globe_with_meridians",
+      "value": "0 €",
+      "color": "teal",
+      "at": 8.7
+     }
+    ],
+    "cycle": [
+     8.92,
+     9.38,
+     9.88
+    ]
+   }
+  },
+  {
+   "a": 10.7,
+   "b": 12.0,
+   "type": "widget",
+   "bg": "black",
+   "props": {
+    "label": "Modell A · Tageslimit",
+    "value": 100,
+    "suffix": " %",
+    "countDur": 0.5,
+    "at": 10.74,
+    "dashes": 5,
+    "accent": "red",
+    "icon": {
+     "emoji": "warning",
+     "bg": "ink"
+    }
+   }
+  },
+  {
+   "a": 12.0,
+   "b": 13.95,
+   "type": "live",
+   "bg": "white",
+   "props": {
+    "at": 12.04,
+    "text": "Wechsel zu Modell B",
+    "label": "auto",
+    "accent": "blue",
+    "y": 520,
+    "emojis": [
+     {
+      "name": "high_voltage",
+      "at": 12.74,
+      "x": 820,
+      "y": 1150,
+      "size": 200,
+      "glow": "yellow"
+     }
+    ]
+   }
+  },
+  {
+   "a": 13.95,
+   "b": 15.15,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 14.4,
+    "icon": {
+     "emoji": "shield",
+     "bg": "white"
+    },
+    "text": "Strix",
+    "w": 560,
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 14.1
+       },
+       {
+        "w": "Nr. 2",
+        "at": 14.2,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ],
+    "emojis": [
+     {
+      "name": "shield",
+      "at": 14.58,
+      "x": 800,
+      "y": 1080,
+      "size": 190,
+      "glow": "blue",
+      "rot": 8
+     },
+     {
+      "name": "locked",
+      "at": 14.9,
+      "x": 215,
+      "y": 680,
+      "size": 140,
+      "glow": "yellow",
+      "rot": -8
+     }
+    ]
+   }
+  },
+  {
+   "a": 15.15,
+   "b": 17.4,
+   "type": "mac",
+   "bg": "black",
+   "props": {
+    "title": "meine-vibe-app.de",
+    "at": 15.18,
+    "cmd": "strix attack ./app",
+    "cps": 34,
+    "lines": [
+     {
+      "text": "→ greift an wie ein echter Angreifer …",
+      "at": 15.98
+     },
+     {
+      "text": "✗ SQL-Injection   /api/login",
+      "at": 16.2
+     },
+     {
+      "text": "✗ XSS   /kommentare",
+      "at": 16.55
+     },
+     {
+      "text": "✗ API-Key öffentlich",
+      "at": 16.9
+     }
+    ]
+   }
+  },
+  {
+   "a": 17.4,
+   "b": 18.5,
+   "type": "emoji",
+   "bg": {
+    "glow": "red",
+    "base": "black"
+   },
+   "props": {
+    "items": [
+     {
+      "name": "man_technologist",
+      "at": 17.42,
+      "y": 720,
+      "size": 400,
+      "glow": "red"
+     }
+    ],
+    "text": [
+     {
+      "w": "wie",
+      "at": 17.46
+     },
+     {
+      "w": "ein",
+      "at": 17.64
+     },
+     {
+      "w": "echter",
+      "at": 17.82
+     },
+     {
+      "w": "Hacker",
+      "at": 18.16,
+      "color": "red",
+      "serif": true
+     }
+    ],
+    "textY": 1040,
+    "textSize": 100
+   }
+  },
+  {
+   "a": 18.5,
+   "b": 20.55,
+   "type": "checks",
+   "bg": "white",
+   "props": {
+    "label": "Lücken schließen?",
+    "at": 18.55,
+    "clickAt": 19.42,
+    "pick": "yes",
+    "y": 760,
+    "cursor": {
+     "path": [
+      {
+       "t": 18.8,
+       "x": 900,
+       "y": 1300
+      },
+      {
+       "t": 19.32,
+       "x": 345,
+       "y": 950
+      }
+     ],
+     "clicks": [
+      19.42
+     ],
+     "hand": 19.1,
+     "out": 20.2
+    },
+    "emojis": [
+     {
+      "name": "shield",
+      "at": 19.84,
+      "x": 860,
+      "y": 520,
+      "size": 200,
+      "glow": "green"
+     }
+    ]
+   }
+  },
+  {
+   "a": 20.55,
+   "b": 21.85,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 21.0,
+    "icon": {
+     "emoji": "brain",
+     "bg": "white"
+    },
+    "text": "Claude Mem",
+    "w": 760,
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 20.64
+       },
+       {
+        "w": "Nr. 3",
+        "at": 20.74,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 21.85,
+   "b": 23.65,
+   "type": "emoji",
+   "bg": {
+    "glow": "pink",
+    "base": "white"
+   },
+   "props": {
+    "items": [
+     {
+      "name": "brain",
+      "at": 21.9,
+      "y": 700,
+      "size": 440,
+      "glow": "pink"
+     }
+    ],
+    "text": [
+     {
+      "w": "merkt",
+      "at": 22.66
+     },
+     {
+      "w": "sich",
+      "at": 22.9
+     },
+     {
+      "w": "deine",
+      "at": 23.04
+     },
+     {
+      "w": "Projekte",
+      "at": 23.2,
+      "color": "blue"
+     }
+    ],
+    "textY": 1040,
+    "textSize": 92
+   }
+  },
+  {
+   "a": 23.65,
+   "b": 25.2,
+   "type": "notifs",
+   "bg": "paper",
+   "props": {
+    "y": 520,
+    "items": [
+     {
+      "icon": {
+       "emoji": "brain",
+       "bg": "white"
+      },
+      "title": "Session 1",
+      "body": "Projekt gespeichert",
+      "at": 23.7,
+      "time": "Mo"
+     },
+     {
+      "icon": {
+       "emoji": "brain",
+       "bg": "white"
+      },
+      "title": "Session 2",
+      "body": "Kontext geladen ✓",
+      "at": 23.92,
+      "time": "Di"
+     },
+     {
+      "icon": {
+       "emoji": "brain",
+       "bg": "white"
+      },
+      "title": "Session 3",
+      "body": "Weiß noch alles ✓",
+      "at": 24.22,
+      "time": "jetzt"
+     }
+    ]
+   }
+  },
+  {
+   "a": 25.2,
+   "b": 27.05,
+   "type": "bubbles",
+   "bg": "white",
+   "props": {
+    "y": 560,
+    "items": [
+     {
+      "from": "me",
+      "text": "Also, nochmal von vorne …",
+      "at": 25.26
+     },
+     {
+      "from": "them",
+      "text": "Weiß ich schon 😌",
+      "at": 26.14,
+      "sticker": "brain"
+     }
+    ],
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Nie",
+        "at": 25.26
+       },
+       {
+        "w": "wieder",
+        "at": 25.56,
+        "serif": true
+       }
+      ],
+      "y": 1060,
+      "size": 110
+     }
+    ]
+   }
+  },
+  {
+   "a": 27.05,
+   "b": 28.6,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 27.6,
+    "icon": {
+     "emoji": "globe_with_meridians",
+     "bg": "white"
+    },
+    "text": "Agent Reach",
+    "w": 780,
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 27.18
+       },
+       {
+        "w": "Nr. 4",
+        "at": 27.28,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 28.6,
+   "b": 30.0,
+   "type": "siri",
+   "bg": {
+    "wall": "indigo"
+   },
+   "props": {
+    "at": 28.62,
+    "text": "Recherchier das für mich …",
+    "cps": 30,
+    "y": 760
+   }
+  },
+  {
+   "a": 30.0,
+   "b": 31.55,
+   "type": "emoji",
+   "bg": {
+    "wall": "indigo"
+   },
+   "props": {
+    "items": [
+     {
+      "name": "globe_with_meridians",
+      "at": 30.02,
+      "y": 700,
+      "size": 440,
+      "glow": "teal"
+     }
+    ],
+    "text": [
+     {
+      "w": "aufs",
+      "at": 30.5
+     },
+     {
+      "w": "ganze",
+      "at": 30.8
+     },
+     {
+      "w": "Netz",
+      "at": 30.94,
+      "serif": true
+     }
+    ],
+    "textY": 1040,
+    "textSize": 104
+   }
+  },
+  {
+   "a": 31.55,
+   "b": 33.85,
+   "type": "stack",
+   "bg": "white",
+   "props": {
+    "layout": "fan",
+    "title": [
+     {
+      "w": "sogar",
+      "at": 31.6,
+      "serif": true
+     },
+     {
+      "w": "auf",
+      "at": 31.78
+     }
+    ],
+    "titleAt": 31.6,
+    "y": 900,
+    "cards": [
+     {
+      "title": "LinkedIn",
+      "sub": "Posts & Profile",
+      "emoji": "handshake",
+      "color": "blue",
+      "at": 31.62
+     },
+     {
+      "title": "X",
+      "sub": "Threads & Trends",
+      "emoji": "speech_balloon",
+      "color": "indigo",
+      "dark": true,
+      "at": 31.7
+     },
+     {
+      "title": "Reddit",
+      "sub": "Communities",
+      "emoji": "alien",
+      "color": "orange",
+      "at": 31.78
+     }
+    ],
+    "cycle": [
+     32.58,
+     33.06
+    ]
+   }
+  },
+  {
+   "a": 33.85,
+   "b": 35.5,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 34.3,
+    "icon": {
+     "letter": "C",
+     "bg": "orange"
+    },
+    "text": "Claude Code Setup",
+    "w": 900,
+    "size": 60,
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 33.94
+       },
+       {
+        "w": "Nr. 5",
+        "at": 34.04,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 35.5,
+   "b": 37.95,
+   "type": "big",
+   "bg": "black",
+   "props": {
+    "text": "OFFIZIELL",
+    "serif": "von Anthropic",
+    "at": 35.6,
+    "size": 220,
+    "y": 700
+   }
+  },
+  {
+   "a": 37.95,
+   "b": 39.1,
+   "type": "mac",
+   "bg": "white",
+   "props": {
+    "light": true,
+    "title": "dein-projekt",
+    "at": 37.98,
+    "h": 620,
+    "y": 760,
+    "lines": [
+     {
+      "text": "↻ scannt 214 Dateien …",
+      "at": 38.1
+     },
+     {
+      "text": "✓ Next.js erkannt",
+      "at": 38.45
+     },
+     {
+      "text": "✓ Tests gefunden",
+      "at": 38.7
+     }
+    ],
+    "emojis": [
+     {
+      "name": "magnifying_glass_tilted_left",
+      "at": 38.2,
+      "x": 870,
+      "y": 1120,
+      "size": 240,
+      "glow": "blue"
+     }
+    ]
+   }
+  },
+  {
+   "a": 39.1,
+   "b": 42.4,
+   "type": "list",
+   "bg": "white",
+   "props": {
+    "title": [
+     {
+      "w": "empfiehlt",
+      "at": 39.14
+     },
+     {
+      "w": "dir",
+      "at": 39.54,
+      "serif": true
+     }
+    ],
+    "titleAt": 39.14,
+    "y": 600,
+    "items": [
+     {
+      "icon": {
+       "emoji": "sparkles",
+       "bg": "purple"
+      },
+      "title": "Skills",
+      "sub": "passend zu deinem Projekt",
+      "at": 40.1
+     },
+     {
+      "icon": {
+       "emoji": "link",
+       "bg": "blue"
+      },
+      "title": "Hooks",
+      "sub": "automatische Checks",
+      "at": 40.84
+     },
+     {
+      "icon": {
+       "emoji": "electric_plug",
+       "bg": "green"
+      },
+      "title": "MCP-Server",
+      "sub": "Zugriff auf deine Tools",
+      "at": 41.34
+     }
+    ],
+    "select": {
+     "i": 2,
+     "at": 41.95
+    },
+    "cursor": {
+     "path": [
+      {
+       "t": 41.4,
+       "x": 900,
+       "y": 1500
+      },
+      {
+       "t": 41.88,
+       "x": 620,
+       "y": 1060
+      }
+     ],
+     "clicks": [
+      41.95
+     ],
+     "hand": 41.7,
+     "out": 42.3
+    }
+   }
+  },
+  {
+   "a": 42.4,
+   "b": 45.45,
+   "type": "cta",
+   "bg": "white",
+   "props": {
+    "at": 42.5,
+    "keyword": "CLAUDE",
+    "typeAt": 43.1,
+    "sendAt": 44.28,
+    "dmAt": 44.6,
+    "dmText": "Hier sind alle 5 Links 🔗",
+    "y": 1010,
+    "lift": 230,
+    "dmY": 1130
+   }
+  },
+  {
+   "a": 45.45,
+   "b": 46.8,
+   "type": "logo",
+   "bg": "black",
+   "props": {
+    "text": "ULTRA",
+    "sub": "Intelligence",
+    "at": 45.5
+   }
+  }
+ ]
+}

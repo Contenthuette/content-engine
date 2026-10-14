@@ -1,0 +1,122 @@
+{
+ "shortcode": "Dd4LrTSsx0i",
+ "duration": 46.019093,
+ "text": "Don't start vibe coding with Claude code until you've installed these four plugins. The first is the official SuperBase plugin, which connects Claude straight to your database so it can run SQL, write migrations, generate your types and check your security advisors without you ever opening the dashboard. The second is Versailles official plugin. Just say deploy my app and Claude ships it to a live preview or production URL without leaving your terminal. The third is Oh My Claude code which turns Claude into a crew of 19 specialized agents. So you type team and they plan, build, verify and fix your code together. And the last one is Chrome DevTools MCP built by Google's Chrome team. It gives Claude eyes on a real browser so it reads console errors, inspects network requests, takes screenshots and runs performance traces instead of coding blindfolded. If you want to try all four, comment coding and I'll send you the links directly.",
+ "segments": [
+  {
+   "s": 0.0,
+   "e": 1.56,
+   "text": "Don't start vibe coding with Claude code"
+  },
+  {
+   "s": 1.56,
+   "e": 3.22,
+   "text": "until you've installed these four plugins."
+  },
+  {
+   "s": 3.62,
+   "e": 5.34,
+   "text": "The first is the official SuperBase plugin,"
+  },
+  {
+   "s": 5.6,
+   "e": 7.2,
+   "text": "which connects Claude straight to your database"
+  },
+  {
+   "s": 7.2,
+   "e": 10.56,
+   "text": "so it can run SQL, write migrations, generate your types"
+  },
+  {
+   "s": 10.56,
+   "e": 11.96,
+   "text": "and check your security advisors"
+  },
+  {
+   "s": 11.96,
+   "e": 13.58,
+   "text": "without you ever opening the dashboard."
+  },
+  {
+   "s": 14.0,
+   "e": 15.56,
+   "text": "The second is Versailles official plugin."
+  },
+  {
+   "s": 15.84,
+   "e": 17.9,
+   "text": "Just say deploy my app and Claude ships it"
+  },
+  {
+   "s": 17.9,
+   "e": 19.52,
+   "text": "to a live preview or production URL"
+  },
+  {
+   "s": 19.52,
+   "e": 20.8,
+   "text": "without leaving your terminal."
+  },
+  {
+   "s": 21.16,
+   "e": 22.58,
+   "text": "The third is Oh My Claude code"
+  },
+  {
+   "s": 22.58,
+   "e": 25.44,
+   "text": "which turns Claude into a crew of 19 specialized agents."
+  },
+  {
+   "s": 25.74,
+   "e": 28.38,
+   "text": "So you type team and they plan, build, verify"
+  },
+  {
+   "s": 28.38,
+   "e": 29.62,
+   "text": "and fix your code together."
+  },
+  {
+   "s": 29.62,
+   "e": 32.22,
+   "text": "And the last one is Chrome DevTools MCP"
+  },
+  {
+   "s": 32.22,
+   "e": 33.54,
+   "text": "built by Google's Chrome team."
+  },
+  {
+   "s": 33.86,
+   "e": 35.44,
+   "text": "It gives Claude eyes on a real browser"
+  },
+  {
+   "s": 35.44,
+   "e": 37.98,
+   "text": "so it reads console errors, inspects network requests,"
+  },
+  {
+   "s": 38.26,
+   "e": 40.28,
+   "text": "takes screenshots and runs performance traces"
+  },
+  {
+   "s": 40.28,
+   "e": 41.84,
+   "text": "instead of coding blindfolded."
+  },
+  {
+   "s": 42.1,
+   "e": 43.82,
+   "text": "If you want to try all four, comment coding"
+  },
+  {
+   "s": 43.82,
+   "e": 45.18,
+   "text": "and I'll send you the links directly."
+  }
+ ]
+}

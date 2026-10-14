@@ -1,0 +1,798 @@
+{
+ "duration": 44.96,
+ "vo": "fast_Dd4LrTSsx0i_vo.wav",
+ "words": "fast_Dd4LrTSsx0i_words.json",
+ "duck": "fast_Dd4LrTSsx0i_duck.json",
+ "music": {
+  "src": "demo2_music.wav",
+  "trimBefore": 0,
+  "volume": 0.34,
+  "duckDepth": 0.17,
+  "fadeOut": 0.5
+ },
+ "face": {
+  "src": "face/fast_Dd4LrTSsx0i.mp4",
+  "windows": [
+   {
+    "a": 0,
+    "b": 4.9,
+    "x": 290,
+    "y": 190,
+    "w": 500,
+    "h": 560,
+    "slam": true
+   },
+   {
+    "a": 42.35,
+    "b": 44.96,
+    "x": 330,
+    "y": 210,
+    "w": 420,
+    "h": 480
+   }
+  ]
+ },
+ "captions": {
+  "y": 1330,
+  "maxWords": 3,
+  "keywords": [],
+  "hide": [
+   [
+    0,
+    44.96
+   ]
+  ]
+ },
+ "scenes": [
+  {
+   "a": 0,
+   "b": 0.66,
+   "type": "title",
+   "bg": {
+    "rays": "red",
+    "base": "black"
+   },
+   "props": {
+    "y": 830,
+    "slam": true,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "Fang",
+        "at": 0.0
+       },
+       {
+        "w": "bloß",
+        "at": 0.16,
+        "color": "red"
+       }
+      ],
+      "size": 124
+     }
+    ],
+    "shocks": [
+     {
+      "t": 0.0,
+      "x": 540,
+      "y": 470,
+      "c": "red",
+      "s": 1300
+     }
+    ]
+   },
+   "dark": true,
+   "exit": "none"
+  },
+  {
+   "a": 0.66,
+   "b": 1.85,
+   "type": "big",
+   "bg": {
+    "glow": "red",
+    "base": "black"
+   },
+   "props": {
+    "text": "NICHT",
+    "at": 0.66,
+    "size": 300,
+    "y": 1000,
+    "slam": true,
+    "glow": "red",
+    "shocks": [
+     {
+      "t": 0.66,
+      "x": 540,
+      "y": 1130,
+      "c": "red",
+      "s": 1400
+     }
+    ]
+   },
+   "dark": true,
+   "enter": "cut"
+  },
+  {
+   "a": 1.85,
+   "b": 2.9,
+   "type": "title",
+   "bg": "ink",
+   "props": {
+    "y": 1020,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "mit",
+        "at": 1.86
+       },
+       {
+        "w": "Claude",
+        "at": 1.9,
+        "color": "orange"
+       },
+       {
+        "w": "Code",
+        "at": 1.95
+       }
+      ],
+      "size": 96
+     },
+     {
+      "words": [
+       {
+        "w": "vibecoden",
+        "at": 1.98,
+        "serif": true
+       }
+      ],
+      "size": 150
+     }
+    ]
+   },
+   "dark": true
+  },
+  {
+   "a": 2.9,
+   "b": 4.95,
+   "type": "title",
+   "bg": {
+    "wall": "blue"
+   },
+   "props": {
+    "y": 1120,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "bevor",
+        "at": 2.92
+       },
+       {
+        "w": "diese",
+        "at": 2.98
+       },
+       {
+        "w": "4",
+        "at": 3.28,
+        "color": "yellow",
+        "bold": true
+       }
+      ],
+      "size": 120,
+      "color": "white"
+     },
+     {
+      "words": [
+       {
+        "w": "Plugins",
+        "at": 3.56,
+        "bold": true
+       }
+      ],
+      "size": 130,
+      "color": "white"
+     },
+     {
+      "words": [
+       {
+        "w": "installiert",
+        "at": 3.96
+       },
+       {
+        "w": "hast.",
+        "at": 4.42,
+        "serif": true
+       }
+      ],
+      "size": 76,
+      "color": "#C7D7FF"
+     }
+    ],
+    "emojis": [
+     {
+      "name": "electric_plug",
+      "at": 3.6,
+      "x": 900,
+      "y": 880,
+      "size": 200,
+      "glow": "teal",
+      "rot": 10
+     }
+    ]
+   }
+  },
+  {
+   "a": 4.95,
+   "b": 7.8,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 5.65,
+    "icon": {
+     "letter": "S",
+     "bg": "green"
+    },
+    "text": "Supabase",
+    "expandAt": 7.3,
+    "sub": [
+     "offizielles",
+     "·",
+     "Plugin"
+    ],
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 5.12
+       },
+       {
+        "w": "Nr. 1",
+        "at": 5.26,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 7.8,
+   "b": 11.9,
+   "type": "mac",
+   "bg": "black",
+   "props": {
+    "title": "claude · supabase",
+    "at": 7.84,
+    "cmd": "verbinde meine Datenbank",
+    "cps": 34,
+    "lines": [
+     {
+      "text": "✓ Datenbank verbunden",
+      "at": 9.9,
+      "color": "green"
+     },
+     {
+      "text": "› SELECT * FROM kunden;",
+      "at": 10.62
+     },
+     {
+      "text": "✓ 1.284 Zeilen",
+      "at": 11.2,
+      "color": "green"
+     },
+     {
+      "text": "› prüfe Policies …",
+      "at": 11.5
+     }
+    ],
+    "emojis": [
+     {
+      "name": "electric_plug",
+      "at": 8.5,
+      "x": 840,
+      "y": 1340,
+      "size": 200,
+      "glow": "green"
+     },
+     {
+      "name": "check_mark_button",
+      "at": 11.15,
+      "x": 240,
+      "y": 1340,
+      "size": 200,
+      "glow": "green"
+     }
+    ]
+   }
+  },
+  {
+   "a": 11.9,
+   "b": 14.0,
+   "type": "list",
+   "bg": "white",
+   "props": {
+    "title": [
+     {
+      "w": "macht",
+      "at": 11.92
+     },
+     {
+      "w": "alles",
+      "at": 12.0,
+      "serif": true
+     }
+    ],
+    "titleAt": 11.92,
+    "y": 600,
+    "items": [
+     {
+      "icon": {
+       "emoji": "gear",
+       "bg": "gray"
+      },
+      "title": "Migrationen",
+      "sub": "automatisch gebaut",
+      "at": 12.08
+     },
+     {
+      "icon": {
+       "emoji": "shield",
+       "bg": "green"
+      },
+      "title": "Sicherheits-Check",
+      "sub": "Lücken gefunden & gemeldet",
+      "at": 13.1
+     },
+     {
+      "icon": {
+       "emoji": "memo",
+       "bg": "blue"
+      },
+      "title": "Typen",
+      "sub": "generiert",
+      "at": 13.64
+     }
+    ],
+    "select": {
+     "i": 1,
+     "at": 13.4
+    }
+   }
+  },
+  {
+   "a": 14.0,
+   "b": 16.3,
+   "type": "emoji",
+   "bg": {
+    "glow": "red",
+    "base": "white"
+   },
+   "props": {
+    "items": [
+     {
+      "name": "bar_chart",
+      "at": 14.04,
+      "y": 690,
+      "size": 400,
+      "glow": "red"
+     },
+     {
+      "name": "cross_mark",
+      "at": 15.02,
+      "x": 800,
+      "y": 520,
+      "size": 200
+     }
+    ],
+    "text": [
+     {
+      "w": "ohne",
+      "at": 14.02
+     },
+     {
+      "w": "Dashboard",
+      "at": 15.02,
+      "color": "red",
+      "serif": true
+     }
+    ],
+    "textY": 1050,
+    "textSize": 104
+   }
+  },
+  {
+   "a": 16.3,
+   "b": 18.2,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 17.18,
+    "icon": {
+     "letter": "▲",
+     "bg": "ink"
+    },
+    "text": "Vercel",
+    "w": 560,
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 16.36
+       },
+       {
+        "w": "Nr. 2",
+        "at": 16.46,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 18.2,
+   "b": 20.4,
+   "type": "siri",
+   "bg": {
+    "wall": "indigo"
+   },
+   "props": {
+    "at": 18.3,
+    "text": "Deploy meine App",
+    "cps": 20,
+    "y": 760
+   }
+  },
+  {
+   "a": 20.4,
+   "b": 22.5,
+   "type": "live",
+   "bg": "white",
+   "props": {
+    "at": 20.48,
+    "text": "App ist live",
+    "label": "vercel",
+    "accent": "green",
+    "y": 520,
+    "emojis": [
+     {
+      "name": "rocket",
+      "at": 21.18,
+      "x": 820,
+      "y": 1150,
+      "size": 220,
+      "glow": "orange"
+     }
+    ]
+   }
+  },
+  {
+   "a": 22.5,
+   "b": 23.5,
+   "type": "mac",
+   "bg": "white",
+   "props": {
+    "light": true,
+    "title": "Terminal",
+    "at": 22.52,
+    "h": 560,
+    "y": 760,
+    "lines": [
+     {
+      "text": "✓ Deployment fertig",
+      "at": 22.6,
+      "color": "green"
+     },
+     {
+      "text": "↗ meine-app.vercel.app",
+      "at": 22.95
+     }
+    ]
+   }
+  },
+  {
+   "a": 23.5,
+   "b": 25.6,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 24.42,
+    "icon": {
+     "emoji": "robot",
+     "bg": "white"
+    },
+    "text": "Oh My Claude Code",
+    "w": 900,
+    "size": 58,
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 23.56
+       },
+       {
+        "w": "Nr. 3",
+        "at": 23.66,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 25.6,
+   "b": 28.1,
+   "type": "widget",
+   "bg": "black",
+   "props": {
+    "label": "Agenten im Team",
+    "value": 19,
+    "countDur": 0.6,
+    "at": 25.7,
+    "dashes": 5,
+    "accent": "purple",
+    "icon": {
+     "emoji": "robot",
+     "bg": "ink"
+    }
+   }
+  },
+  {
+   "a": 28.1,
+   "b": 31.7,
+   "type": "stack",
+   "bg": "white",
+   "props": {
+    "title": [
+     {
+      "w": "zusammen",
+      "at": 28.26,
+      "serif": true
+     }
+    ],
+    "titleAt": 28.26,
+    "y": 900,
+    "cards": [
+     {
+      "title": "Planen",
+      "sub": "Agent 1",
+      "emoji": "memo",
+      "color": "blue",
+      "at": 28.3
+     },
+     {
+      "title": "Bauen",
+      "sub": "Agent 2",
+      "emoji": "hammer_and_wrench",
+      "color": "orange",
+      "at": 28.35
+     },
+     {
+      "title": "Prüfen",
+      "sub": "Agent 3",
+      "emoji": "magnifying_glass_tilted_left",
+      "color": "green",
+      "at": 28.4
+     },
+     {
+      "title": "Fehler beheben",
+      "sub": "Agent 4",
+      "emoji": "wrench",
+      "color": "red",
+      "dark": true,
+      "at": 28.45
+     }
+    ],
+    "cycle": [
+     29.32,
+     29.92,
+     30.56
+    ]
+   }
+  },
+  {
+   "a": 31.7,
+   "b": 34.4,
+   "type": "pill",
+   "bg": "paper",
+   "props": {
+    "at": 32.36,
+    "icon": {
+     "emoji": "globe_with_meridians",
+     "bg": "white"
+    },
+    "text": "Chrome DevTools MCP",
+    "w": 900,
+    "size": 56,
+    "y": 860,
+    "labels": [
+     {
+      "words": [
+       {
+        "w": "Plugin",
+        "at": 31.8
+       },
+       {
+        "w": "Nr. 4",
+        "at": 31.9,
+        "serif": true
+       }
+      ],
+      "y": 560,
+      "size": 72,
+      "color": "gray"
+     }
+    ]
+   }
+  },
+  {
+   "a": 34.4,
+   "b": 36.4,
+   "type": "big",
+   "bg": "black",
+   "props": {
+    "text": "GOOGLE",
+    "serif": "vom Chrome-Team",
+    "at": 34.5,
+    "size": 230,
+    "y": 700
+   }
+  },
+  {
+   "a": 36.4,
+   "b": 38.4,
+   "type": "emoji",
+   "bg": {
+    "glow": "blue",
+    "base": "white"
+   },
+   "props": {
+    "items": [
+     {
+      "name": "eyes",
+      "at": 36.48,
+      "y": 700,
+      "size": 420,
+      "glow": "blue"
+     }
+    ],
+    "text": [
+     {
+      "w": "echter",
+      "at": 37.48
+     },
+     {
+      "w": "Browser",
+      "at": 37.84,
+      "color": "blue",
+      "serif": true
+     }
+    ],
+    "textY": 1050,
+    "textSize": 104
+   }
+  },
+  {
+   "a": 38.4,
+   "b": 41.0,
+   "type": "notifs",
+   "bg": "paper",
+   "props": {
+    "y": 520,
+    "items": [
+     {
+      "icon": {
+       "emoji": "warning",
+       "bg": "white"
+      },
+      "title": "Konsole",
+      "body": "2 Fehler gefunden",
+      "at": 38.54,
+      "time": "jetzt"
+     },
+     {
+      "icon": {
+       "emoji": "satellite_antenna",
+       "bg": "white"
+      },
+      "title": "Netzwerk",
+      "body": "API-Antwort: 2,4 s",
+      "at": 39.12,
+      "time": "jetzt"
+     },
+     {
+      "icon": {
+       "emoji": "camera",
+       "bg": "white"
+      },
+      "title": "Screenshot",
+      "body": "Checkout gespeichert",
+      "at": 40.26,
+      "time": "jetzt"
+     }
+    ]
+   }
+  },
+  {
+   "a": 41.0,
+   "b": 42.35,
+   "type": "title",
+   "bg": {
+    "glow": "red",
+    "base": "black"
+   },
+   "props": {
+    "y": 960,
+    "lines": [
+     {
+      "words": [
+       {
+        "w": "statt",
+        "at": 41.14
+       },
+       {
+        "w": "blind",
+        "at": 41.3,
+        "color": "red",
+        "serif": true
+       }
+      ],
+      "size": 130
+     },
+     {
+      "words": [
+       {
+        "w": "zu",
+        "at": 41.54
+       },
+       {
+        "w": "coden.",
+        "at": 41.74
+       }
+      ],
+      "size": 110
+     }
+    ]
+   },
+   "dark": true
+  },
+  {
+   "a": 42.35,
+   "b": 44.96,
+   "type": "cta",
+   "bg": "white",
+   "props": {
+    "at": 42.4,
+    "keyword": "CODING",
+    "typeAt": 42.9,
+    "sendAt": 43.5,
+    "dmAt": 43.8,
+    "dmText": "Hier sind alle 4 Links 🔗",
+    "y": 1010,
+    "lift": 230,
+    "dmY": 1130
+   }
+  }
+ ],
+ "punch": [
+  0.0,
+  0.66
+ ]
+}

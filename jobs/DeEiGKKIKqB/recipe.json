@@ -1,0 +1,63 @@
+{
+ "id": "DeEiGKKIKqB",
+ "brand": "ULTRA",
+ "format": "breaking",
+ "concept": "4 Plugins wie eine Installations-Liste: jedes Plugin bekommt seinen Titel-Schlag, echten Repo-Screen und seinen Effekt",
+ "structure": "hook-warnung / terminal 4x install / plugin 1-4 je titel+beweis+nutzen / cta-keyword",
+ "hook": "KC-14+AV-01+T-52",
+ "palette": "breaking-rot-bunt",
+ "beds": [
+  "phonk130",
+  "dnb174",
+  "techno132"
+ ],
+ "materials": [
+  "3D-04",
+  "3D-09",
+  "3D-25",
+  "AV-01",
+  "DA-07",
+  "FX-03",
+  "FX-10",
+  "FX-11",
+  "FX-16",
+  "FX-21",
+  "FX-25",
+  "KC-06",
+  "KC-14",
+  "KC-19",
+  "KC-26",
+  "KC-36",
+  "KD-17",
+  "KT-01",
+  "KT-02",
+  "KT-03",
+  "KT-04",
+  "ME-03",
+  "ME-05",
+  "ME-09",
+  "T-01",
+  "T-14",
+  "T-20",
+  "T-28",
+  "T-45",
+  "T-52",
+  "UI-21",
+  "UI-22",
+  "UI-46"
+ ],
+ "transitions": [
+  "KX-04",
+  "KX-16",
+  "TR-01",
+  "KX-23",
+  "KX-29"
+ ],
+ "effects": [
+  "punch",
+  "push",
+  "card",
+  "burst"
+ ],
+ "leitidee": "Installations-Liste: 4 Plugins werden nacheinander installiert, jedes mit Beweis"
+}

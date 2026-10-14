@@ -1,0 +1,619 @@
+// ULTRA fast-reel kit: shot types rendered from a JSON spec (see SPEC.md)
+import React from 'react';
+import {AbsoluteFill, Img, interpolate, staticFile, Easing, random} from 'remotion';
+import {FONT, MONO, clamp, useT, r, lerp} from '../v4/kit4';
+
+export const W = '#F4F4F5';
+export const K = '#0A0A0C';
+export const G = '#8A8A90';
+export const ACC: Record<string, string> = {red: '#FF3B30', green: '#16C964', blue: '#1D6BFF', ink: K, gray: G, white: '#FFFFFF'};
+export const PUNCH = Easing.bezier(0.15, 1.45, 0.3, 1);
+const col = (c?: string, dark?: boolean) => (c ? ACC[c] ?? c : dark ? '#fff' : K);
+const src = (k: string) => staticFile(k.includes('.') ? k : `props/${k}.png`);
+
+// ---------------------------------------------------------------- primitives
+export const Glow: React.FC<{x?: number; y?: number; s?: number; c?: string; o?: number}> = ({x = 540, y = 820, s = 1400, c = '#000', o = 0.07}) => (
+  <div style={{position: 'absolute', left: x - s / 2, top: y - s / 2, width: s, height: s, borderRadius: '50%', background: `radial-gradient(circle, ${c} 0%, transparent 62%)`, opacity: o}} />
+);
+
+export const Slam: React.FC<{at: number; size: number; y: number; color?: string; rot?: number; weight?: number; children: React.ReactNode}> = ({at, size, y, color = K, rot = 0, weight = 800, children}) => {
+  const t = useT();
+  if (t < at) return null;
+  const p = r(t, at, at + 0.16, PUNCH);
+  return (
+    <div style={{position: 'absolute', top: y, left: -200, right: -200, textAlign: 'center', fontFamily: FONT, fontWeight: weight, fontSize: size, letterSpacing: -size * 0.055, lineHeight: 0.9, color, whiteSpace: 'nowrap', transform: `scale(${lerp(Math.min(p, 1.06), 2.2, 1)}) rotate(${rot}deg)`, filter: p < 0.7 ? `blur(${(1 - p) * 20}px)` : undefined, opacity: Math.min(1, p * 3)}}>
+      {children}
+    </div>
+  );
+};
+
+export type From = 'right' | 'left' | 'top' | 'bottom' | 'scale';
+export type PropSpec = {k: string; t: number; x?: number; y?: number; w?: number; from?: From; wob?: number; spin?: number};
+export const Prop: React.FC<{p: PropSpec; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const {k, t: at, x = 540, y = 820, w = 560, from = 'scale', wob = 4, spin = 0} = p;
+  if (t < at) return null;
+  const q = r(t, at, at + 0.28, Easing.out(Easing.exp));
+  let dx = 0, dy = 0, sc = 1, mb: string | undefined;
+  if (from === 'right') dx = (1 - q) * 1100;
+  if (from === 'left') dx = (1 - q) * -1100;
+  if (from === 'top') dy = (1 - q) * -1500;
+  if (from === 'bottom') dy = (1 - q) * 1500;
+  if (from === 'scale') sc = lerp(Math.min(r(t, at, at + 0.22, PUNCH), 1.08), 0.2, 1);
+  const k4 = Math.round((1 - q) * 4);
+  if (q < 0.95 && k4 > 0) mb = from === 'top' || from === 'bottom' ? `url(#mby${k4})` : from === 'scale' ? `blur(${(1 - q) * 16}px)` : `url(#mbx${k4})`;
+  return <Img src={src(k)} style={{position: 'absolute', left: x - w / 2 + dx, top: y - w / 2 + dy, width: w, transform: `scale(${sc}) rotate(${Math.sin(t * 5 + at) * wob + spin * (t - at)}deg)`, filter: mb ?? `drop-shadow(0 40px 50px rgba(0,0,0,${dark ? 0.6 : 0.22}))`}} />;
+};
+
+export const Pop: React.FC<{at: number; children: React.ReactNode; style?: React.CSSProperties; from?: number}> = ({at, children, style, from = 0.4}) => {
+  const t = useT();
+  if (t < at) return null;
+  const p = r(t, at, at + 0.18, PUNCH);
+  return <div style={{position: 'absolute', transform: `scale(${lerp(Math.min(p, 1.06), from, 1)})`, opacity: Math.min(1, p * 2.5), filter: p < 0.6 ? `blur(${(1 - p) * 12}px)` : undefined, ...style}}>{children}</div>;
+};
+
+export const Typed: React.FC<{from: number; to: number; text: string; caret?: boolean}> = ({from, to, text, caret = true}) => {
+  const t = useT();
+  const n = Math.floor(interpolate(t, [from, to], [0, text.length], clamp));
+  return (
+    <>
+      {text.slice(0, n)}
+      {caret && (n < text.length || Math.floor(t * 4) % 2 === 0) ? <span style={{fontWeight: 300, opacity: 0.8}}>|</span> : null}
+    </>
+  );
+};
+
+export const Card: React.FC<{children: React.ReactNode; style?: React.CSSProperties; dark?: boolean}> = ({children, style, dark}) => (
+  <div style={{background: dark ? '#17171B' : '#fff', color: dark ? '#fff' : K, borderRadius: 34, boxShadow: dark ? '0 30px 70px rgba(0,0,0,0.5), inset 0 0 0 1.5px rgba(255,255,255,0.08)' : '0 30px 70px rgba(0,0,0,0.12)', fontFamily: FONT, ...style}}>{children}</div>
+);
+export const Dot: React.FC<{c: string; s?: number}> = ({c, s = 16}) => <span style={{display: 'inline-block', width: s, height: s, borderRadius: s / 2, background: c, flex: 'none'}} />;
+
+export const MotionFilters: React.FC = () => (
+  <svg width="0" height="0" style={{position: 'absolute'}}>
+    {[0, 1, 2, 3, 4].map((k) => (
+      <React.Fragment key={k}>
+        <filter id={`mbx${k}`} x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur stdDeviation={`${k * 14} 0`} /></filter>
+        <filter id={`mby${k}`} x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation={`0 ${k * 14}`} /></filter>
+      </React.Fragment>
+    ))}
+  </svg>
+);
+
+// ---------------------------------------------------------------- shot wrapper (hard cut + entry + push + drift + jump-cut reframes)
+export type Enter = 'punch' | 'whipL' | 'whipR' | 'whipU' | 'zoom' | 'drop';
+export type ShotSpec = {a: number; b: number; type: string; enter?: Enter; dark?: boolean; props?: any};
+const LV = [1, 1.08, 1.03, 1.11, 1.01];
+export const reframes = (d: ShotSpec) => {
+  const out: number[] = [];
+  for (let k = 1; d.a + k * 0.9 < d.b - 0.3; k++) out.push(d.a + k * 0.9);
+  return out;
+};
+export const ShotFrame: React.FC<{d: ShotSpec; children: React.ReactNode}> = ({d, children}) => {
+  const t = useT();
+  if (t < d.a || t >= d.b) return null;
+  const enter = d.enter ?? 'punch';
+  const p = r(t, d.a, d.a + 0.2, Easing.out(Easing.exp));
+  let lvl = 1, rb = 0;
+  reframes(d).forEach((at, i) => {
+    if (t >= at) {
+      const q = r(t, at, at + 0.12, Easing.out(Easing.exp));
+      lvl = lerp(q, LV[i % LV.length], LV[(i + 1) % LV.length]);
+      rb = (1 - q) * 8;
+    }
+  });
+  const cam = (1 + 0.14 * r(t, d.a, d.b, Easing.linear)) * lvl;
+  const drift = `translate(${Math.sin(t * 1.3 + d.a) * 16}px, ${Math.cos(t * 1.1 + d.a) * 12}px) rotate(${Math.sin(t * 0.9 + d.a) * 0.9}deg)`;
+  let tr = '';
+  if (enter === 'punch') tr = `scale(${lerp(p, 1.22, 1)})`;
+  if (enter === 'zoom') tr = `scale(${lerp(p, 0.6, 1)})`;
+  if (enter === 'whipL') tr = `translateX(${(1 - p) * 900}px)`;
+  if (enter === 'whipR') tr = `translateX(${(1 - p) * -900}px)`;
+  if (enter === 'whipU') tr = `translateY(${(1 - p) * 1400}px)`;
+  if (enter === 'drop') tr = `translateY(${(1 - p) * -500}px) scale(${lerp(p, 1.1, 1)})`;
+  const m = Math.round((1 - p) * 4);
+  const filter = p < 1 ? (enter.startsWith('whip') ? (enter === 'whipU' ? `url(#mby${m})` : `url(#mbx${m})`) : `blur(${(1 - p) * 14}px)`) : rb > 0.3 ? `blur(${rb}px)` : undefined;
+  return (
+    <AbsoluteFill style={{background: d.dark ? K : W, overflow: 'hidden'}}>
+      <AbsoluteFill style={{transform: `${tr} ${drift} scale(${cam})`, filter}}>{children}</AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ---------------------------------------------------------------- shot types
+type Line = {t: number; text: string; size?: number; y?: number; color?: string; rot?: number; weight?: number};
+const Lines: React.FC<{lines?: Line[]; dark?: boolean; y0?: number}> = ({lines = [], dark, y0 = 290}) => {
+  let y = y0;
+  return (
+    <>
+      {lines.map((l, i) => {
+        const size = l.size ?? 150;
+        const yy = l.y ?? y;
+        y = yy + size * 0.95;
+        return (
+          <Slam key={i} at={l.t} size={size} y={yy} color={col(l.color, dark)} rot={l.rot} weight={l.weight}>
+            {l.text}
+          </Slam>
+        );
+      })}
+    </>
+  );
+};
+
+// slam: big lines + optional props (the workhorse)
+const T_slam: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => (
+  <>
+    <Glow c={dark ? '#fff' : '#000'} o={dark ? 0.07 : 0.07} />
+    {(p.props ?? []).map((q: PropSpec, i: number) => <Prop key={i} p={q} dark={dark} />)}
+    <Lines lines={p.lines} dark={dark} />
+    {p.pill ? (
+      <Pop at={p.pill.t} style={{top: p.pill.y ?? 900, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 5}}>
+        <div style={{padding: '18px 40px', borderRadius: 999, background: dark ? '#fff' : K, color: dark ? K : '#fff', fontFamily: FONT, fontWeight: 800, fontSize: 60, display: 'flex', alignItems: 'center', gap: 16}}>
+          {p.pill.accent ? <Dot c={col(p.pill.accent)} s={22} /> : null}
+          {p.pill.text}
+        </div>
+      </Pop>
+    ) : null}
+    {p.note ? (
+      <Pop at={p.note.t} style={{top: p.note.y ?? 1150, left: 0, right: 0, textAlign: 'center', fontFamily: MONO, fontSize: 32, color: dark ? 'rgba(255,255,255,0.55)' : G}}>{p.note.text}</Pop>
+    ) : null}
+  </>
+);
+
+// strike: one word on black with a red strike-through
+const T_strike: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const s = r(t, p.t + 0.15, p.t + 0.35, Easing.out(Easing.exp));
+  return (
+    <>
+      <Glow c="#fff" o={0.07} />
+      <Slam at={p.t} size={p.size ?? 300} y={640} color={col(undefined, dark)}>{p.text}</Slam>
+      <div style={{position: 'absolute', left: 130, top: 760, height: 18, width: 820 * s, background: ACC[p.accent ?? 'red'], borderRadius: 9, transform: 'rotate(-6deg)'}} />
+    </>
+  );
+};
+
+// bigNumber: giant digit/number spinning in on Y axis + optional lines
+const T_bigNumber: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const sp = r(t, p.t, p.t + 0.38, Easing.out(Easing.exp));
+  return (
+    <>
+      <Glow c={dark ? '#fff' : '#000'} />
+      <Lines lines={p.lines} dark={dark} />
+      <div style={{position: 'absolute', top: p.y ?? 470, width: '100%', textAlign: 'center', perspective: 1400}}>
+        <div style={{fontFamily: FONT, fontWeight: 800, fontSize: p.size ?? 700, lineHeight: 0.8, letterSpacing: -40, color: col(p.color, dark), transform: `rotateY(${(1 - sp) * 160}deg) scale(${lerp(sp, 1.6, 1)})`, filter: sp < 0.6 ? `blur(${(1 - sp) * 18}px)` : undefined}}>{p.text}</div>
+      </div>
+      {(p.props ?? []).map((q: PropSpec, i: number) => <Prop key={i} p={q} dark={dark} />)}
+    </>
+  );
+};
+
+// itemHead: list item header "01" + name pill on black
+const T_itemHead: React.FC<{p: any; dark?: boolean}> = ({p}) => {
+  const t = useT();
+  const sp = r(t, p.t, p.t + 0.3, Easing.out(Easing.exp));
+  const nameAt = p.nameAt ?? p.t + 0.4;
+  return (
+    <>
+      <Glow c="#fff" o={0.08} y={700} />
+      <div style={{position: 'absolute', top: 300, width: '100%', textAlign: 'center', perspective: 1400}}>
+        <div style={{fontFamily: FONT, fontWeight: 800, fontSize: 520, lineHeight: 0.8, letterSpacing: -36, color: '#fff', transform: `rotateY(${(1 - sp) * 120}deg) scale(${lerp(sp, 1.5, 1)})`, filter: sp < 0.6 ? `blur(${(1 - sp) * 16}px)` : undefined}}>{p.n}</div>
+      </div>
+      <Pop at={nameAt} style={{top: 830, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 22, padding: '26px 46px', borderRadius: 999, background: '#fff', color: K, fontFamily: FONT, fontWeight: 800, fontSize: p.name.length > 14 ? 66 : 84, letterSpacing: -3}}>
+          <Dot c={ACC[p.accent ?? 'blue']} s={26} />
+          <Typed from={nameAt} to={nameAt + 0.35} text={p.name} caret={false} />
+        </div>
+      </Pop>
+      {p.sub ? <Pop at={nameAt + 0.25} style={{top: 1010, left: 0, right: 0, textAlign: 'center', fontFamily: MONO, fontSize: 34, color: 'rgba(255,255,255,0.55)'}}>{p.sub}</Pop> : null}
+    </>
+  );
+};
+
+// burst: many copies of a prop exploding from the center + lines + pill
+const T_burst: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const n = p.n ?? 6;
+  return (
+    <>
+      <Glow c={dark ? '#fff' : '#000'} />
+      <Lines lines={p.lines} dark={dark} />
+      {Array.from({length: n}, (_, i) => {
+        const a = (i / n) * Math.PI * 2 + 0.4;
+        const q = r(t, p.t + i * 0.05, p.t + 0.5 + i * 0.05, Easing.out(Easing.exp));
+        const d = 200 + (i % 3) * 120;
+        return <Img key={i} src={src(p.k)} style={{position: 'absolute', width: 300 - (i % 3) * 50, left: 540 - 150 + Math.cos(a) * d * q, top: 950 - 150 + Math.sin(a) * d * q * 0.8, transform: `rotate(${(t - p.t) * (60 + i * 20)}deg) scale(${q})`, filter: q < 0.9 ? 'blur(4px)' : 'drop-shadow(0 30px 40px rgba(0,0,0,0.2))'}} />;
+      })}
+      {p.pill ? (
+        <Pop at={p.pill.t} style={{top: 900, left: 0, right: 0, display: 'flex', justifyContent: 'center', zIndex: 5}}>
+          <div style={{padding: '18px 40px', borderRadius: 999, background: dark ? '#fff' : K, color: dark ? K : '#fff', fontFamily: FONT, fontWeight: 800, fontSize: 64, display: 'flex', alignItems: 'center', gap: 16}}>
+            {p.pill.accent ? <Dot c={ACC[p.pill.accent]} s={22} /> : null} {p.pill.text}
+          </div>
+        </Pop>
+      ) : null}
+    </>
+  );
+};
+
+// grid: tiles popping in + count-up number + label
+const T_grid: React.FC<{p: any; dark?: boolean}> = ({p}) => {
+  const t = useT();
+  const count = p.count ?? 16;
+  const n = Math.round(interpolate(t, [p.t, p.t + 1.0], [0, p.to ?? count], clamp));
+  return (
+    <>
+      <Glow />
+      <div style={{position: 'absolute', left: 220, top: 600, width: 640, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16}}>
+        {Array.from({length: count}, (_, i) => {
+          const q = r(t, p.t + i * 0.06, p.t + i * 0.06 + 0.15, PUNCH);
+          return (
+            <div key={i} style={{aspectRatio: '1', borderRadius: 30, background: i % 5 === 0 ? K : '#fff', boxShadow: '0 16px 36px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: `scale(${lerp(Math.min(q, 1.08), 0, 1)}) rotate(${(1 - Math.min(q, 1)) * 30}deg)`}}>
+              <span style={{fontFamily: MONO, fontWeight: 600, fontSize: 24, color: i % 5 === 0 ? '#fff' : K}}>{p.tile ?? ''}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{position: 'absolute', top: 280, width: '100%', textAlign: 'center', fontFamily: FONT, fontWeight: 800, fontSize: 220, letterSpacing: -12, lineHeight: 1, color: K, fontVariantNumeric: 'tabular-nums'}}>{(p.prefix ?? '') + n + (p.suffix ?? '')}</div>
+      {p.label ? <Pop at={p.t + 1.05} style={{top: 500, left: 0, right: 0, textAlign: 'center', fontFamily: FONT, fontWeight: 700, fontSize: 46, color: G}}>{p.label}</Pop> : null}
+    </>
+  );
+};
+
+// switch: usage bar fills to red, cards whip to the next option
+const SwitchCard: React.FC<{name: string; pct: number; full: boolean; ok?: boolean; okLabel?: string; fullLabel?: string}> = ({name, pct, full, ok, okLabel = 'aktiv', fullLabel = 'Limit erreicht'}) => (
+  <Card style={{padding: '40px 44px', width: 900}}>
+    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+      <div style={{fontWeight: 800, fontSize: 58, letterSpacing: -2}}>{name}</div>
+      {ok ? <span style={{display: 'inline-flex', alignItems: 'center', gap: 12, fontWeight: 700, fontSize: 34}}><Dot c={ACC.green} s={18} />{okLabel}</span> : null}
+    </div>
+    <div style={{marginTop: 26, height: 30, borderRadius: 15, background: '#ECECEF', overflow: 'hidden'}}>
+      <div style={{width: `${pct}%`, height: '100%', borderRadius: 15, background: full ? ACC.red : K}} />
+    </div>
+    <div style={{marginTop: 14, fontFamily: MONO, fontSize: 28, color: full ? ACC.red : G}}>{full ? fullLabel : `${Math.round(pct)} %`}</div>
+  </Card>
+);
+const T_switch: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const items: {name: string; t: number}[] = p.items;
+  const pct = interpolate(t, [items[0].t, items[0].t + 0.55], [62, 100], {...clamp, easing: Easing.in(Easing.quad)});
+  return (
+    <>
+      <Glow />
+      <Lines lines={p.lines} dark={dark} />
+      {items.map((it, i) => {
+        const next = items[i + 1];
+        const inP = i === 0 ? 1 : r(t, it.t, it.t + 0.25, Easing.out(Easing.exp));
+        const outP = next ? r(t, next.t - 0.05, next.t + 0.2, Easing.in(Easing.cubic)) : 0;
+        if (t < it.t && i > 0) return null;
+        if (outP >= 1) return null;
+        const moving = inP < 1 || outP > 0.02;
+        return (
+          <div key={i} style={{position: 'absolute', left: 90, top: 620, transform: `translateX(${(1 - inP) * 1200 - outP * 1200}px)`, filter: moving ? 'url(#mbx3)' : undefined}}>
+            <SwitchCard name={it.name} pct={i === 0 ? pct : 10 + i * 7} full={i === 0 && pct >= 99.5} ok={i > 0} okLabel={p.okLabel} fullLabel={p.fullLabel} />
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
+// toasts: iOS notification stack (attack), flips to fixed state at fixAt
+const T_toasts: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const fixed = p.fixAt !== undefined && t >= p.fixAt;
+  const items: {t: number; title: string; body?: string}[] = p.items;
+  const yStart = p.window ? 600 : 360;
+  return (
+    <>
+      <Glow c={fixed ? ACC.green : ACC[p.accent ?? 'red']} o={0.08} />
+      {p.window ? (
+        <div style={{position: 'absolute', left: 140, top: 300, width: 800}}>
+          <Card style={{padding: 0, overflow: 'hidden'}}>
+            <div style={{display: 'flex', gap: 10, padding: '20px 24px', borderBottom: '1.5px solid #ECECEF'}}>
+              {[0, 1, 2].map((i) => <Dot key={i} c="#D4D4D8" s={16} />)}
+              <span style={{marginLeft: 16, fontFamily: MONO, fontSize: 24, color: G}}>{p.window}</span>
+            </div>
+            <div style={{padding: 30, display: 'grid', gap: 14}}>
+              {[70, 90, 55].map((w, i) => <div key={i} style={{height: 22, width: `${w}%`, borderRadius: 11, background: '#ECECEF'}} />)}
+            </div>
+          </Card>
+          {!fixed && p.crosshair !== false ? (
+            <div style={{position: 'absolute', left: 160 + Math.sin(t * 5) * 260, top: 60 + Math.cos(t * 4) * 70, width: 120, height: 120, border: `4px solid ${ACC.red}`, borderRadius: '50%'}}>
+              <div style={{position: 'absolute', left: 56, top: -30, width: 4, height: 176, background: ACC.red}} />
+              <div style={{position: 'absolute', top: 56, left: -30, height: 4, width: 176, background: ACC.red}} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {items.map((it, i) => (
+        <Pop key={i} at={it.t} from={0.7} style={{left: 70, right: 70, top: yStart + i * 128}}>
+          <Card style={{display: 'flex', alignItems: 'center', gap: 22, padding: '22px 30px'}}>
+            <div style={{width: 66, height: 66, borderRadius: 20, background: K, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 800}}>{fixed ? '✓' : p.icon ?? '!'}</div>
+            <div style={{flex: 1}}>
+              <div style={{fontWeight: 700, fontSize: 32}}>{fixed && p.fixSuffix ? `${it.title} ${p.fixSuffix}` : it.title}</div>
+              {it.body ? <div style={{fontWeight: 500, fontSize: 27, color: G}}>{it.body}</div> : null}
+            </div>
+            <Dot c={fixed ? ACC.green : ACC[p.accent ?? 'red']} s={20} />
+          </Card>
+        </Pop>
+      ))}
+      {(p.props ?? []).map((q: PropSpec, i: number) => <Prop key={i} p={q} dark={dark} />)}
+      <Lines lines={p.lines} dark={dark} y0={1150} />
+    </>
+  );
+};
+
+// orbit: prop in the center, labeled cards fly into it
+const T_orbit: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const items: string[] = p.items ?? [];
+  return (
+    <>
+      <Glow />
+      <Lines lines={p.lines} dark={dark} />
+      {p.prop ? <Prop p={{x: 540, y: 800, w: 760, from: 'scale', wob: 3, ...p.prop}} dark={dark} /> : null}
+      {items.map((txt, i) => {
+        const st = p.t + i * (p.step ?? 0.3);
+        const q = r(t, st, st + 0.5, Easing.in(Easing.cubic));
+        if (t < st || q >= 1) return null;
+        const a = (i / items.length) * Math.PI * 2;
+        const R = lerp(q, 620, 0);
+        return (
+          <div key={i} style={{position: 'absolute', left: 540 + Math.cos(a) * R - 120, top: 800 + Math.sin(a) * R * 0.8 - 40, transform: `scale(${lerp(q, 1, 0.2)})`, opacity: 1 - q * 0.6}}>
+            <Card style={{padding: '16px 24px', borderRadius: 22, fontWeight: 700, fontSize: 28, display: 'flex', gap: 12, alignItems: 'center', whiteSpace: 'nowrap'}}>
+              <Dot c={i === 2 ? ACC[p.accent ?? 'blue'] : K} s={12} /> {txt}
+            </Card>
+          </div>
+        );
+      })}
+      {p.note ? <Pop at={p.note.t} style={{top: 1150, left: 0, right: 0, textAlign: 'center', fontFamily: MONO, fontSize: 32, color: G}}>{p.note.text}</Pop> : null}
+    </>
+  );
+};
+
+// bubbleStrike: chat bubble gets struck through and crushed
+const T_bubbleStrike: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const strike = r(t, p.strikeAt, p.strikeAt + 0.25, Easing.out(Easing.exp));
+  const crush = r(t, p.crushAt, p.crushAt + 0.25, Easing.in(Easing.cubic));
+  return (
+    <>
+      <Glow />
+      <Lines lines={p.lines} dark={dark} />
+      <div style={{position: 'absolute', left: 90, right: 90, top: 640, transform: `scale(${lerp(crush, 1, 0.1)}) rotate(${crush * 25}deg)`, opacity: 1 - crush}}>
+        <Card style={{padding: '34px 40px', borderRadius: '40px 40px 40px 12px', background: '#E9E9EC', boxShadow: 'none', fontWeight: 600, fontSize: 44, lineHeight: 1.25, position: 'relative'}}>
+          {p.text}
+          <div style={{position: 'absolute', left: 30, top: '50%', height: 10, width: `${strike * 92}%`, background: ACC.red, borderRadius: 5}} />
+        </Card>
+      </div>
+      {p.after ? <Slam at={p.after.t} size={p.after.size ?? 120} y={1000} color={G} weight={700}>{p.after.text}</Slam> : null}
+    </>
+  );
+};
+
+// spinProp: big spinning prop with pings shooting out
+const T_spinProp: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  return (
+    <>
+      <Glow />
+      <Lines lines={p.lines} dark={dark} />
+      <Prop p={{x: 540, y: 850, w: 640, from: 'scale', wob: 0, spin: p.spin ?? 30, ...p.prop}} dark={dark} />
+      {Array.from({length: 10}, (_, i) => {
+        const st = p.prop.t + 0.35 + i * 0.18;
+        const q = r(t, st, st + 0.45, Easing.out(Easing.cubic));
+        if (t < st || q >= 1) return null;
+        const a = random(`g${i}`) * Math.PI * 2;
+        return <div key={i} style={{position: 'absolute', left: 540 + Math.cos(a) * 520 * q - 9, top: 850 + Math.sin(a) * 520 * q - 9, width: 18, height: 18, borderRadius: 9, background: i % 4 === 0 ? ACC[p.accent ?? 'green'] : K, opacity: 1 - q}} />;
+      })}
+    </>
+  );
+};
+
+// pills: big pill per word (names, options)
+const T_pills: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => (
+  <>
+    <Glow />
+    <Lines lines={p.lines} dark={dark} />
+    {(p.items as {t: number; text: string}[]).map((it, i, arr) => {
+      const y = 520 + i * (arr.length > 3 ? 180 : 240);
+      return (
+        <Pop key={i} at={it.t} from={1.8} style={{top: y, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 22, padding: '26px 54px', borderRadius: 999, background: i % 2 === 1 ? K : '#fff', color: i % 2 === 1 ? '#fff' : K, boxShadow: '0 24px 60px rgba(0,0,0,0.14)', fontFamily: FONT, fontWeight: 800, fontSize: 88, letterSpacing: -4, transform: `rotate(${(i % 3) - 1 * 3}deg)`}}>
+            <Dot c={ACC[p.accent ?? 'green']} s={22} /> {it.text}
+          </div>
+        </Pop>
+      );
+    })}
+  </>
+);
+
+// stamp: rotated stamp badge + prop
+const T_stamp: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const st = r(t, p.t, p.t + 0.18, PUNCH);
+  return (
+    <>
+      <Glow />
+      {p.prop ? <Prop p={{x: 540, y: 800, w: 680, from: 'scale', wob: 0, spin: -45, ...p.prop}} dark={dark} /> : null}
+      {st > 0 ? (
+        <div style={{position: 'absolute', top: 290, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: `scale(${lerp(Math.min(st, 1.06), 2.4, 1)}) rotate(-5deg)`, opacity: Math.min(1, st * 3)}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 22, padding: '22px 46px', border: `8px solid ${K}`, borderRadius: 30, fontFamily: FONT, fontWeight: 800, fontSize: 104, letterSpacing: -4, color: K}}>
+            <span style={{width: 64, height: 64, borderRadius: 32, background: ACC[p.accent ?? 'blue'], color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 40}}>✓</span>
+            {p.text}
+          </div>
+        </div>
+      ) : null}
+      <Lines lines={p.lines} dark={dark} y0={1150} />
+    </>
+  );
+};
+
+// codeScan: 3D tilted dark code card scrolling with a scan beam
+const DEFAULT_CODE = ['import { db } from "./lib"', 'export async function login(u) {', '  const user = await db.find(u)', '  if (!user) throw new Error()', '  return sign(user.id)', '}', 'app.post("/api/pay", pay)', 'const hooks = loadHooks()', 'mcp.connect("github")'];
+const T_codeScan: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const code: string[] = p.code ?? DEFAULT_CODE;
+  const scroll = interpolate(t, [p.t, p.t + 2.1], [0, 420], clamp);
+  const beam = ((t - p.t) * 1.6) % 1;
+  return (
+    <>
+      <Glow />
+      <Lines lines={p.lines} dark={dark} />
+      <div style={{position: 'absolute', inset: 0, perspective: 1400}}>
+        <div style={{position: 'absolute', left: 80, top: 520, width: 920, transform: `rotateX(30deg) rotateZ(-4deg) translateY(${-scroll}px)`, transformOrigin: '50% 0%'}}>
+          <Card dark style={{padding: '30px 34px', fontFamily: MONO, fontSize: 34, lineHeight: 1.75}}>
+            {[...code, ...code].map((l, i) => <div key={i} style={{color: i % 7 === 2 ? '#fff' : 'rgba(255,255,255,0.55)', whiteSpace: 'pre'}}>{l}</div>)}
+          </Card>
+        </div>
+      </div>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 560 + beam * 600, height: 5, background: `linear-gradient(90deg, transparent, ${ACC.blue}, transparent)`, boxShadow: `0 0 40px 10px ${ACC.blue}44`}} />
+    </>
+  );
+};
+
+// checklist: cards with green check per item
+const T_checklist: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => (
+  <>
+    <Glow />
+    <Lines lines={p.lines} dark={dark} />
+    {(p.items as {t: number; text: string}[]).map((it, i, arr) => (
+      <Pop key={i} at={it.t} from={0.3} style={{top: 520 + i * (arr.length > 3 ? 160 : 210), left: 110, right: 110}}>
+        <Card style={{display: 'flex', alignItems: 'center', gap: 24, padding: '28px 40px'}}>
+          <span style={{width: 66, height: 66, borderRadius: 33, background: ACC[p.accent ?? 'green'], color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, fontWeight: 800, flex: 'none'}}>✓</span>
+          <span style={{fontWeight: 800, fontSize: it.text.length > 16 ? 56 : 72, letterSpacing: -3}}>{it.text}</span>
+        </Card>
+      </Pop>
+    ))}
+  </>
+);
+
+// versus: A vs B comparison cards (left loses, right wins)
+const T_versus: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const win = r(t, p.winAt ?? p.b.t + 0.4, (p.winAt ?? p.b.t + 0.4) + 0.2, PUNCH);
+  const side = (x: any, i: number) => (
+    <Pop key={i} at={x.t} from={0.5} style={{top: 560, left: i === 0 ? 70 : 560, width: 450}}>
+      <Card dark={i === 1} style={{padding: '40px 34px', minHeight: 520, display: 'flex', flexDirection: 'column', gap: 18, transform: i === 0 ? `scale(${lerp(win, 1, 0.92)})` : `scale(${lerp(win, 1, 1.05)})`, opacity: i === 0 ? lerp(win, 1, 0.55) : 1}}>
+        <div style={{fontWeight: 800, fontSize: 54, letterSpacing: -2}}>{x.title}</div>
+        {(x.points ?? []).map((pt: string, k: number) => (
+          <div key={k} style={{display: 'flex', gap: 14, alignItems: 'center', fontWeight: 600, fontSize: 32}}>
+            <Dot c={i === 1 ? ACC.green : ACC.red} s={14} /> {pt}
+          </div>
+        ))}
+      </Card>
+    </Pop>
+  );
+  return (
+    <>
+      <Glow />
+      <Lines lines={p.lines} dark={dark} />
+      {[p.a, p.b].map(side)}
+      <Pop at={p.b.t - 0.05} style={{top: 790, left: 0, right: 0, textAlign: 'center', fontFamily: FONT, fontWeight: 800, fontSize: 64, color: G}}>vs</Pop>
+    </>
+  );
+};
+
+// phone: iPhone mockup with notification rain + optional badge counter
+const T_phone: React.FC<{p: any; dark?: boolean}> = ({p, dark}) => {
+  const t = useT();
+  const items: {t: number; title: string; body?: string}[] = p.items ?? [];
+  return (
+    <>
+      <Glow />
+      <Lines lines={p.lines} dark={dark} />
+      <div style={{position: 'absolute', left: 260, top: 560, width: 560, height: 1000, borderRadius: 90, background: K, padding: 18, boxShadow: '0 40px 90px rgba(0,0,0,0.3)', transform: `rotate(${Math.sin(t * 2) * 2}deg)`}}>
+        <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 74, background: '#EDEDF0', overflow: 'hidden'}}>
+          <div style={{position: 'absolute', left: '50%', top: 18, width: 160, height: 44, marginLeft: -80, borderRadius: 22, background: K}} />
+          {items.map((it, i) => {
+            const q = r(t, it.t, it.t + 0.2, PUNCH);
+            if (q <= 0) return null;
+            return (
+              <div key={i} style={{position: 'absolute', left: 18, right: 18, top: 90 + (items.filter((x) => x.t <= t).length - 1 - i) * 118, transform: `translateY(${(1 - Math.min(q, 1)) * -120}px) scale(${lerp(Math.min(q, 1.04), 0.9, 1)})`}}>
+                <Card style={{padding: '16px 18px', borderRadius: 26, display: 'flex', gap: 14, alignItems: 'center'}}>
+                  <div style={{width: 48, height: 48, borderRadius: 13, background: K, flex: 'none'}} />
+                  <div style={{minWidth: 0}}>
+                    <div style={{fontWeight: 700, fontSize: 24}}>{it.title}</div>
+                    {it.body ? <div style={{fontWeight: 500, fontSize: 21, color: G, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{it.body}</div> : null}
+                  </div>
+                </Card>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {(p.props ?? []).map((q: PropSpec, i: number) => <Prop key={i} p={q} dark={dark} />)}
+    </>
+  );
+};
+
+// cta: comment field typing the keyword, send, DM banner drops in (face from spec windows)
+const T_cta: React.FC<{p: any; dark?: boolean}> = ({p}) => {
+  const t = useT();
+  const word: string = p.word;
+  const sent = t >= p.sendAt;
+  const n = Math.floor(interpolate(t, [p.typeAt, p.typeAt + 0.35], [0, word.length], clamp));
+  const dm = r(t, p.dmAt, p.dmAt + 0.22, PUNCH);
+  return (
+    <>
+      <Glow />
+      <Pop at={p.t ?? p.typeAt - 0.6} from={0.4} style={{left: 50, right: 50, top: 300}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 20, height: 150, padding: '0 26px 0 44px', borderRadius: 75, background: '#fff', boxShadow: '0 30px 70px rgba(0,0,0,0.14)', fontFamily: FONT}}>
+          <span style={{fontSize: 52}}>💬</span>
+          <span style={{flex: 1, fontWeight: 800, fontSize: word.length > 8 ? 70 : 92, letterSpacing: -4, color: n ? K : '#B5B5BB'}}>{n ? word.slice(0, n) : 'Kommentar …'}{!sent && n ? <span style={{fontWeight: 300}}>|</span> : null}</span>
+          <span style={{width: 100, height: 100, borderRadius: 50, background: sent ? ACC.blue : '#E6E6EA', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 50, transform: `scale(${t >= p.sendAt && t < p.sendAt + 0.12 ? 0.85 : 1})`}}>↑</span>
+        </div>
+      </Pop>
+      {dm > 0 ? (
+        <div style={{position: 'absolute', left: 60, right: 60, top: lerp(Math.min(dm, 1.05), -200, 490), zIndex: 50}}>
+          <Card style={{display: 'flex', alignItems: 'center', gap: 20, padding: '24px 30px', borderRadius: 40}}>
+            <div style={{width: 76, height: 76, borderRadius: 20, background: K, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 26}}>U</div>
+            <div style={{flex: 1}}>
+              <div style={{fontWeight: 700, fontSize: 32}}>ULTRA · jetzt</div>
+              <div style={{fontWeight: 500, fontSize: 30, color: G}}>{p.dmText ?? 'Hier ist dein Link 🔗'}</div>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+    </>
+  );
+};
+
+// logo: end card on black with light sweep
+const T_logo: React.FC<{p: any; dark?: boolean}> = ({p}) => {
+  const t = useT();
+  const sweep = interpolate(t, [p.t + 0.35, p.t + 0.95], [-30, 130], clamp);
+  return (
+    <>
+      <Glow c="#fff" o={0.08} />
+      <Slam at={p.t} size={210} y={800} color="#fff">
+        <span style={{position: 'relative', display: 'inline-block'}}>
+          {p.text ?? 'ULTRA'}
+          <span style={{position: 'absolute', inset: 0, background: `linear-gradient(100deg, transparent ${sweep - 14}%, rgba(255,255,255,0.35) ${sweep}%, transparent ${sweep + 14}%)`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent'}}>{p.text ?? 'ULTRA'}</span>
+        </span>
+      </Slam>
+    </>
+  );
+};
+
+export const SHOT_TYPES: Record<string, React.FC<{p: any; dark?: boolean}>> = {
+  slam: T_slam,
+  strike: T_strike,
+  bigNumber: T_bigNumber,
+  itemHead: T_itemHead,
+  burst: T_burst,
+  grid: T_grid,
+  switch: T_switch,
+  toasts: T_toasts,
+  orbit: T_orbit,
+  bubbleStrike: T_bubbleStrike,
+  spinProp: T_spinProp,
+  pills: T_pills,
+  stamp: T_stamp,
+  codeScan: T_codeScan,
+  checklist: T_checklist,
+  versus: T_versus,
+  phone: T_phone,
+  cta: T_cta,
+  logo: T_logo,
+};

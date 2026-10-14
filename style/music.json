@@ -1,0 +1,101 @@
+{
+ "_info": "Musik-Bibliothek (15.10.2026, je 47 s). Pro Reel 2–3 Betten mit unterschiedlichem Genre wählen, nicht dieselben wie in den letzten 3 Reels der Marke (variety.py). Lautstärke setzt engine.py mixprep automatisch. from = Startpunkt (erster Beat) + beliebiger Versatz in 0..30 s für Abwechslung.",
+ "beds": {
+  "trap145": {
+   "src": "music/trap145.mp3",
+   "genre": "trap",
+   "bpm": 145,
+   "from": 0.21,
+   "lufs": -15.66,
+   "prompt": "Hard-hitting modern trap beat for a fast viral social media reel, 145 BPM, booming 808 and snappy snare from the very first beat, rolling hi-hats, bright plucky synth lead, energetic, no intro, no vocals"
+  },
+  "chiptune150": {
+   "src": "music/chiptune150.mp3",
+   "genre": "chiptune",
+   "bpm": 150,
+   "from": 0.05,
+   "lufs": -11.72,
+   "prompt": "Upbeat 8-bit chiptune video game music, 150 BPM, square-wave lead melody, punchy noise drums from the very first beat, playful energy, no intro, no vocals"
+  },
+  "cinematic128": {
+   "src": "music/cinematic128.mp3",
+   "genre": "cinematic",
+   "bpm": 128,
+   "from": 0.05,
+   "lufs": -15.6,
+   "prompt": "Epic cinematic hybrid trailer beat with big drums and future bass synths, 128 BPM, driving pulse from the very first beat, uplifting and confident, no intro, no vocals"
+  },
+  "phonk130": {
+   "src": "music/phonk130.mp3",
+   "genre": "phonk",
+   "bpm": 130,
+   "from": 0.93,
+   "lufs": -14.57,
+   "prompt": "Aggressive drift phonk, 130 BPM, cowbell melody, distorted 808, hard drums from the very first beat, dark and energetic, no intro, no vocals"
+  },
+  "electro126": {
+   "src": "music/electro126.mp3",
+   "genre": "electro",
+   "bpm": 126,
+   "from": 0.05,
+   "lufs": -14.93,
+   "prompt": "Punchy electro house for a tech reel, 126 BPM, gritty bassline, clap and kick from the very first beat, bright stabs, energetic, no intro, no vocals"
+  },
+  "dnb174": {
+   "src": "music/dnb174.mp3",
+   "genre": "dnb",
+   "bpm": 174,
+   "from": 0.21,
+   "lufs": -12.23,
+   "prompt": "Fast liquid drum and bass, 174 BPM, rolling breakbeat from the very first beat, deep reese bass, shimmering pads, energetic and modern, no intro, no vocals"
+  },
+  "hiphop92": {
+   "src": "music/hiphop92.mp3",
+   "genre": "hiphop",
+   "bpm": 92,
+   "from": 0.05,
+   "lufs": -13.34,
+   "prompt": "Modern boom bap hip hop beat, 92 BPM, crisp drums from the very first beat, warm piano chops, confident head-nod groove, no intro, no vocals"
+  },
+  "synthwave110": {
+   "src": "music/synthwave110.mp3",
+   "genre": "synthwave",
+   "bpm": 110,
+   "from": 1.09,
+   "lufs": -14.26,
+   "prompt": "Driving synthwave, 110 BPM, pulsing analog bass arpeggio, gated drums from the very first beat, neon retro-futuristic mood, no intro, no vocals"
+  },
+  "afro112": {
+   "src": "music/afro112.mp3",
+   "genre": "afro",
+   "bpm": 112,
+   "from": 0.4,
+   "lufs": -12.8,
+   "prompt": "Bouncy afro house, 112 BPM, percussive groove from the very first beat, plucky marimba hook, warm bass, feel-good energy, no intro, no vocals"
+  },
+  "techno132": {
+   "src": "music/techno132.mp3",
+   "genre": "techno",
+   "bpm": 132,
+   "from": 0.26,
+   "lufs": -9.81,
+   "prompt": "Peak-time driving techno, 132 BPM, pounding kick from the very first beat, hypnotic acid line, dark tension, no intro, no vocals"
+  },
+  "popfunk118": {
+   "src": "music/popfunk118.mp3",
+   "genre": "popfunk",
+   "bpm": 118,
+   "from": 0.05,
+   "lufs": -14.98,
+   "prompt": "Upbeat funky pop groove, 118 BPM, slap bass and tight drums from the very first beat, bright brass stabs, playful confident energy, no intro, no vocals"
+  },
+  "minimal124": {
+   "src": "music/minimal124.mp3",
+   "genre": "minimal",
+   "bpm": 124,
+   "from": 0.26,
+   "lufs": -14.88,
+   "prompt": "Driving modern minimal tech house, 124 BPM, punchy tight kick from the very first beat, crisp hi-hats, dark plucky synth stabs, clean, no intro, no vocals"
+  }
+ }
+}

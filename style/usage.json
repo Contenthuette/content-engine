@@ -1,0 +1,199 @@
+{
+ "reels": [
+  {
+   "id": "Dd4LrTSsx0i",
+   "brand": "ULTRA",
+   "date": "2026-10-13",
+   "concept": "(keine – Fehler) generische Pillen/Terminals statt Steckdosenleiste",
+   "structure": "liste",
+   "hook": "H01",
+   "palette": "apple_paper_blue",
+   "materials": [
+    "ui_rebuild",
+    "3d_object",
+    "avatar",
+    "kinetic_type"
+   ],
+   "transitions": [
+    "morph",
+    "zoom_through",
+    "polarity_flip",
+    "push"
+   ],
+   "effects": [
+    "crash_zoom",
+    "counter"
+   ],
+   "note": "Apple Motion v2 – Leif: sieht aus wie alle anderen"
+  },
+  {
+   "id": "DePNgrmToh9",
+   "brand": "ULTRA",
+   "date": "2026-10-13",
+   "concept": "(keine – Fehler) Vox-Collage-Look des Originals nicht übernommen",
+   "structure": "tutorial",
+   "hook": "H01",
+   "palette": "apple_paper_orange",
+   "materials": [
+    "ui_rebuild",
+    "3d_object",
+    "avatar",
+    "kinetic_type"
+   ],
+   "transitions": [
+    "morph",
+    "zoom_through",
+    "polarity_flip",
+    "push"
+   ],
+   "effects": [
+    "crash_zoom"
+   ],
+   "note": "Apple Motion v2 – Leif: sieht aus wie alle anderen"
+  },
+  {
+   "id": "rea20v2",
+   "brand": "ULTRA",
+   "format": "breaking",
+   "concept": "Jede App wird zerlegt: Explosion → Mosaik → Glas-Ebenen → Pinnwand → kompletter Code → nachgebaut",
+   "structure": "hook-face-explode / beweis-repo / zahl / zerlegen / nachbauen / cta-keyword",
+   "hook": "KC-13+AV-01",
+   "palette": "hell-bunt-dicht",
+   "materials": [
+    "KC-13",
+    "KC-16",
+    "KC-10",
+    "KC-26",
+    "3D-14",
+    "KC-35",
+    "KC-17",
+    "KC-30",
+    "KC-08",
+    "KC-06",
+    "KC-01",
+    "UI-13",
+    "UI-12",
+    "ME-03",
+    "ME-05",
+    "ME-01",
+    "ME-02",
+    "ME-09",
+    "ME-07"
+   ],
+   "transitions": [
+    "KX-04",
+    "TR-01",
+    "TR-13",
+    "TR-08",
+    "hard-cut+punch"
+   ],
+   "effects": [
+    "punch",
+    "pills",
+    "FX-10",
+    "FX-09"
+   ],
+   "codes": [
+    "3D-14",
+    "KC-01",
+    "KC-06",
+    "KC-08",
+    "KC-10",
+    "KC-13",
+    "KC-16",
+    "KC-17",
+    "KC-26",
+    "KC-30",
+    "KC-35",
+    "UI-12",
+    "UI-13"
+   ]
+  },
+  {
+   "id": "Dd_rD8eu6U4",
+   "brand": "ULTRA",
+   "format": "desk3d",
+   "concept": "Das Video ist ein Game: 3 Level (Rohschnitt, Sound, Visuals), Endboss Team statt A-Player",
+   "structure": "hook-frage / 3 level / trick / team / cta-keyword",
+   "hook": "KC-21+KC-23+AV-01+KT-01",
+   "palette": "retro-arcade-3d",
+   "materials": [
+    "3D-17",
+    "AV-01",
+    "DA-10",
+    "FX-03",
+    "KC-02",
+    "KC-05",
+    "KC-08",
+    "KC-13",
+    "KC-16",
+    "KC-17",
+    "KC-22",
+    "KC-26",
+    "KC-27",
+    "KC-34",
+    "KC-35",
+    "KC-40",
+    "KT-01",
+    "KT-02",
+    "KT-03",
+    "KU-01",
+    "KU-03",
+    "KU-08",
+    "KU-12",
+    "KU-19",
+    "KU-25",
+    "KU-32",
+    "ME-02",
+    "ME-07",
+    "ME-09",
+    "T-14",
+    "T-15",
+    "T-52",
+    "UI-46"
+   ],
+   "transitions": [
+    "KX-04",
+    "TR-02",
+    "KX-12",
+    "TR-11",
+    "KX-19",
+    "hard-cut+punch"
+   ],
+   "effects": [
+    "punch",
+    "pills",
+    "push"
+   ],
+   "music": "3 Betten: Trap → Chiptune → Cinematic",
+   "leitidee": "Schnitt in 3 Ebenen (#1 Rohschnitt · #2 Sound · #3 Visuals) – Glas-Ebenen + echte Schnitt-UIs, Team statt A-Player",
+   "codes": [
+    "3D-17",
+    "DA-10",
+    "KC-02",
+    "KC-05",
+    "KC-08",
+    "KC-13",
+    "KC-16",
+    "KC-17",
+    "KC-22",
+    "KC-26",
+    "KC-27",
+    "KC-34",
+    "KC-35",
+    "KC-40",
+    "KT-01",
+    "KT-02",
+    "KT-03",
+    "KU-01",
+    "KU-03",
+    "KU-08",
+    "KU-12",
+    "KU-19",
+    "KU-25",
+    "KU-32",
+    "UI-46"
+   ]
+  }
+ ]
+}

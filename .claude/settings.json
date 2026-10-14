@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 pipeline/engine.py:*)",
+      "Bash(python3 pipeline/tools/analyze.py:*)",
+      "Bash(python3 pipeline/tools/broll.py:*)",
+      "Bash(python3 pipeline/tools/stock.py:*)",
+      "Bash(python3 pipeline/tools/variety.py:*)",
+      "Bash(node src/fast/tools/stills.mjs:*)",
+      "Bash(COMP=:*)",
+      "Bash(npx remotion:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(ffprobe:*)",
+      "Bash(yt-dlp:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(open:*)"
+    ],
+    "deny": [
+      "Read(./secrets.env)",
+      "Read(../engine/secrets.env)"
+    ]
+  }
+}

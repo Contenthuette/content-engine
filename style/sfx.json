@@ -1,0 +1,11 @@
+{
+ "_regeln": "Keine Ding-Sounds. Kein tiefer Hit auf jedem Schnitt (sub/thump/boom/click/whoosh2 werden in core.tsx automatisch auf helle Sounds umgelenkt). Tiefer Hit max. 1x pro Video via 'deep:'. Im selben Video jeden Sound höchstens 3x, Ketten (tick/tap) zählen als 1.",
+ "uebergang": ["whoosh", "whoosh3", "swish", "swipe", "slide", "slide2", "zip"],
+ "landung": ["pop", "pop2", "snap", "tock", "stamp", "shutter", "bubble"],
+ "ui": ["tap", "tick", "tick2", "tick3", "type", "select", "send", "open", "pin", "flap", "glass", "pluck"],
+ "tech": ["data", "digital", "glitch", "glitch2", "scan", "gear", "counter"],
+ "belohnung": ["chime", "coin", "money", "sparkle", "synpop"],
+ "spannung": ["riser", "rise2"],
+ "retro": ["blip", "jump", "lose", "power", "start", "hit8"],
+ "nur_deep": ["sub", "thump", "boom"]
+}

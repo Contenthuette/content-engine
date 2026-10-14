@@ -1,0 +1,32 @@
+{
+ "active": "face_source_master_2026-10.png",
+ "sources": {
+  "face_source_master_2026-10.png": {
+   "zoom": 1.0,
+   "note": "STANDARD: KI-Studioporträt (Nano Banana 2) aus Leifs 3 aktuellen Fotos, von Leif abgenommen 12.10.2026 – schwarzer Sweater, dunkles Studio, Drei-Punkt-Licht, Ausrichtung final"
+  },
+  "face_source_2026-10_selfie.png": {
+   "zoom": 1.0,
+   "note": "verworfen (Composite Selfie+Sweater) – nicht verwenden"
+  },
+  "face_source_2026-10.png": {
+   "zoom": 1.2,
+   "note": "Aktueller Look aus Pärchenfoto 11.10.2026 (Sweater, freigestellt) – Ausweichoption"
+  },
+  "face_source.png": {
+   "zoom": 1.0,
+   "note": "älter (Headshot mit Bart, Polo) – nicht mehr verwenden"
+  },
+  "face_source_studio.png": {
+   "zoom": 1.25,
+   "note": "veraltet (ohne Bart, ein Jahr alt) – nicht mehr verwenden"
+  },
+  "face_source_v1_graywall.png": {
+   "zoom": 1.0,
+   "note": "alt: graue Wand"
+  }
+ },
+ "mirrored": "Ausrichtung jeder Quelle ist final so wie die Datei liegt – nicht mehr spiegeln, auch im Video nicht",
+ "model": "aurora",
+ "model_note": "Aurora gewinnt den Vergleich (12.10.2026, vs. OmniHuman 1.5 und Kling Avatar Pro) – Leifs Wahl"
+}

@@ -1,0 +1,13 @@
+# Cloud-Container (Linux, Python 3.13) – Stand 15.10.2026, so getestet
+numpy==2.5.3
+pillow==12.3.0
+faster-whisper==1.2.1
+fal-client==1.0.3
+opencv-python-headless==5.0.0.93
+scenedetect==0.7.2
+rapidocr-onnxruntime==1.2.3
+rembg==2.0.85
+librosa==1.0.0
+soundfile==0.14.0
+onnxruntime==1.29.0
+av==19.0.1

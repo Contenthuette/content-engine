@@ -1,0 +1,13 @@
+{
+ "_info": "Viral-Radar (Leif 15.10.2026): Edits ≥ 1 Mio Views aus den letzten 7 Tagen, Zielgruppe junge Männer/Unternehmer. Tags ohne #. Instagram-Accounts pro Nische ergänzen, sobald bekannt (Hashtag-Seiten brauchen Login).",
+ "niches": {
+  "sport":      {"label": "Sport",               "tiktok_tags": ["sportsedit", "footballedit", "ufcedit", "nbaedit", "f1edit", "boxingedit"], "ig_accounts": []},
+  "action":     {"label": "Action / Film",       "tiktok_tags": ["actionedit", "movieedit", "carsedit", "aftereffectsedit"], "ig_accounts": []},
+  "ai":         {"label": "KI",                  "tiktok_tags": ["aiedit", "ainews", "artificialintelligence", "chatgpt", "aitools"], "ig_accounts": ["nick_saraev", "albert.olgaard", "angus.sewell", "adilet.fndr", "speedy_devv"]},
+  "creator":    {"label": "Content Creation",    "tiktok_tags": ["contentcreator", "editingtips", "capcutedit", "videoediting"], "ig_accounts": []},
+  "self":       {"label": "Selbstverbesserung",  "tiktok_tags": ["selfimprovement", "discipline", "motivationedit", "gymedit", "mindset"], "ig_accounts": []},
+  "redpill":    {"label": "Red Pill / Sigma",    "tiktok_tags": ["redpill", "sigmaedit", "masculinity"], "ig_accounts": []},
+  "palantir":   {"label": "Palantir / Tech-Macht", "tiktok_tags": ["palantiredit", "palantir", "alexkarp", "peterthiel"], "ig_accounts": []},
+  "figures":    {"label": "Trump / Musk / Milliardäre", "tiktok_tags": ["trumpedit", "elonmuskedit", "elonmusk", "billionaireedit", "moneyedit"], "ig_accounts": []}
+ }
+}

@@ -1,0 +1,17 @@
+numpy
+pillow
+faster-whisper
+fal-client
+opencv-python-headless>=4.8,<5
+scenedetect<0.7              # 0.7.x liest bei überschätzter Framezahl übers Videoende hinaus → NaN-Crash
+rapidocr-onnxruntime
+rembg
+librosa
+certifi
+# Intel-Mac (x86_64, Python 3.12): letzte Versionen mit fertigen Wheels – nicht hochziehen
+onnxruntime==1.23.2
+numba==0.62.1
+llvmlite==0.45.1
+numpy<2.4
+opencv-python<5            # rapidocr zieht es mit; OpenCV 4.x passend zu scenedetect 0.6
+av<15                      # faster-whisper 1.2 nutzt av.open(metadata_errors=…), in PyAV 15+ entfernt

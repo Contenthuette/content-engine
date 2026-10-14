@@ -1,0 +1,5 @@
+{
+ "_info": "Quell-Accounts pro Marke (Leif 13.10.2026). Scout lädt deren Reel-Raster, Autopilot nimmt die stärksten Themen.",
+ "ULTRA": {"accounts": ["speedy_devv", "adilet.fndr", "albert.olgaard", "nick_saraev", "angus.sewell"], "per_day": 3, "slots": ["09:00", "16:00", "23:00"]},
+ "Contenthütte": {"accounts": [], "per_day": 0, "slots": []}
+}

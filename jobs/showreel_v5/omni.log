@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/home/claude/ultra-engine/jobs/showreel_v5/omni.py", line 5, in <module>
+    img = fc.upload_file('public/v4/leif_studio_916.png')
+  File "/usr/local/lib/python3.13/dist-packages/fal_client/client.py", line 2633, in upload_file
+    return self.upload(
+           ~~~~~~~~~~~^
+        file.read(),
+        ^^^^^^^^^^^^
+    ...<4 lines>...
+        lifecycle=lifecycle,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/usr/local/lib/python3.13/dist-packages/fal_client/client.py", line 2570, in upload
+    client = self._get_cdn_client()
+  File "/usr/local/lib/python3.13/dist-packages/fal_client/client.py", line 2255, in _get_cdn_client
+    token = self._token_manager.get_token()
+  File "/usr/local/lib/python3.13/dist-packages/fal_client/client.py", line 197, in get_token
+    self._token = self._refresh_token()
+                  ~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/dist-packages/fal_client/client.py", line 184, in _refresh_token
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/lib/python3.13/dist-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '403 Forbidden' for url 'https://rest.fal.ai/storage/auth/token?storage_type=fal-cdn-v3'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403

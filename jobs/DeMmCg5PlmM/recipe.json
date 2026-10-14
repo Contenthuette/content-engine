@@ -1,0 +1,60 @@
+{
+ "id": "DeMmCg5PlmM",
+ "brand": "ULTRA",
+ "format": "iphone",
+ "concept": "Vom Abo zur eigenen App: alles passiert am iPhone – Mitteilungen, Tastatur, Zahlungs-Push, echte Replit-Screens",
+ "structure": "hook-abo-weg / replit / beschreiben / agent baut / zahlungen / stripe / domain / cta-keyword",
+ "hook": "W-22+AV-01+UI-09+T-28",
+ "palette": "iphone-blau-hell",
+ "beds": [
+  "afro112",
+  "synthwave110"
+ ],
+ "materials": [
+  "3D-01",
+  "3D-06",
+  "3D-22",
+  "AV-01",
+  "FX-03",
+  "FX-05",
+  "FX-09",
+  "FX-11",
+  "FX-16",
+  "FX-21",
+  "KC-30",
+  "ME-01",
+  "ME-02",
+  "ME-03",
+  "ME-05",
+  "ME-06",
+  "T-13",
+  "T-15",
+  "T-24",
+  "T-28",
+  "T-47",
+  "UI-03",
+  "UI-08",
+  "UI-09",
+  "UI-16",
+  "UI-19",
+  "UI-42",
+  "UI-43",
+  "UI-46",
+  "W-17",
+  "W-18",
+  "W-22"
+ ],
+ "transitions": [
+  "TR-11",
+  "TR-12",
+  "TR-04",
+  "TR-14",
+  "KX-15"
+ ],
+ "effects": [
+  "punch",
+  "push",
+  "card"
+ ],
+ "leitidee": "Vom Abo zur eigenen Buchungs-App – alles passiert auf dem iPhone"
+}

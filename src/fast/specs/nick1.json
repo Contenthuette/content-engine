@@ -1,0 +1,826 @@
+{
+ "id": "nick1_v2",
+ "duration": 46.8,
+ "accent": "green",
+ "vo": "nick1_vo.wav",
+ "words": "fast_nick1_words.json",
+ "duck": "fast_nick1_duck.json",
+ "music": {
+  "src": "nick1_music.wav",
+  "trimBefore": 0.5,
+  "volume": 0.4,
+  "duckDepth": 0.19,
+  "fadeOut": 0.8
+ },
+ "face": {
+  "src": "face/aurora_nick1.mp4",
+  "windows": [
+   {
+    "a": 0,
+    "b": 0.78,
+    "x": 250,
+    "y": 650,
+    "w": 580,
+    "h": 600
+   },
+   {
+    "a": 2.32,
+    "b": 3.92,
+    "x": 90,
+    "y": 640,
+    "w": 500,
+    "h": 560
+   },
+   {
+    "a": 42.5,
+    "b": 45.42,
+    "x": 290,
+    "y": 700,
+    "w": 500,
+    "h": 540
+   }
+  ]
+ },
+ "reframe": 0.75,
+ "shots": [
+  {
+   "a": 0,
+   "b": 0.8,
+   "type": "slam",
+   "enter": "cut",
+   "props": {
+    "lines": [
+     {
+      "text": "NUTZ",
+      "at": 0
+     },
+     {
+      "text": "CLAUDE CODE",
+      "at": 0.24,
+      "color": "ink",
+      "size": 150
+     }
+    ]
+   }
+  },
+  {
+   "a": 0.8,
+   "b": 1.42,
+   "type": "slam",
+   "enter": "punch",
+   "dark": true,
+   "props": {
+    "lines": [
+     {
+      "text": "NICHT.",
+      "at": 0.8,
+      "size": 300
+     }
+    ],
+    "strike": {
+     "at": 0.95
+    }
+   }
+  },
+  {
+   "a": 1.42,
+   "b": 2.3,
+   "type": "bigNumber",
+   "enter": "whipL",
+   "props": {
+    "value": "5",
+    "at": 1.8,
+    "label": {
+     "text": "BEVOR DU DIESE",
+     "at": 1.42
+    }
+   }
+  },
+  {
+   "a": 2.3,
+   "b": 3.95,
+   "type": "propHero",
+   "enter": "drop",
+   "props": {
+    "title": [
+     {
+      "text": "PLUGINS",
+      "at": 2.36,
+      "size": 170
+     }
+    ],
+    "prop": {
+     "k": "nick1_plug",
+     "at": 2.3,
+     "x": 800,
+     "y": 600,
+     "w": 420,
+     "from": "right",
+     "wob": 6
+    }
+   }
+  },
+  {
+   "a": 3.95,
+   "b": 6.05,
+   "type": "itemHead",
+   "enter": "zoom",
+   "accent": "green",
+   "props": {
+    "n": "01",
+    "name": "FreeLLMAPI",
+    "sub": "github · freellmapi",
+    "spell": [
+     {
+      "t": 4.95,
+      "n": 4
+     },
+     {
+      "t": 5.32,
+      "n": 3
+     },
+     {
+      "t": 5.78,
+      "n": 3
+     }
+    ],
+    "rain": {
+     "from": 4.3
+    }
+   }
+  },
+  {
+   "a": 6.05,
+   "b": 8.35,
+   "type": "propHero",
+   "enter": "whipU",
+   "props": {
+    "title": [
+     {
+      "text": "GRATIS",
+      "at": 6.66
+     },
+     {
+      "text": "KONTINGENTE",
+      "at": 7.6
+     }
+    ],
+    "prop": {
+     "k": "nick1_coins",
+     "at": 6.1,
+     "w": 300,
+     "y": 900
+    },
+    "copies": 6,
+    "pill": {
+     "text": "0 €",
+     "at": 7.0,
+     "y": 860
+    }
+   }
+  },
+  {
+   "a": 8.35,
+   "b": 10.7,
+   "type": "tileGrid",
+   "enter": "punch",
+   "props": {
+    "count": 12,
+    "suffix": "+",
+    "n": 12,
+    "cols": 4,
+    "at": 8.45,
+    "label": "KI-Anbieter in einem",
+    "labels": [
+     "LLM",
+     "GPT",
+     "LLM",
+     "LLM",
+     "Gem",
+     "LLM",
+     "LLM",
+     "Mis",
+     "LLM",
+     "LLM",
+     "LLM",
+     "Qwen"
+    ]
+   }
+  },
+  {
+   "a": 10.7,
+   "b": 13.95,
+   "type": "usageSwitch",
+   "enter": "whipL",
+   "props": {
+    "title": [
+     {
+      "text": "LIMIT WEG?",
+      "at": 10.74
+     }
+    ],
+    "cards": [
+     {
+      "name": "Modell A"
+     },
+     {
+      "name": "Modell B",
+      "pct": 18
+     },
+     {
+      "name": "Modell C",
+      "pct": 4
+     }
+    ],
+    "limitAt": 11.28,
+    "switchAt": [
+     11.76,
+     12.74
+    ],
+    "after": {
+     "text": "AUTOMATISCH →",
+     "at": 12.06
+    }
+   }
+  },
+  {
+   "a": 13.95,
+   "b": 15.15,
+   "type": "itemHead",
+   "enter": "flip",
+   "accent": "red",
+   "props": {
+    "n": "02",
+    "name": "Strix",
+    "nameAt": 14.9,
+    "sub": "KI-Hacker · open source"
+   }
+  },
+  {
+   "a": 15.15,
+   "b": 17.4,
+   "type": "toastStack",
+   "enter": "drop",
+   "props": {
+    "url": "meine-vibe-app.de",
+    "items": [
+     {
+      "title": "SQL-Injection",
+      "body": "/api/login",
+      "at": 15.3
+     },
+     {
+      "title": "XSS",
+      "body": "Kommentarfeld",
+      "at": 15.62
+     },
+     {
+      "title": "Admin-Route offen",
+      "body": "/admin",
+      "at": 15.94
+     },
+     {
+      "title": "Passwort im Klartext",
+      "body": "auth.ts",
+      "at": 16.26
+     }
+    ]
+   }
+  },
+  {
+   "a": 17.4,
+   "b": 18.5,
+   "type": "slam",
+   "enter": "punch",
+   "dark": true,
+   "props": {
+    "lines": [
+     {
+      "text": "WIE EIN",
+      "at": 17.46,
+      "size": 150
+     },
+     {
+      "text": "HACKER",
+      "at": 18.16,
+      "size": 230,
+      "color": "ink"
+     }
+    ],
+    "prop": {
+     "k": "fast_hood",
+     "at": 17.42,
+     "y": 1010,
+     "w": 560,
+     "from": "bottom",
+     "wob": 2
+    }
+   }
+  },
+  {
+   "a": 18.5,
+   "b": 20.55,
+   "type": "toastStack",
+   "enter": "whipD",
+   "props": {
+    "url": "meine-vibe-app.de",
+    "crosshair": false,
+    "items": [
+     {
+      "title": "SQL-Injection",
+      "body": "/api/login",
+      "at": 18.5
+     },
+     {
+      "title": "XSS",
+      "body": "Kommentarfeld",
+      "at": 18.5
+     },
+     {
+      "title": "Admin-Route offen",
+      "body": "/admin",
+      "at": 18.5
+     },
+     {
+      "title": "Passwort im Klartext",
+      "body": "auth.ts",
+      "at": 18.5
+     }
+    ],
+    "fixAt": 19.42,
+    "fixSuffix": "geschlossen",
+    "prop": {
+     "k": "fast_shield",
+     "at": 19.84,
+     "x": 870,
+     "y": 380,
+     "w": 300,
+     "from": "top",
+     "wob": 5
+    }
+   }
+  },
+  {
+   "a": 20.55,
+   "b": 21.85,
+   "type": "itemHead",
+   "enter": "zoom",
+   "accent": "blue",
+   "props": {
+    "n": "03",
+    "name": "Claude Mem",
+    "nameAt": 21.48,
+    "sub": "Gedächtnis für Claude"
+   }
+  },
+  {
+   "a": 21.85,
+   "b": 23.65,
+   "type": "propHero",
+   "enter": "whipU",
+   "accent": "blue",
+   "props": {
+    "title": [
+     {
+      "text": "MERKT SICH ALLES",
+      "at": 22.66,
+      "size": 108
+     }
+    ],
+    "prop": {
+     "k": "nick1_brain",
+     "at": 21.9,
+     "w": 700,
+     "wob": 3
+    },
+    "chips": [
+     {
+      "text": "Session 1",
+      "at": 22.2
+     },
+     {
+      "text": "Session 2",
+      "at": 22.45
+     },
+     {
+      "text": "projekt.md",
+      "at": 22.7
+     },
+     {
+      "text": "Session 3",
+      "at": 22.95
+     },
+     {
+      "text": "Entscheidungen",
+      "at": 23.2
+     }
+    ],
+    "chipMode": "absorb"
+   }
+  },
+  {
+   "a": 23.65,
+   "b": 25.2,
+   "type": "montage",
+   "enter": "cut",
+   "accent": "blue",
+   "props": {
+    "from": 23.65,
+    "step": 0.13,
+    "items": [
+     {
+      "text": "Session 1"
+     },
+     {
+      "text": "Session 2",
+      "k": "nick1_brain"
+     },
+     {
+      "text": "Session 3"
+     },
+     {
+      "text": "Session 4",
+      "k": "nick1_brain"
+     },
+     {
+      "text": "Session 5"
+     },
+     {
+      "text": "Session 6",
+      "k": "nick1_brain"
+     },
+     {
+      "text": "Session 7"
+     }
+    ],
+    "final": {
+     "text": "JEDE SESSION.",
+     "at": 24.6,
+     "size": 170
+    }
+   }
+  },
+  {
+   "a": 25.2,
+   "b": 27.05,
+   "type": "chat",
+   "enter": "punch",
+   "props": {
+    "title": [
+     {
+      "text": "NIE WIEDER",
+      "at": 25.26,
+      "size": 200
+     }
+    ],
+    "bubbles": [
+     {
+      "from": "me",
+      "text": "Also, nochmal von vorne: mein Projekt ist ein Shop mit …",
+      "at": 25.3
+     }
+    ],
+    "strikeAt": 25.6,
+    "crushAt": 26.2,
+    "after": {
+     "text": "NEU ERKLÄREN.",
+     "at": 26.14
+    }
+   }
+  },
+  {
+   "a": 27.05,
+   "b": 28.6,
+   "type": "itemHead",
+   "enter": "spin",
+   "accent": "green",
+   "props": {
+    "n": "04",
+    "name": "Agent Reach",
+    "nameAt": 28.02,
+    "sub": "Internet-Zugriff für Agenten"
+   }
+  },
+  {
+   "a": 28.6,
+   "b": 30.0,
+   "type": "monitor",
+   "enter": "whipR",
+   "props": {
+    "title": [
+     {
+      "text": "DEIN AGENT",
+      "at": 29.28
+     }
+    ],
+    "screen": {
+     "kind": "prop",
+     "k": "fast_robot",
+     "spin": 0
+    },
+    "from": "spin"
+   }
+  },
+  {
+   "a": 30.0,
+   "b": 31.55,
+   "type": "propHero",
+   "enter": "portal",
+   "props": {
+    "title": [
+     {
+      "text": "DAS GANZE NETZ",
+      "at": 30.42,
+      "size": 130
+     }
+    ],
+    "prop": {
+     "k": "nick1_globe",
+     "at": 30.0,
+     "w": 640,
+     "spin": 30,
+     "wob": 0
+    },
+    "chips": [
+     {
+      "text": "Docs",
+      "at": 30.6
+     },
+     {
+      "text": "News",
+      "at": 30.75
+     },
+     {
+      "text": "Foren",
+      "at": 30.9
+     },
+     {
+      "text": "Shops",
+      "at": 31.05
+     }
+    ],
+    "chipMode": "orbit"
+   }
+  },
+  {
+   "a": 31.55,
+   "b": 33.85,
+   "type": "phone",
+   "enter": "whipR",
+   "props": {
+    "title": [
+     {
+      "text": "SOGAR",
+      "at": 31.6,
+      "size": 120
+     }
+    ],
+    "w": 460,
+    "y": 900,
+    "notifs": [
+     {
+      "app": "LinkedIn",
+      "title": "Agent liest 12 Posts",
+      "chip": "LinkedIn",
+      "at": 31.98
+     },
+     {
+      "app": "X",
+      "title": "Agent durchsucht Trends",
+      "chip": "X",
+      "at": 32.58
+     },
+     {
+      "app": "Reddit",
+      "title": "Agent liest r/ClaudeAI",
+      "chip": "Reddit",
+      "at": 33.06
+     }
+    ]
+   }
+  },
+  {
+   "a": 33.85,
+   "b": 35.5,
+   "type": "itemHead",
+   "enter": "zoom",
+   "accent": "blue",
+   "props": {
+    "n": "05",
+    "name": "Claude Code Setup",
+    "nameAt": 34.54,
+    "sub": "offiziell · Anthropic"
+   }
+  },
+  {
+   "a": 35.5,
+   "b": 37.95,
+   "type": "slam",
+   "enter": "drop",
+   "accent": "blue",
+   "props": {
+    "big": false,
+    "lines": [
+     {
+      "text": "OFFIZIELL",
+      "at": 36.02,
+      "size": 150,
+      "rot": -5
+     },
+     {
+      "text": "VON ANTHROPIC",
+      "at": 37.1,
+      "y": 1130,
+      "color": "gray",
+      "size": 110
+     }
+    ],
+    "prop": {
+     "k": "nick1_gear",
+     "at": 35.58,
+     "y": 790,
+     "w": 600,
+     "spin": -45,
+     "wob": 0
+    }
+   }
+  },
+  {
+   "a": 37.95,
+   "b": 39.1,
+   "type": "codeScan",
+   "enter": "whipU",
+   "accent": "blue",
+   "props": {
+    "title": [
+     {
+      "text": "SCANNT",
+      "at": 38.1
+     }
+    ],
+    "prop": {
+     "k": "fast_magnifier",
+     "at": 38.25,
+     "x": 780,
+     "y": 930,
+     "w": 400,
+     "from": "right",
+     "wob": 6
+    }
+   }
+  },
+  {
+   "a": 39.1,
+   "b": 42.4,
+   "type": "checkList",
+   "enter": "whipL",
+   "props": {
+    "title": [
+     {
+      "text": "EMPFIEHLT DIR",
+      "at": 39.14,
+      "size": 120
+     }
+    ],
+    "items": [
+     {
+      "text": "Skills",
+      "at": 40.12
+     },
+     {
+      "text": "Hooks",
+      "at": 40.86
+     },
+     {
+      "text": "MCP-Server",
+      "at": 41.36
+     }
+    ]
+   }
+  },
+  {
+   "a": 42.4,
+   "b": 45.45,
+   "type": "cta",
+   "enter": "whipU",
+   "accent": "blue",
+   "props": {
+    "keyword": "CLAUDE",
+    "typeAt": 43.1,
+    "sendAt": 44.3,
+    "dmAt": 44.6,
+    "dmText": "Hier sind alle 5 Links 🔗",
+    "dmFrom": "ULTRA"
+   }
+  },
+  {
+   "a": 45.45,
+   "b": 46.8,
+   "type": "logo",
+   "enter": "zoom",
+   "dark": true,
+   "props": {
+    "text": "ULTRA"
+   }
+  }
+ ],
+ "captions": {
+  "y": 1290,
+  "maxWords": 3,
+  "hide": [
+   [
+    0,
+    2.3
+   ],
+   [
+    3.95,
+    6.05
+   ],
+   [
+    10.7,
+    11.3
+   ],
+   [
+    13.95,
+    15.15
+   ],
+   [
+    17.4,
+    18.5
+   ],
+   [
+    20.55,
+    21.85
+   ],
+   [
+    23.65,
+    25.7
+   ],
+   [
+    27.05,
+    28.6
+   ],
+   [
+    31.55,
+    35.5
+   ],
+   [
+    36.0,
+    36.5
+   ],
+   [
+    39.1,
+    42.4
+   ],
+   [
+    45.45,
+    99
+   ],
+   [
+    37.1,
+    37.95
+   ]
+  ],
+  "keywords": [
+   "Plugins",
+   "Gratis",
+   "Hacker",
+   "Lücken",
+   "Projekte",
+   "Session",
+   "Netz",
+   "Code",
+   "Skills",
+   "Hooks",
+   "CLAUDE",
+   "Modell"
+  ],
+  "fix": {
+   "1.": "Eins:",
+   "2.": "Zwei:",
+   "3.": "Drei:",
+   "4.": "Vier:",
+   "5.": "Fünf:",
+   "Greif": "Greift",
+   "vibegecodeete": "vibe-gecodete",
+   "Gib": "Gibt",
+   "scant": "scannt",
+   "schicke": "schick"
+  },
+  "replace": [
+   {
+    "at": 43.1,
+    "w": "CLAUDE"
+   }
+  ]
+ },
+ "sfx": [
+  {
+   "t": 45.1,
+   "s": "x_riser",
+   "v": 0.35
+  }
+ ],
+ "autoSfx": true,
+ "shake": 15
+}

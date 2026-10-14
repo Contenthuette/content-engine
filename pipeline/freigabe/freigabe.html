@@ -1,0 +1,167 @@
+<title>Reel-Freigabe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: Kopfzeile mit Stand → Filter → Spalten aus Reel-Karten (9:16-Video links, Schnittplan-Infos rechts; schmal: gestapelt) */
+:root {
+  --bg: #F3F3F6; --surface: #FFFFFF; --ink: #121318; --muted: #626574; --line: #E2E3EA;
+  --accent: #E8202E; --ok: #13915B; --warn: #B76E00; --chip: #ECEDF2;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E0F13; --surface: #17191F; --ink: #F1F2F6; --muted: #9A9DAB; --line: #2A2D36;
+  --accent: #FF4450; --ok: #3CCB8A; --warn: #F1A63A; --chip: #23262F; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E0F13; --surface: #17191F; --ink: #F1F2F6; --muted: #9A9DAB; --line: #2A2D36;
+  --accent: #FF4450; --ok: #3CCB8A; --warn: #F1A63A; --chip: #23262F; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5 }
+.wrap { max-width: 1100px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.02em; margin: 0; text-wrap: balance }
+h1 span { color: var(--accent) }
+.stand { color: var(--muted); font-size: 14px; display: flex; gap: 16px; flex-wrap: wrap }
+.stand b { color: var(--ink); font-variant-numeric: tabular-nums }
+.notice { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 16px; font-size: 14px; color: var(--muted) }
+.notice strong { color: var(--ink) }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap }
+.tabs button { font: 600 14px var(--body); border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 7px 14px; cursor: pointer }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.tabs button:focus-visible, .btn:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.list { display: grid; gap: 18px }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 20px }
+@media (max-width: 720px) { .card { grid-template-columns: minmax(0, 1fr) } }
+.vid { width: 100%; max-width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: 12px; overflow: hidden }
+.vid video { width: 100%; height: 100%; object-fit: contain; display: block }
+.vid .none { color: #9A9DAB; display: grid; place-items: center; height: 100%; font-size: 13px; padding: 16px; text-align: center }
+.info { min-width: 0; display: grid; gap: 12px; align-content: start }
+.top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.chip { font: 500 12px var(--mono); background: var(--chip); color: var(--muted); padding: 3px 9px; border-radius: 999px; letter-spacing: .02em }
+.state { font: 700 12px var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1.5px solid currentColor }
+.state.offen { color: var(--warn) } .state.freigegeben { color: var(--ok) } .state.aenderung { color: var(--accent) }
+h2 { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -0.01em; margin: 0; text-wrap: balance }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; font-size: 14px; margin: 0 }
+.kv dt { color: var(--muted) } .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere }
+details { border-top: 1px solid var(--line); padding-top: 10px }
+summary { cursor: pointer; font-weight: 700; font-size: 14px }
+pre { white-space: pre-wrap; font: 14px/1.55 var(--body); margin: 8px 0 0; overflow-wrap: anywhere }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+.btn { font: 700 14px var(--body); border-radius: 10px; padding: 10px 16px; cursor: pointer; border: 1.5px solid var(--line); background: transparent; color: var(--ink) }
+.btn.go { background: var(--ok); border-color: var(--ok); color: #fff }
+.btn.change { border-color: var(--accent); color: var(--accent) }
+.btn[disabled] { opacity: .5; cursor: default }
+textarea { width: 100%; min-height: 84px; font: 14px var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; box-sizing: border-box; resize: vertical }
+.note { font-size: 14px; color: var(--accent) }
+.msg { font-size: 13px; color: var(--muted) }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 16px; padding: 28px; color: var(--muted); text-align: center }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Reel-<span>Freigabe</span></h1>
+    <div class="stand" id="stand"><span>Lädt …</span></div>
+  </header>
+  <div class="notice" id="notice"><strong>Posten ist aus.</strong> Freigegebene Reels werden erst eingeplant, wenn du das Posten einschaltest. Bis dahin passiert nach deinem Klick nichts außerhalb dieser Seite.</div>
+  <div class="tabs" role="group" aria-label="Filter">
+    <button id="f-offen" aria-pressed="true" data-f="offen">Warten auf dich</button>
+    <button id="f-aenderung" aria-pressed="false" data-f="aenderung">Änderung gewünscht</button>
+    <button id="f-freigegeben" aria-pressed="false" data-f="freigegeben">Freigegeben</button>
+    <button id="f-alle" aria-pressed="false" data-f="alle">Alle</button>
+  </div>
+  <div class="list" id="list">
+    <div class="empty">Hier erscheinen die Reels, die über Nacht fertig werden: Video, Hook, Caption und DM-Keyword. Du gibst jedes mit einem Klick frei oder schreibst, was geändert werden soll.</div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const STATE = {offen: 'Wartet', freigegeben: 'Freigegeben', aenderung: 'Änderung'};
+let rows = [], filter = 'offen', db = null, canWrite = true, posting = false;
+try { const f = localStorage.getItem('freigabe-filter'); if (f && document.getElementById('f-' + f)) filter = f; } catch (e) {}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function fmtDay(d) { if (!d) return '–'; try { return new Date(d + 'T12:00:00').toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit'}); } catch (e) { return d; } }
+
+function render() {
+  document.querySelectorAll('.tabs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.f === filter)));
+  const n = (s) => rows.filter((r) => (r.status || 'offen') === s).length;
+  $('#stand').innerHTML = `<span><b>${n('offen')}</b> warten</span><span><b>${n('aenderung')}</b> Änderung</span><span><b>${n('freigegeben')}</b> freigegeben</span>`;
+  $('#notice').innerHTML = posting
+    ? '<strong>Posten ist an.</strong> Freigegebene Reels werden zur angezeigten Zeit über Metricool eingeplant.'
+    : '<strong>Posten ist aus.</strong> Freigegebene Reels werden erst eingeplant, wenn du das Posten einschaltest. Bis dahin passiert nach deinem Klick nichts außerhalb dieser Seite.';
+  const vis = rows.filter((r) => filter === 'alle' || (r.status || 'offen') === filter)
+    .sort((a, b) => (a.day || '').localeCompare(b.day || '') || (a.slot || '').localeCompare(b.slot || ''));
+  const list = $('#list');
+  if (!vis.length) {
+    list.innerHTML = `<div class="empty">${rows.length ? 'In diesem Filter ist gerade nichts.' : 'Hier erscheinen die Reels, die über Nacht fertig werden: Video, Hook, Caption und DM-Keyword. Du gibst jedes mit einem Klick frei oder schreibst, was geändert werden soll.'}</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  for (const r of vis) list.appendChild(card(r));
+}
+
+function card(r) {
+  const st = r.status || 'offen';
+  const el = document.createElement('article');
+  el.className = 'card';
+  el.innerHTML = `
+    <div class="vid">${r.video ? `<video controls playsinline preload="metadata" src="${esc(r.video)}"></video>` : '<div class="none">Video wird noch hochgeladen</div>'}</div>
+    <div class="info">
+      <div class="top"><span class="state ${st}">${STATE[st] || st}</span><span class="chip">${esc(r.brand || 'ULTRA')}</span><span class="chip">${esc(fmtDay(r.day))} · ${esc(r.slot || '–')}</span>${r.qa ? `<span class="chip">QA ${esc(r.qa)}</span>` : ''}</div>
+      <h2>${esc(r.title || r.id)}</h2>
+      <dl class="kv">
+        <dt>Hook</dt><dd>${esc(r.hook || '–')}</dd>
+        <dt>Leitidee</dt><dd>${esc(r.idea || '–')}</dd>
+        <dt>Keyword</dt><dd>${r.keyword ? `${esc(r.keyword)} → ${esc(r.offer || '')}` : '–'}</dd>
+        <dt>Quelle</dt><dd>${r.source ? `<a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(r.sourceName || 'Original-Reel')}</a>` : '–'}</dd>
+        <dt>Länge · Kosten</dt><dd>${esc(r.length || '–')} · ${esc(r.cost || '–')}</dd>
+      </dl>
+      ${r.warn ? `<div class="note">${esc(r.warn)}</div>` : ''}
+      <details><summary>Caption</summary><pre>${esc(r.caption || '')}</pre></details>
+      ${st === 'aenderung' && r.note ? `<div class="note">Deine Änderung: ${esc(r.note)}</div>` : ''}
+      <div class="actions">
+        <button class="btn go" id="ok-${esc(r.id)}" ${!canWrite || st === 'freigegeben' ? 'disabled' : ''}>Freigeben</button>
+        <button class="btn change" id="ch-${esc(r.id)}" ${!canWrite ? 'disabled' : ''}>Änderung</button>
+        ${st !== 'offen' && canWrite ? `<button class="btn" id="re-${esc(r.id)}">Zurück auf offen</button>` : ''}
+        <span class="msg" id="msg-${esc(r.id)}"></span>
+      </div>
+      <div hidden id="box-${esc(r.id)}" style="display:grid;gap:8px">
+        <label for="tx-${esc(r.id)}" class="msg">Was soll anders werden? (z. B. „Hook schneller“, „Musik ruhiger“, „anderes Thema“)</label>
+        <textarea id="tx-${esc(r.id)}">${esc(r.note || '')}</textarea>
+        <div class="actions"><button class="btn change" id="save-${esc(r.id)}">Änderung speichern</button></div>
+      </div>
+    </div>`;
+  const set = async (patch, okText) => {
+    const m = el.querySelector('#msg-' + CSS.escape(r.id));
+    if (!db) { m.textContent = 'Speichern geht hier gerade nicht – Seite in claude.ai öffnen.'; return; }
+    m.textContent = 'Speichert …';
+    try { await db.doc('reels/' + r.id).update({...patch, decidedAt: new Date().toISOString()}); m.textContent = okText; }
+    catch (e) {
+      if (e && e.code === 'invalid_argument') { canWrite = false; m.textContent = 'Du kannst hier nur ansehen.'; }
+      else m.textContent = 'Nicht gespeichert – bitte nochmal klicken.';
+    }
+  };
+  el.querySelector('#ok-' + CSS.escape(r.id)).onclick = () => set({status: 'freigegeben', note: ''}, 'Freigegeben');
+  el.querySelector('#ch-' + CSS.escape(r.id)).onclick = () => { const b = el.querySelector('#box-' + CSS.escape(r.id)); b.hidden = !b.hidden; if (!b.hidden) el.querySelector('#tx-' + CSS.escape(r.id)).focus(); };
+  el.querySelector('#save-' + CSS.escape(r.id)).onclick = () => { const t = el.querySelector('#tx-' + CSS.escape(r.id)).value.trim(); if (!t) { el.querySelector('#msg-' + CSS.escape(r.id)).textContent = 'Schreib kurz, was anders werden soll.'; return; } set({status: 'aenderung', note: t}, 'Gespeichert – wird in der nächsten Nacht umgesetzt'); };
+  const re = el.querySelector('#re-' + CSS.escape(r.id)); if (re) re.onclick = () => set({status: 'offen'}, 'Wieder offen');
+  return el;
+}
+
+document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => { filter = b.dataset.f; try { localStorage.setItem('freigabe-filter', filter); } catch (e) {} render(); });
+render();
+
+(async () => {
+  db = await claude.use('db');
+  const user = await claude.use('user');
+  if (user) { const w = await user.can('data.write'); if (w === false) canWrite = false; }
+  if (!db) { $('#stand').innerHTML = '<span>Nur Ansicht – Daten laden nicht.</span>'; return; }
+  db.collection('reels').onSnapshot((snap) => { rows = snap.docs.map((d) => ({id: d.id, ...d.data()})); render(); },
+    () => { $('#stand').innerHTML = '<span>Verbindung weg – Seite neu laden.</span>'; });
+  db.doc('config/posting').onSnapshot((s) => { posting = !!(s.exists && s.data().enabled); render(); }, () => {});
+})();
+</script>

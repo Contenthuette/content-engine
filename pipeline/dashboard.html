@@ -1,0 +1,1048 @@
+<title>Content Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&family=Caveat:wght@600&display=swap">
+<style>
+/* Layout: operator console — sticky header (wordmark + signature, brand switch, tabs), then one working view per tab. */
+:root{
+  --bg:#F4F4F5; --panel:#FFFFFF; --ink:#0A0A0C; --muted:#6E6E76; --line:#E2E2E6; --soft:#ECECEF;
+  --red:#E5352B; --green:#12A956; --blue:#1D6BFF;
+  --redbg:#FDECEB; --greenbg:#E6F6EC; --bluebg:#E8F0FF;
+  --f-ui:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --f-hand:"Caveat","Bradley Hand","Segoe Print",cursive;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A0A0C; --panel:#141417; --ink:#F4F4F5; --muted:#9A9AA3; --line:#26262B; --soft:#1C1C20;
+  --red:#FF5A50; --green:#2BD36F; --blue:#5B93FF;
+  --redbg:#2A1312; --greenbg:#0F2618; --bluebg:#121D33; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A0A0C; --panel:#141417; --ink:#F4F4F5; --muted:#9A9AA3; --line:#26262B; --soft:#1C1C20;
+  --red:#FF5A50; --green:#2BD36F; --blue:#5B93FF;
+  --redbg:#2A1312; --greenbg:#0F2618; --bluebg:#121D33; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-ui);padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:18px 0;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:16px 24px;flex-wrap:wrap}
+.mark{position:relative;font-weight:800;letter-spacing:-.045em;font-size:26px;line-height:1;padding-bottom:12px;padding-right:34px;white-space:nowrap}
+.mark .sig{position:absolute;right:-6px;bottom:-4px;font-family:var(--f-hand);font-weight:600;font-size:21px;letter-spacing:0;color:var(--muted);transform:rotate(-9deg);transform-origin:right bottom;white-space:nowrap}
+.brands{display:flex;gap:4px;background:var(--soft);padding:3px;border-radius:999px}
+.brands button{border:0;background:transparent;color:var(--muted);font:500 13px var(--f-ui);padding:6px 12px;border-radius:999px;cursor:pointer}
+.brands button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.live{margin-left:auto;font:12px var(--f-mono);color:var(--muted);display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}.dot.plan{background:var(--blue)}
+nav{display:flex;gap:2px;overflow-x:auto;margin-top:12px;scrollbar-width:none}
+nav button{border:0;background:none;color:var(--muted);font:500 14px var(--f-ui);padding:10px 12px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+nav .n{font:11px var(--f-mono);background:var(--soft);border-radius:999px;padding:1px 7px;margin-left:6px}
+nav .n.hot{background:var(--blue);color:#fff}
+main{padding-block:24px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin:0 0 12px}
+h2.sp{margin-top:32px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:28px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.stat b{display:block;font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat small{color:var(--muted);font-size:12.5px}
+.stat .d{font:12px var(--f-mono);color:var(--muted)}
+.stat .d.up{color:var(--green)}.stat .d.down{color:var(--red)}
+.bar{height:6px;background:var(--soft);border-radius:99px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink);border-radius:99px}
+.bar i.warn{background:var(--red)}
+.queue{display:flex;flex-direction:column;gap:20px}
+.card{display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+@media (max-width:720px){.card{grid-template-columns:minmax(0,1fr)}}
+.vid{aspect-ratio:9/16;max-width:100%;background:#000;border-radius:12px;overflow:hidden;position:relative}
+.vid video{width:100%;height:100%;object-fit:cover;display:block}
+.vid .none{position:absolute;inset:0;display:grid;place-items:center;color:#9A9AA3;font:13px var(--f-mono);text-align:center;padding:16px}
+.body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font:12.5px var(--f-mono);color:var(--muted)}
+.meta a{color:var(--muted)}
+.title{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+.hook{color:var(--muted);margin:0}
+label{font-size:12px;color:var(--muted);font-weight:500;display:block;margin-bottom:4px}
+textarea,input,select{width:100%;font:14px/1.45 var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+textarea{resize:vertical}
+textarea:focus,input:focus,select:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;color:var(--muted);font-size:13px}
+details pre{white-space:pre-wrap;font:13px/1.55 var(--f-ui);margin:8px 0 0}
+.qa{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:11.5px var(--f-mono);padding:3px 8px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.chip.g{background:var(--greenbg);color:var(--green)}.chip.r{background:var(--redbg);color:var(--red)}.chip.b{background:var(--bluebg);color:var(--blue)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 14px var(--f-ui);padding:10px 16px;border-radius:999px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:6px 12px;font-size:13px}
+.note{font-size:13px;color:var(--muted)}
+.note.err{color:var(--red)}.note.ok{color:var(--green)}
+.fb{display:flex;flex-direction:column;gap:8px;background:var(--soft);border-radius:12px;padding:12px}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:18px;padding:28px;color:var(--muted)}
+.empty b{color:var(--ink);display:block;font-size:17px;margin-bottom:4px}
+.tbl{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num,th.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:13px;white-space:nowrap;text-align:right}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--soft)}
+tr.expand td{background:var(--bg)}
+.pill{display:inline-block;font:500 12px var(--f-ui);padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.blue{background:var(--bluebg);color:var(--blue)}.pill.green{background:var(--greenbg);color:var(--green)}.pill.red{background:var(--redbg);color:var(--red)}.pill.ink{background:var(--ink);color:var(--bg)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.row>div{flex:1 1 140px;min-width:0}
+.mono{font-family:var(--f-mono);font-size:13px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+.ro{background:var(--soft);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--muted);margin-bottom:16px}
+.ro.err{background:var(--redbg);color:var(--red)}
+/* calendar */
+.calhead{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.calhead h3{margin:0 8px 0 0;font-size:22px;letter-spacing:-.02em;font-weight:600;min-width:170px}
+.legend{margin-left:auto;display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.cal .wd{background:var(--panel);font:500 12px var(--f-ui);color:var(--muted);padding:8px 10px}
+.day{background:var(--panel);min-height:112px;padding:8px;display:flex;flex-direction:column;gap:4px;cursor:pointer;border:0;text-align:left;font:inherit;color:inherit;min-width:0}
+.day.out{background:var(--bg);color:var(--muted)}
+.day.sel{box-shadow:inset 0 0 0 2px var(--ink)}
+.day .dn{font:500 13px var(--f-mono)}
+.day.today .dn{background:var(--ink);color:var(--bg);border-radius:999px;padding:0 7px;align-self:flex-start}
+.ev{display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.3;min-width:0}
+.ev .t{font-family:var(--f-mono);color:var(--muted);flex:none}
+.ev .x{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dots{display:none;gap:3px;flex-wrap:wrap}
+@media (max-width:720px){.day{min-height:58px;padding:6px}.ev{display:none}.dots{display:flex}.cal .wd{padding:6px 4px;text-align:center}}
+.daylist{margin-top:20px;display:flex;flex-direction:column;gap:10px}
+.dayitem{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.dayitem .h{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dayitem .h b{font-size:16px;letter-spacing:-.01em}
+.kv{display:flex;gap:16px;flex-wrap:wrap;font:13px var(--f-mono);color:var(--muted)}
+.kv b{color:var(--ink);font-weight:500}
+/* analytics */
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:28px}
+.chart svg{display:block;width:100%;height:auto}
+.why{display:flex;flex-direction:column;gap:10px;padding:4px 0}
+.reason{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;font-size:14px}
+@media (max-width:560px){.reason{grid-template-columns:minmax(0,1fr);gap:2px}}
+.reason .k{font-weight:600}
+.reason .k.r{color:var(--red)}.reason .k.g{color:var(--green)}
+.ai{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ai ul{margin:0;padding-left:18px}
+.learn{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.learn ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+/* live flow */
+.today{display:flex;flex-direction:column;gap:14px;margin-bottom:28px}
+.todayrow .th{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.todayrow .th b{font-size:16px}
+.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.slot{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0;border-left:4px solid var(--line)}
+.slot .sh{display:flex;justify-content:space-between;gap:8px;align-items:center}.slot .sh .mono{font-size:18px;font-weight:600}
+.slot .sl{font:500 12px var(--f-ui);padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.slot b{font-size:14px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.slot.ok{border-left-color:var(--green)}.slot.ok .sl{background:var(--greenbg);color:var(--green)}
+.slot.plan{border-left-color:var(--blue)}.slot.plan .sl{background:var(--bluebg);color:var(--blue)}
+.slot.attn{border-left-color:var(--blue);background:var(--bluebg)}.slot.attn .sl{background:var(--blue);color:#fff}
+.slot.busy{border-left-color:var(--ink)}.slot.busy .sl{background:var(--ink);color:var(--bg)}
+.slot.err,.slot.miss{border-left-color:var(--red)}.slot.err .sl,.slot.miss .sl{background:var(--redbg);color:var(--red)}
+.flowhead{display:flex;align-items:center;gap:16px;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.flowhead>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.flowhead b{font-size:19px;letter-spacing:-.02em;font-weight:600}
+.flowhead.blue{border-color:var(--blue);box-shadow:inset 4px 0 0 var(--blue)}
+.flowhead.red{border-color:var(--red);box-shadow:inset 4px 0 0 var(--red)}
+.pulse{width:12px;height:12px;border-radius:50%;background:var(--blue);flex:none;animation:pl 1.4s ease-out infinite}
+@keyframes pl{0%{box-shadow:0 0 0 0 rgba(29,107,255,.45)}100%{box-shadow:0 0 0 12px rgba(29,107,255,0)}}
+.flowwrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:18px 18px}
+.flow{position:relative}
+.flow svg{position:absolute;inset:0}
+.edge{fill:none;stroke:var(--muted);stroke-width:1.5;opacity:.55}
+.edge.loop{stroke-dasharray:5 5}
+.edge.hot{stroke:var(--blue);opacity:1;stroke-width:2;stroke-dasharray:6 6;animation:flowdash .8s linear infinite}
+@keyframes flowdash{to{stroke-dashoffset:-12}}
+.elabel{font:11px var(--f-mono);fill:var(--muted)}
+.node{position:absolute;display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--panel);border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;font:inherit;color:inherit;cursor:pointer;box-shadow:0 6px 18px rgba(10,10,12,.06);overflow:hidden}
+.node:hover{border-color:var(--muted)}
+.node.sel{border-color:var(--ink)}
+.node .nh{display:flex;align-items:center;gap:8px;min-width:0}
+.node .ns{font:11px var(--f-mono);color:var(--muted);flex:none}
+.node .nh b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node .nb{margin-left:auto;font:600 11px var(--f-mono);background:var(--soft);border-radius:999px;padding:1px 7px;flex:none}
+.node .nl{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node .nd{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node.active{border-color:var(--blue);box-shadow:0 0 0 4px var(--bluebg)}
+.node.active .nl{color:var(--blue)}
+.node.busy .nl{color:var(--blue)}
+.node.attn{background:var(--blue);border-color:var(--blue);color:#fff}
+.node.attn .ns,.node.attn .nd{color:rgba(255,255,255,.8)}
+.node.attn .nb{background:#fff;color:var(--blue)}
+.node.ok{border-color:color-mix(in srgb,var(--green) 45%,var(--line))}
+.node.ok .ns{color:var(--green)}
+.node.err{border-color:var(--red)}.node.err .nl{color:var(--red)}
+.node.warn .nb{background:var(--redbg);color:var(--red)}
+.flowlist{display:none;flex-direction:column;gap:0}
+.flowlist .node{position:relative;width:100%;margin-bottom:22px}
+.flowlist .node:not(:last-child)::after{content:"";position:absolute;left:24px;bottom:-23px;height:22px;border-left:1.5px solid var(--line)}
+.flowlist .node{overflow:visible}
+@media (max-width:720px){.flowwrap{display:none}.flowlist{display:flex}}
+.flowlegend{position:absolute;display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--muted);padding:10px 4px}
+.flowlegend span{display:inline-flex;align-items:center;gap:6px}
+.stylecard{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:start}
+.stylecard video{width:100%;aspect-ratio:9/16;border-radius:10px;background:#000;object-fit:cover}
+@media (max-width:560px){.stylecard{grid-template-columns:minmax(0,1fr)}.stylecard video{max-width:180px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="top">
+    <div class="mark" aria-label="Content Engine by Dunkelmann">CONTENT ENGINE<span class="sig" aria-hidden="true">by Dunkelmann</span></div>
+    <div class="brands" id="brands" role="group" aria-label="Marke"></div>
+    <div class="live"><i class="dot" id="dot"></i><span id="liveTxt">verbinde …</span></div>
+  </div>
+  <nav id="tabs" role="tablist"></nav>
+</header>
+<main id="main"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+const STATUS = {
+  erkannt:{l:'Erkannt',c:''}, in_arbeit:{l:'In Arbeit',c:'ink'}, zur_freigabe:{l:'Zur Freigabe',c:'blue'},
+  freigegeben:{l:'Freigegeben',c:'green'}, geplant:{l:'Geplant',c:'blue'}, gepostet:{l:'Online',c:'green'},
+  ueberarbeiten:{l:'Überarbeiten',c:'blue'}, abgelehnt:{l:'Abgelehnt',c:'red'}, uebersprungen:{l:'Übersprungen',c:''}, fehler:{l:'Fehler',c:'red'}
+};
+const BRANDS = [['all','Alle'],['ULTRA','ULTRA'],['Contenthuette','Contenthütte']];
+const TABS = [['flow','Übersicht'],['review','Freigabe'],['cal','Kalender'],['ana','Analytics'],['pipe','Pipeline'],['src','Quellen'],['cost','Kosten'],['set','Einstellungen']];
+const M = 'Metricool Social Media Management';
+const TZ = 'Europe/Berlin';
+const DEFAULT_SETTINGS = {brands:{ULTRA:{active:true,blogId:'7359590',handle:'ultra_automations',networks:['instagram'],perDay:3,times:['09:00','16:00','23:00'],timezone:TZ},Contenthuette:{active:false,blogId:'',handle:'',networks:['instagram'],perDay:3,times:['09:00','16:00','23:00'],timezone:TZ}},maxAgeDays:4,budgetMonthUsd:60,runTimes:['06:28','13:28','20:28']};
+const REEL_COLS = ['IGRE02','IGRE06','IGRE03','IGRE23','IGRE11','IGRE10','IGRE07','IGRE12','IGRE21','IGRE24','IGRE28','IGRE29'];
+const EVO_COLS = ['IGEV01','IGEV43','IGEV44','IGEV23'];
+const TT_COLS = ['TKPO02','TKPO03','TKPO05','TKPO07','TKPO11','TKPO08','TKPO09','TKPO10','TKPO15','TKPO13','TKPO06','TKPO16'];
+const NETS = [['instagram','Instagram','instagramData'],['tiktok','TikTok','tiktokData'],['youtube','YouTube Shorts','youtubeData']];
+const NET_LABEL = {instagram:'Instagram',tiktok:'TikTok',youtube:'YouTube',facebook:'Facebook',linkedin:'LinkedIn',twitter:'X',threads:'Threads',pinterest:'Pinterest',bluesky:'Bluesky',gmb:'Google',twitch:'Twitch'};
+const METRICOOL_URL = 'https://app.metricool.com/';
+
+const S = {db:null, mcp:null, sample:null, perms:null, canWrite:null, items:[], sources:[], runs:[], analyses:{}, insights:null, settings:null,
+  brand:'all', tab:'review', busy:{}, notes:{}, open:{}, live:false, mx:{}, watches:{}, cal:null, calSel:null, anaOpen:null, aiBusy:{},
+  mbrands:null, mbrandsErr:null, plat:'ig', move:{}, best:{}, status:null, styles:[], flowSel:null};
+S.tab='flow';
+try{ const t=localStorage.getItem('uce_tab2'); if(t&&TABS.some(x=>x[0]===t)) S.tab=t; const b=localStorage.getItem('uce_brand'); if(b) S.brand=b; }catch(e){}
+if(/^#(flow|review|cal|ana|pipe|src|cost|set)$/.test(location.hash)) S.tab=location.hash.slice(1);
+
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const settings = ()=>{ const s=S.settings||DEFAULT_SETTINGS; const out={...DEFAULT_SETTINGS,...s,brands:{}}; for(const k of Object.keys(DEFAULT_SETTINGS.brands)) out.brands[k]={...DEFAULT_SETTINGS.brands[k],...((s.brands||{})[k]||{})}; return out; };
+const brandOk = it => S.brand==='all' || it.brand===S.brand;
+const nf = n=>n==null||isNaN(n)?'–':Number(n).toLocaleString('de-DE',{maximumFractionDigits:0});
+const nf1 = n=>n==null||isNaN(n)?'–':Number(n).toLocaleString('de-DE',{maximumFractionDigits:1});
+const usd = n=>'$'+(Number(n)||0).toFixed(2);
+function effStatus(it){ if(it.status==='geplant' && it.scheduled_for && new Date(it.scheduled_for)<new Date()) return 'gepostet'; return it.status||'erkannt'; }
+function pill(st){ const s=STATUS[st]||{l:st,c:''}; return `<span class="pill ${s.c}">${esc(s.l)}</span>`; }
+function fmtDate(v){ if(!v) return '–'; const d=v instanceof Date?v:new Date(v); if(isNaN(d)) return esc(v); return d.toLocaleString('de-DE',{timeZone:TZ,weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function fmtTime(d){ return d.toLocaleTimeString('de-DE',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}); }
+function toast(m){ const t=$('#toast'); t.textContent=m; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3200); }
+const median = a=>{ const v=a.filter(x=>x!=null&&!isNaN(x)).sort((x,y)=>x-y); if(!v.length) return null; const m=v.length>>1; return v.length%2?v[m]:(v[m-1]+v[m])/2; };
+
+/* ---------- time (Europe/Berlin) ---------- */
+function tzOffset(dateStr){
+  try{ const d=new Date(dateStr+'T12:00:00Z'); const p=new Intl.DateTimeFormat('en-US',{timeZone:TZ,timeZoneName:'longOffset'}).formatToParts(d).find(x=>x.type==='timeZoneName').value; const m=p.match(/GMT([+-]\d{2}):?(\d{2})?/); return m?`${m[1]}:${m[2]||'00'}`:'+00:00'; }catch(e){ return '+01:00'; }
+}
+const localDate = d=>new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const berlin = (day,time)=>new Date(`${day}T${time}${tzOffset(day)}`);
+const isoB = (day,time)=>`${day}T${time}${tzOffset(day)}`;
+function addDays(day,n){ const d=new Date(day+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+const todayB = ()=>localDate(new Date());
+
+/* Posting-Zeiten variieren: fester Basis-Slot + deterministischer Versatz pro Marke/Tag/Slot (−13…+14 Min., nie 0) */
+function jitterMin(brand,day,t){ let h=2166136261; for(const c of `${brand}|${day}|${t}`){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } h>>>=0;
+  let m=(h%28)-13; if(m===0) m=7; return {m, s:0}; }
+function slotTime(brand,day,t){ const [H,M]=t.split(':').map(Number); const {m,s}=jitterMin(brand,day,t);
+  let tot=Math.min(23*60+58,Math.max(0,H*60+M+m)); const hh=String(Math.floor(tot/60)).padStart(2,'0'), mm=String(tot%60).padStart(2,'0');
+  return `${hh}:${mm}:${String(s).padStart(2,'0')}`; }
+function nextSlot(brand,pref){
+  const b=settings().brands[brand]||DEFAULT_SETTINGS.brands.ULTRA;
+  const times=(b.times||[]).slice().sort(); if(!times.length) return null;
+  const takenMs=S.items.filter(i=>i.brand===brand && (i.scheduled_for||i.scheduling) && ['geplant','freigegeben','gepostet'].includes(i.status)).map(i=>new Date(i.scheduled_for||i.scheduling).getTime());
+  const minT=Date.now()+20*60*1000;
+  if(pref&&/^\d{4}-\d{2}-\d{2}\|\d{2}:\d{2}$/.test(pref)){ const [pd,pt]=pref.split('|'); const base=new Date(isoB(pd,pt+':00')).getTime();
+    if(!takenMs.some(x=>Math.abs(x-base)<=45*60*1000)){ const lt=slotTime(brand,pd,pt), iso=isoB(pd,lt); if(new Date(iso).getTime()>minT) return {iso, local:`${pd}T${lt}`, tz:TZ, base:pt, slot:pref}; } }
+  for(let k=0;k<30;k++){
+    const day=addDays(todayB(),k);
+    for(const t of times){
+      const base=new Date(isoB(day,t+':00')).getTime();
+      if(takenMs.some(x=>Math.abs(x-base)<=45*60*1000)) continue; // Slot schon belegt (auch mit Versatz)
+      const lt=slotTime(brand,day,t), iso=isoB(day,lt), ms=new Date(iso).getTime();
+      if(ms>minT) return {iso, local:`${day}T${lt}`, tz:TZ, base:t, slot:`${day}|${t}`};
+    }
+  }
+  return null;
+}
+
+/* ---------- Metricool data ---------- */
+const brandList = ()=>Object.entries(settings().brands).filter(([k,b])=>b.blogId && (S.brand==='all'||S.brand===k)).map(([k,b])=>({key:k,...b}));
+function mcpMsg(code){
+  return code==='needs_reauth'?'Metricool ist abgemeldet. In claude.ai unter Einstellungen → Connectors neu verbinden.'
+    : code==='server_not_connected'||code==='selection_required'?'Metricool ist nicht verbunden. In claude.ai unter Einstellungen → Connectors hinzufügen.'
+    : code==='not_in_manifest'||code==='approval_required'||code==='consent_required'?'Diese Seite darf Metricool noch nicht lesen.'
+    : code==='not_granted'||code==='capability_disabled'||code==='capability_removed'?'Metricool ist in dieser Ansicht nicht verfügbar. Öffne die Seite in claude.ai.'
+    : code==='server_unavailable'||code==='upstream_error'?'Metricool antwortet gerade nicht. Daten kommen beim nächsten Abruf.'
+    : 'Metricool-Daten konnten nicht geladen werden.';
+}
+const needsGrant = c=>['not_in_manifest','approval_required','consent_required'].includes(c);
+const AUTHZ = ['needs_reauth','server_not_connected','blocked_by_policy','approval_required','not_in_manifest','consent_required','selection_required'];
+function reelsInput(blogId){ const t=todayB(), f=addDays(t,-90); return {brandId:String(blogId), from:isoB(f,'00:00:00'), to:isoB(t,'23:59:59'), metrics:REEL_COLS}; }
+function evoInput(blogId){ const t=todayB(), f=addDays(t,-30); return {brandId:String(blogId), from:isoB(f,'00:00:00'), to:isoB(t,'23:59:59'), metrics:EVO_COLS}; }
+function schedInput(blogId){ const m=calMonth(); const f=addDays(m.first,-7), t=addDays(m.last,7); return {brandId:String(blogId), fromDate:isoB(f,'00:00:00'), toDate:isoB(t,'23:59:59'), timezone:TZ}; }
+function parseTs(s){ if(!s) return null; s=String(s); const day=`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`; const time=s.length>=12?`${s.slice(8,10)}:${s.slice(10,12)}:${s.slice(12,14)||'00'}`:'12:00:00'; return berlin(day,time); }
+const num = v=>v==null||v===''?null:Number(v);
+function parseReels(p){ const rows=(p&&p.rows)||[]; return rows.map(r=>{ const url=r[1]||''; const code=(url.match(/\/(?:reel|p)\/([A-Za-z0-9_-]+)/)||[])[1]||url;
+  return {ts:parseTs(r[0]), url, code, text:r[2]||'', views:num(r[3]), reach:num(r[4]), likes:num(r[5]), comments:num(r[6]), saved:num(r[7]), shares:num(r[8]), avgWatch:num(r[9]), viewRate:num(r[10]), reposts:num(r[11])}; }).filter(r=>r.ts).sort((a,b)=>b.ts-a.ts); }
+function parseEvo(p){ const rows=(p&&p.rows)||[]; return rows.map(r=>({day:String(r[4]||''), followers:num(r[0]), gained:num(r[1]), lost:num(r[2]), reelViews:num(r[3])})).sort((a,b)=>a.day.localeCompare(b.day)); }
+function parsePosts(p){ const d=(p&&p.data)||[]; return d.map(x=>{ const pd=x.publicationDate||{}; const dt=pd.dateTime||''; const day=dt.slice(0,10), time=(dt.slice(11,19)||'00:00:00');
+  const prov=(x.providers||[]); const ig=prov.find(q=>q.network==='instagram')||prov[0]||{};
+  return {id:x.id, uuid:x.uuid, raw:x, when:berlin(day,time.length===5?time+':00':time), text:x.text||'', status:ig.status||'', url:ig.publicUrl||'', network:ig.network||'', networks:prov.map(q=>q.network), provs:prov.map(q=>({net:q.network,status:q.status||'',url:q.publicUrl||'',detail:q.detailedStatus||''})), media:(x.media||[])[0]||''}; }); }
+function parseTT(p){ const rows=(p&&p.rows)||[]; return rows.map(r=>{ const url=r[1]||''; const code=(url.match(/\/video\/(\d+)/)||[])[1]||url;
+  return {plat:'tt', ts:parseTs(r[0]), url:url.split('?')[0], code, text:r[2]||'', views:num(r[3]), reach:num(r[4]), likes:num(r[5]), comments:num(r[6]), shares:num(r[7]), avgWatch:num(r[8]), fullRate:num(r[9]), duration:num(r[10]), forYou:num(r[11]), saved:null, viewRate:null}; }).filter(r=>r.ts).sort((a,b)=>b.ts-a.ts); }
+function parseBrands(p){ const d=(p&&p.data)||[]; return d.map(b=>{ const nets={}; for(const [k,v] of Object.entries(b.networksData||{})){ if(v) nets[k.replace(/Data$/,'')]=String(v); } return {id:String(b.id), label:b.label||String(b.id), nets, tz:b.timezone||TZ}; }); }
+const mbrand = blogId=>(S.mbrands||[]).find(b=>b.id===String(blogId))||null;
+function connected(key){ const b=settings().brands[key]||{}; const mb=mbrand(b.blogId); return mb?Object.keys(mb.nets):null; }
+function postNets(key){ const want=(settings().brands[key]||{}).networks||['instagram']; const have=connected(key); return have?want.filter(n=>have.includes(n)):want; }
+
+function watch(key, tool, input, parse, slot){
+  if(!S.mcp) return;
+  const sig=JSON.stringify(input);
+  const w=S.watches[key]; if(w && w.sig===sig) return; if(w) try{w.un()}catch(e){}
+  const un=S.mcp.watchTool(M, tool, input, ev=>{
+    if(slot.global){
+      if(ev.type==='data'){ S.mbrands=parse(ev.result.payload); S.mbrandsErr=null; ensureWatches(); }
+      else { const c=ev.error&&ev.error.code; S.mbrandsErr=c||'upstream_error'; if(AUTHZ.includes(c)) S.mbrands=null; }
+      softRender(); return;
+    }
+    const mx=S.mx[slot.blog]||(S.mx[slot.blog]={});
+    if(ev.type==='data'){ mx[slot.kind]={data:parse(ev.result.payload), at:(ev.result.cache&&ev.result.cache.storedAt)||Date.now(), err:null}; }
+    else { const c=ev.error&&ev.error.code; const prev=mx[slot.kind]; mx[slot.kind]={data:AUTHZ.includes(c)?null:(prev&&prev.data)||null, at:prev&&prev.at, err:c||'upstream_error'}; }
+    softRender();
+  }, {cache:{staleTime:5*60*1000, gcTime:24*3600*1000}, refetchInterval:slot.global?10*60*1000:20*60*1000});
+  S.watches[key]={sig,un};
+}
+function ttInput(blogId){ const t=todayB(), f=addDays(t,-90); return {brandId:String(blogId), from:isoB(f,'00:00:00'), to:isoB(t,'23:59:59'), metrics:TT_COLS}; }
+function ensureWatches(){
+  if(!S.mcp) return;
+  watch('brands','getBrandSettings',{},parseBrands,{global:true});
+  for(const [k,b] of Object.entries(settings().brands)){
+    if(!b.blogId) continue;
+    const blog=String(b.blogId); const mb=mbrand(blog);
+    if(!mb || mb.nets.instagram){
+      watch('reels-'+blog,'getAnalyticsDataByMetrics',reelsInput(blog),parseReels,{blog,kind:'reels'});
+      watch('evo-'+blog,'getAnalyticsDataByMetrics',evoInput(blog),parseEvo,{blog,kind:'evo'});
+    }
+    if(mb && mb.nets.tiktok) watch('tt-'+blog,'getAnalyticsDataByMetrics',ttInput(blog),parseTT,{blog,kind:'tt'});
+    watch('sched-'+blog,'getScheduledPosts',schedInput(blog),parsePosts,{blog,kind:'sched'});
+  }
+}
+async function refreshBrands(){ if(!S.mcp) return; try{ await S.mcp.invalidate(M,'getBrandSettings'); toast('Accounts werden neu geladen'); }catch(e){ toast('Neu laden ging nicht, bitte Seite neu öffnen'); } }
+async function loadBest(key){
+  const b=settings().brands[key]; if(!S.mcp||!b||!b.blogId) return;
+  S.best[key]={busy:true}; render();
+  try{
+    const t=todayB(), net=(postNets(key)[0])||'instagram';
+    const res=await S.mcp.callTool(M,'getBestTimeToPostByNetwork',{brandId:String(b.blogId),fromDate:isoB(addDays(t,1),'00:00:00'),toDate:isoB(addDays(t,7),'23:59:59'),timezone:TZ,socialNetwork:net==='youtube'?'youtube':net},{cache:{staleTime:3600e3,gcTime:86400e3}});
+    const days=((res.payload||{}).data)||[]; const avg=new Array(24).fill(0);
+    const wk=days.filter(d=>d.dayOfWeek>=1&&d.dayOfWeek<=5); const use=wk.length?wk:days;
+    for(const d of use) for(const h of d.bestTimesByHour||[]) avg[h.hourOfDay]+=h.value/use.length;
+    const order=avg.map((v,h)=>({h,v})).sort((a,b)=>b.v-a.v);
+    const pick=[]; for(const o of order){ if(o.h<7||o.h>22) continue; if(pick.every(p=>Math.abs(p.h-o.h)>=4)) pick.push(o); if(pick.length===2) break; }
+    pick.sort((a,b)=>a.h-b.h);
+    const top=order.slice(0,3).map(o=>o.h);
+    S.best[key]={net, times:pick.map(p=>String(p.h).padStart(2,'0')+':00'), top, avg};
+  }catch(e){ S.best[key]={err:mcpMsg(e&&e.code)}; }
+  render();
+}
+async function movePost(postId){
+  const posts=mxFor('sched').data; const p=posts.find(x=>String(x.id)===String(postId)); if(!p) return;
+  const inp=document.getElementById('mv-'+postId); const v=inp&&inp.value; if(!v){ toast('Bitte Datum und Uhrzeit wählen'); return; }
+  const dt=v.length===16?v+':00':v; const day=dt.slice(0,10); const iso=isoB(day,dt.slice(11,19));
+  if(new Date(iso)<new Date(Date.now()+10*60e3)){ toast('Der Termin muss mindestens 10 Minuten in der Zukunft liegen'); return; }
+  const b=Object.values(settings().brands).find(x=>String(x.blogId)===String(p.blog))||{};
+  const info={...p.raw, publicationDate:{dateTime:dt, timezone:TZ}};
+  S.move[postId]={busy:true}; render();
+  try{
+    await S.mcp.callTool(M,'updateScheduledPost',{blogId:String(p.blog),id:String(p.id),uuid:String(p.uuid),info:JSON.stringify(info)});
+    const it=S.items.find(i=>i.scheduled_for && Math.abs(new Date(i.scheduled_for)-p.when)<3*60e3);
+    if(it&&S.db){ try{ await upd(it.id,{scheduled_for:iso}); }catch(e){} }
+    try{ await S.mcp.invalidate(M,'getScheduledPosts'); }catch(e){}
+    S.move[postId]=null; S.calSel=day; toast('Verschoben auf '+fmtDate(iso));
+  }catch(e){
+    const c=e&&e.code;
+    S.move[postId]={open:true, err:c==='tool_error'?'Metricool hat abgelehnt: '+(e.message||''):AUTHZ.includes(c)?mcpMsg(c):'Unklar, ob verschoben wurde. Kalender neu laden und prüfen, bevor du es nochmal versuchst.'};
+    try{ await S.mcp.invalidate(M,'getScheduledPosts'); }catch(x){}
+  }
+  render();
+}
+async function grantMetricool(){
+  if(!S.mcp) return;
+  const b=brandList()[0]||{blogId:DEFAULT_SETTINGS.brands.ULTRA.blogId};
+  try{ await S.mcp.callTool(M,'getAnalyticsDataByMetrics',reelsInput(b.blogId)); try{ await S.mcp.invalidate(M); }catch(e){} toast('Metricool verbunden'); }
+  catch(e){ toast(mcpMsg(e&&e.code)); }
+}
+function mxFor(kind){ const out={data:[],err:null,at:null,any:false}; for(const b of brandList()){ const m=(S.mx[String(b.blogId)]||{})[kind]; if(!m) continue; out.any=true; if(m.data) out.data=out.data.concat(m.data.map(x=>({...x,brand:b.key,blog:String(b.blogId)}))); if(m.err&&!out.err) out.err=m.err; if(m.at&&(!out.at||m.at<out.at)) out.at=m.at; } return out; }
+
+/* match engine items to posts + reels */
+function matches(){
+  const posts=mxFor('sched').data, reels=mxFor('reels').data;
+  const byItem={}, byCode={};
+  for(const it of S.items){
+    const when=it.scheduled_for?new Date(it.scheduled_for):null;
+    let url=it.ig_url||'';
+    if(!url && when){ const cap=(it.caption||'').slice(0,40); const p=posts.find(p=>Math.abs(p.when-when)<3*60e3 && (!cap||p.text.startsWith(cap))) || posts.find(p=>Math.abs(p.when-when)<3*60e3); if(p&&p.url) url=p.url; }
+    let r=url?reels.find(x=>x.url===url||url.includes(x.code)):null;
+    if(!r && when) r=reels.find(x=>x.ts>=when-5*60e3 && x.ts<=when+45*60e3);
+    if(r){ byItem[it.id]=r; byCode[r.code]=it; }
+  }
+  return {byItem, byCode};
+}
+
+/* ---------- diagnosis ---------- */
+function baseline(reels){
+  const old=reels.filter(r=>Date.now()-r.ts>24*3600e3);
+  const per=(r,k)=>r.reach?(k(r))/r.reach*1000:null;
+  return {n:old.length, views:median(old.map(r=>r.views)), viewRate:median(old.map(r=>r.viewRate)), avgWatch:median(old.map(r=>r.avgWatch)),
+    keep:median(old.map(r=>per(r,x=>(x.saved||0)+(x.shares||0)))), cmt:median(old.map(r=>per(r,x=>x.comments||0)))};
+}
+function diagnose(r,b,item){
+  const ageH=(Date.now()-r.ts)/3600e3;
+  if(ageH<24) return {label:'zu früh',cls:'',score:null,reasons:[{k:'Abwarten',c:'',t:'Noch keine 24 Stunden online. Instagram spielt Reels oft erst am zweiten Tag richtig aus.'}]};
+  const score=b.views?r.views/b.views:null, few=b.n<3, R=[];
+  const keep=r.reach?((r.saved||0)+(r.shares||0))/r.reach*1000:null, cmt=r.reach?(r.comments||0)/r.reach*1000:null;
+  if(r.viewRate!=null){
+    const lim=few?45:0.8*b.viewRate;
+    if(r.viewRate<lim) R.push({k:'Hook',c:'r',t:`Nur ${nf1(r.viewRate)} % schauen länger als 3 Sekunden${few?'':` (dein Schnitt: ${nf1(b.viewRate)} %)`}. Der Einstieg zieht nicht: erste Zeile, erstes Bild oder das Versprechen ist zu schwach.`});
+    else if(!few && r.viewRate>1.15*b.viewRate) R.push({k:'Hook',c:'g',t:`${nf1(r.viewRate)} % bleiben über 3 Sekunden, besser als dein Schnitt (${nf1(b.viewRate)} %). Dieser Einstieg funktioniert.`});
+  }
+  const dur=item&&item.duration?Number(item.duration):null;
+  if(r.avgWatch!=null){
+    if(dur){ const q=r.avgWatch/dur; if(q<0.3) R.push({k:'Halten',c:'r',t:`Im Schnitt ${nf1(r.avgWatch)} s von ${nf1(dur)} s geschaut (${Math.round(q*100)} %). Die Leute steigen in der Mitte aus: kürzer, schneller zum Punkt, weniger Aufzählung.`}); else if(q>0.6) R.push({k:'Halten',c:'g',t:`${Math.round(q*100)} % der Länge wird im Schnitt geschaut. Tempo und Aufbau tragen.`}); }
+    else if(!few && r.avgWatch<0.75*b.avgWatch) R.push({k:'Halten',c:'r',t:`Ø Wiedergabe ${nf1(r.avgWatch)} s, dein Schnitt liegt bei ${nf1(b.avgWatch)} s. Die Mitte verliert die Leute.`});
+  }
+  if(!few && keep!=null && b.keep && keep<0.6*b.keep) R.push({k:'Mehrwert',c:'r',t:`Kaum gespeichert oder geteilt (${nf1(keep)} pro 1.000 Erreichte, Schnitt ${nf1(b.keep)}). Es fehlt etwas zum Aufheben: konkretes Tool, Zahl, Schritt-für-Schritt.`});
+  if(!few && cmt!=null && b.cmt && cmt<0.6*b.cmt) R.push({k:'CTA',c:'r',t:`Wenig Kommentare (${nf1(cmt)} pro 1.000, Schnitt ${nf1(b.cmt)}). Das Kommentar-Keyword zieht nicht: CTA früher bringen und klarer sagen, was in der DM kommt.`});
+  if(score!=null && score<0.6 && !R.some(x=>x.c==='r')) R.push({k:'Ausspielung',c:'r',t:'Hook und Halten sind in Ordnung, aber Instagram hat das Reel wenig verteilt. Meist liegt es am Thema oder an der Uhrzeit: ähnliches Thema meiden oder anderen Slot testen.'});
+  if(few) R.push({k:'Hinweis',c:'',t:'Vergleichswerte gibt es ab 3 Reels, die älter als einen Tag sind. Bis dahin gelten Faustwerte.'});
+  const label=score==null?'erste Daten':score>=1.5?'stark':score<0.6?'schwach':'normal';
+  return {label, cls:label==='stark'?'g':label==='schwach'?'r':'', score, reasons:R};
+}
+
+/* ---------- Claude deep analysis ---------- */
+async function deepAnalyse(code){
+  if(!S.sample){ toast('Claude-Analyse ist in dieser Ansicht nicht verfügbar'); return; }
+  const tt=mxFor('tt').data, isTT=tt.some(x=>x.code===code);
+  const reels=isTT?tt:mxFor('reels').data, r=reels.find(x=>x.code===code); if(!r) return;
+  const mt=matches(), it=isTT?ttItem(r):(mt.byCode[code]||null);
+  const b=isTT?baselineTT(reels):baseline(reels), d=isTT?diagnoseTT(r,b):diagnose(r,b,it);
+  const others=reels.filter(x=>x.code!==code).slice(0,15).map(x=>({datum:localDate(x.ts), uhrzeit:fmtTime(x.ts), views:x.views, haltequote_3s:x.viewRate, bis_ende_prozent:x.fullRate, avg_watch_s:x.avgWatch, text:(!isTT&&mt.byCode[x.code]&&mt.byCode[x.code].title)||x.text.split('\n')[0].slice(0,90)}));
+  const ctx={plattform:isTT?'TikTok':'Instagram', reel:{datum:localDate(r.ts), wochentag:r.ts.toLocaleDateString('de-DE',{timeZone:TZ,weekday:'long'}), uhrzeit:fmtTime(r.ts), caption:r.text.slice(0,1500), views:r.views, reichweite:r.reach, likes:r.likes, kommentare:r.comments, gespeichert:r.saved, geteilt:r.shares, avg_watch_s:r.avgWatch, haltequote_3s_prozent:r.viewRate, bis_ende_prozent:r.fullRate, laenge_s:r.duration, aus_fuer_dich_prozent:r.forYou},
+    engine:it?{titel:it.title, hook:it.hook_de, skript:it.script_de, laenge_s:it.duration, tempo_qa:it.qa, keyword:it.keyword, quelle:it.source_url}:null,
+    account_median:b,
+    regel_diagnose:d.reasons.map(x=>x.k+': '+x.t), andere_reels:others, bisherige_learnings:(S.insights&&S.insights.learnings)||[]};
+  const prompt=`Du analysierst die Performance eines ${isTT?'TikTok-Videos':'Instagram-Reels'} des deutschen KI-Accounts ${isTT?'auf TikTok':'@'+((settings().brands[it&&it.brand||'ULTRA']||{}).handle||'ultra_automations')} (KI-Tools, Claude, Automationen; Format: schnelle Clean-Motion-Reels mit Avatar, deutsch).
+Erkläre ehrlich und konkret, WARUM es so performt hat, wie es performt hat, und was beim nächsten Reel anders sein muss. Belege jeden Grund mit einer Zahl aus den Daten. Keine Floskeln, keine Vermutungen ohne Beleg; wenn die Daten etwas nicht hergeben, sag das.
+Antworte NUR mit JSON in genau dieser Form:
+{"urteil":"ein Satz","gruende":[{"titel":"kurz","beleg":"ein bis zwei Sätze mit Zahl"}],"naechstes_mal":["konkrete Änderung", "..."],"lernpunkt":"eine allgemeine Regel für künftige Reels, ein Satz"}
+Maximal 4 Gründe, maximal 4 Änderungen.
+
+Daten:
+${JSON.stringify(ctx,null,1)}`;
+  S.aiBusy[code]=true; render();
+  try{
+    const out=await S.sample.json(prompt,{modelTier:'default'});
+    if(!out||typeof out!=='object'||!out.urteil) throw {code:'invalid_json'};
+    const doc={code, url:r.url, item_id:it?it.id:null, brand:it?it.brand:null, by:'dashboard', at:new Date().toISOString(), urteil:String(out.urteil), gruende:(out.gruende||[]).slice(0,4).map(g=>({titel:String(g.titel||''),beleg:String(g.beleg||'')})), naechstes_mal:(out.naechstes_mal||[]).slice(0,4).map(String), lernpunkt:String(out.lernpunkt||''), metrics:{views:r.views,viewRate:r.viewRate,avgWatch:r.avgWatch,reach:r.reach}};
+    S.analyses[code]=doc;
+    if(S.db && S.canWrite!==false){ try{ await S.db.doc('analyses/'+code.replace(/[^A-Za-z0-9_.-]/g,'_')).set(doc); }catch(e){} }
+  }catch(e){
+    const c=e&&e.code; toast(c==='not_granted'?'Claude-Analyse wurde nicht erlaubt':c==='rate_limited'?'Gerade zu viele Anfragen, gleich nochmal':c==='invalid_json'?'Antwort war unvollständig, bitte erneut':'Analyse fehlgeschlagen');
+  }finally{ S.aiBusy[code]=false; render(); }
+}
+
+/* ---------- writes ---------- */
+async function upd(id, data){ if(!S.db) throw {code:'no_db'}; await S.db.doc('items/'+id).update({...data, updated:new Date().toISOString()}); }
+function setNote(id,msg,kind){ S.notes[id]={msg,kind}; render(); }
+async function approve(id){
+  const it=S.items.find(x=>x.id===id); if(!it) return;
+  const cap=$(`#cap-${CSS.escape(id)}`), tag=$(`#tag-${CSS.escape(id)}`);
+  const caption=cap?cap.value.trim():(it.caption||''), hashtags=tag?tag.value.trim():(it.hashtags||'');
+  S.busy[id]=true; setNote(id,'Wird eingeplant …','');
+  try{
+    await upd(id,{caption,hashtags});
+    const slot=nextSlot(it.brand||'ULTRA',it.slot); const b=settings().brands[it.brand||'ULTRA']||{};
+    if(!S.mcp || !it.public_url || !b.blogId || !slot){
+      await upd(id,{status:'freigegeben', approved_at:new Date().toISOString()});
+      setNote(id, !it.public_url?'Freigegeben. Video-Link fehlt noch, der nächste Lauf plant ein.':'Freigegeben. Der nächste Lauf plant es in Metricool ein.','ok'); return;
+    }
+    const nets=postNets(it.brand||'ULTRA'); if(!nets.length){ setNote(id,'Für diese Marke ist keine Plattform zum Posten ausgewählt oder verbunden (Einstellungen).','err'); return; }
+    const info={autoPublish:true,draft:false,text:caption+(hashtags?'\n\n'+hashtags:''),media:[it.public_url],providers:nets.map(n=>({network:n})),
+      publicationDate:{dateTime:slot.local,timezone:slot.tz},
+      firstCommentText:'',shortener:false,smartLinkData:{ids:[]},descendants:[],hasNotReadNotes:false,mediaAltText:[]};
+    if(nets.includes('instagram')) info.instagramData={type:'REEL',showReelOnFeed:true,isAiGenerated:true};
+    if(nets.includes('tiktok')) info.tiktokData={privacyOption:'PUBLIC_TO_EVERYONE',disableComment:false,disableDuet:false,disableStitch:false,commercialContentThirdParty:false,commercialContentOwnBrand:false,autoAddMusic:false,photoCoverIndex:0,isAigc:true,title:''};
+    if(nets.includes('youtube')) info.youtubeData={title:String(it.title||it.hook_de||'Reel').slice(0,100),type:'short',privacy:'public',madeForKids:false,isAiGeneratedContent:true,tags:[]};
+    await upd(id,{status:'freigegeben', approved_at:new Date().toISOString(), scheduling:slot.iso});
+    let res;
+    try{ res=await S.mcp.callTool(M,'createScheduledPost',{blogId:String(b.blogId),date:slot.iso,info:JSON.stringify(info)}); }
+    catch(e){
+      const c=e&&e.code;
+      const msg = c==='tool_error'?('Metricool hat abgelehnt: '+(e.message||'')) : ['needs_reauth','server_not_connected','not_in_manifest','approval_required','selection_required'].includes(c) ? mcpMsg(c)+' Danach erneut freigeben.'
+        : 'Unklar, ob Metricool den Post angelegt hat. Bitte im Metricool-Planer prüfen, bevor du erneut freigibst.';
+      await upd(id,{metricool_error:msg}); setNote(id,msg,'err'); return;
+    }
+    const p=res&&res.payload; const raw=typeof p==='string'?p:JSON.stringify(p||{});
+    const url=(raw.match(/https?:\/\/[^"\s]*metricool[^"\s]*/)||[])[0]||'';
+    await upd(id,{status:'geplant', scheduled_for:slot.iso, slot:slot.slot, metricool:{planner_url:url, raw:raw.slice(0,2000)}, metricool_error:{__delete__:true}});
+    try{ await S.mcp.invalidate(M,'getScheduledPosts'); }catch(e){}
+    setNote(id,'Eingeplant für '+fmtDate(slot.iso)+'.','ok'); toast('Eingeplant für '+fmtDate(slot.iso));
+  }catch(e){ setNote(id,e&&e.code==='invalid_argument'?'Keine Schreibrechte für diese Seite.':'Speichern fehlgeschlagen. Bitte erneut versuchen.','err'); }
+  finally{ S.busy[id]=false; render(); }
+}
+async function rework(id){
+  const t=$(`#fbt-${CSS.escape(id)}`); const fb=t?t.value.trim():''; if(!fb){ setNote(id,'Schreib kurz, was anders werden soll.','err'); return; }
+  S.busy[id]=true; render();
+  try{ await upd(id,{status:'ueberarbeiten', feedback:fb}); S.open[id]=null; toast('Geht zurück in die Produktion'); }
+  catch(e){ setNote(id,'Speichern fehlgeschlagen.','err'); } finally{ S.busy[id]=false; render(); }
+}
+async function reject(id){
+  S.busy[id]=true; render();
+  try{ await upd(id,{status:'abgelehnt'}); S.open[id]=null; toast('Abgelehnt'); }
+  catch(e){ setNote(id,'Speichern fehlgeschlagen.','err'); } finally{ S.busy[id]=false; render(); }
+}
+async function saveText(id){
+  const cap=$(`#cap-${CSS.escape(id)}`), tag=$(`#tag-${CSS.escape(id)}`); if(!cap) return;
+  const it=S.items.find(x=>x.id===id); if(!it) return;
+  if(cap.value===(it.caption||'') && tag.value===(it.hashtags||'')) return;
+  try{ await upd(id,{caption:cap.value, hashtags:tag.value}); }catch(e){}
+}
+
+/* ---------- views ---------- */
+function vEmpty(title,txt){ return `<div class="empty"><b>${esc(title)}</b>${txt}</div>`; }
+function mxBanner(kinds){
+  if(!S.mcp) return S.live===null?'':`<div class="ro">Metricool-Daten laden nur, wenn die Seite in claude.ai geöffnet ist.</div>`;
+  const errs=kinds.map(k=>mxFor(k).err).filter(Boolean);
+  if(!errs.length) return '';
+  const c=errs[0];
+  return `<div class="ro ${needsGrant(c)?'':'err'}"><div class="actions" style="justify-content:space-between"><span>${esc(mcpMsg(c))}</span>${needsGrant(c)?`<button class="btn sm primary" data-act="grant">Metricool erlauben</button>`:''}</div></div>`;
+}
+function card(it){
+  const id=it.id, busy=!!S.busy[id], note=S.notes[id], q=it.qa||{}, open=S.open[id];
+  const src=it.preview_asset?('/_blob/'+it.preview_asset):(it.preview_url||'');
+  const ro=S.canWrite===false?'disabled':'';
+  return `<article class="card">
+    <div class="vid">${src?`<video src="${esc(src)}" controls playsinline preload="metadata"></video>`:`<div class="none">Vorschau fehlt</div>`}</div>
+    <div class="body">
+      <div class="meta"><span class="pill blue">${esc(it.brand||'ULTRA')}</span><span>Quelle: <a href="${esc(it.source_url||'#')}" target="_blank" rel="noopener">@${esc(it.source||'')}</a></span><span>${it.duration?Number(it.duration).toFixed(1)+' s':''}</span><span>${it.cost_usd!=null?usd(it.cost_usd):''}</span></div>
+      <h3 class="title">${esc(it.title||it.hook_de||id)}</h3>
+      ${it.hook_de&&it.title?`<p class="hook">${esc(it.hook_de)}</p>`:''}
+      <div class="qa">${q.motion!=null?`<span class="chip ${q.pass?'g':'r'}">Tempo ${Number(q.motion).toFixed(1)}</span><span class="chip">Standbild ${Number(q.still_pct).toFixed(0)} %</span>`:''}${it.keyword?`<span class="chip b">Kommentar: ${esc(it.keyword)}</span>`:''}${it.feedback?`<span class="chip">überarbeitet</span>`:''}</div>
+      <div><label for="cap-${esc(id)}">Caption</label><textarea id="cap-${esc(id)}" rows="6" ${ro} data-save="${esc(id)}">${esc(it.caption||'')}</textarea></div>
+      <div><label for="tag-${esc(id)}">Hashtags</label><input id="tag-${esc(id)}" ${ro} data-save="${esc(id)}" value="${esc(it.hashtags||'')}"></div>
+      ${it.script_de?`<details><summary>Skript ansehen</summary><pre>${esc(it.script_de)}</pre></details>`:''}
+      ${it.metricool_error?`<p class="note err">${esc(it.metricool_error)}</p>`:''}
+      ${open==='fb'?`<div class="fb"><label for="fbt-${esc(id)}">Was soll anders werden?</label><textarea id="fbt-${esc(id)}" rows="3" placeholder="z. B. Hook kürzer, weniger Text auf Szene 3, anderes Keyword"></textarea><div class="actions"><button class="btn primary sm" data-act="rework" data-id="${esc(id)}" ${busy?'disabled':''}>Zurück in Produktion</button><button class="btn sm" data-act="close" data-id="${esc(id)}">Abbrechen</button></div></div>`:''}
+      ${open==='rej'?`<div class="fb"><span>Dieses Reel wirklich verwerfen?</span><div class="actions"><button class="btn danger sm" data-act="reject" data-id="${esc(id)}" ${busy?'disabled':''}>Ja, ablehnen</button><button class="btn sm" data-act="close" data-id="${esc(id)}">Abbrechen</button></div></div>`:''}
+      <div class="actions">
+        <button class="btn primary" data-act="approve" data-id="${esc(id)}" ${busy||ro?'disabled':''}>Freigeben &amp; einplanen</button>
+        <button class="btn" data-act="openfb" data-id="${esc(id)}" ${busy||ro?'disabled':''}>Überarbeiten</button>
+        <button class="btn danger" data-act="openrej" data-id="${esc(id)}" ${busy||ro?'disabled':''}>Ablehnen</button>
+        <span class="note">Nächster Slot: ${(()=>{const s=nextSlot(it.brand||'ULTRA',it.slot);return s?fmtDate(s.iso):'–';})()} · ${esc(postNets(it.brand||'ULTRA').map(n=>NET_LABEL[n]||n).join(' + ')||'keine Plattform')}</span>
+      </div>
+      ${note?`<p class="note ${note.kind||''}">${esc(note.msg)}</p>`:''}
+    </div></article>`;
+}
+function monthCost(brand){ const m=todayB().slice(0,7); return S.items.filter(i=>(brand==='all'||i.brand===brand)&&(i.built_at||i.created||'').slice(0,7)===m).reduce((a,i)=>a+(Number(i.cost_usd)||0),0); }
+function vReview(){
+  const list=S.items.filter(i=>brandOk(i)&&i.status==='zur_freigabe');
+  const st=settings(); const busy=S.items.filter(i=>brandOk(i)&&['erkannt','in_arbeit','ueberarbeiten'].includes(i.status)).length;
+  const planned=S.items.filter(i=>brandOk(i)&&effStatus(i)==='geplant').length;
+  const mc=monthCost(S.brand), bud=Number(st.budgetMonthUsd)||0;
+  let h=`<div class="summary">
+    <div class="stat"><small>Zur Freigabe</small><b>${list.length}</b></div>
+    <div class="stat"><small>In Produktion</small><b>${busy}</b></div>
+    <div class="stat"><small>Geplant</small><b>${planned}</b></div>
+    <div class="stat"><small>Kosten diesen Monat</small><b>${usd(mc)}</b><div class="bar"><i class="${bud&&mc>bud*.85?'warn':''}" style="width:${bud?Math.min(100,mc/bud*100):0}%"></i></div><small>Budget ${usd(bud)}</small></div>
+  </div><h2>Zur Freigabe</h2>`;
+  if(!list.length) h+=vEmpty('Gerade nichts zu prüfen.',`Die Läufe um ${esc((st.runTimes||[]).join(', '))} Uhr bauen Reels für die nächsten ${esc(st.leadDays??2)} Tage vor und legen sie hier ab. Gib abends alles auf einmal frei.`);
+  else {
+    const key=i=>(i.slot||'9999')+'|'+(i.brand||'')+'|'+(i.created||'');
+    list.sort((a,b)=>key(a).localeCompare(key(b)));
+    if(S.canWrite!==false && list.length>1) h+=`<div class="actions" style="margin:-4px 0 16px">${S.open.allok?`<button class="btn sm primary" data-act="approveall">Ja, alle ${list.length} jetzt einplanen</button><button class="btn sm" data-act="approveallno">Abbrechen</button>`:`<button class="btn sm" data-act="approveallask">Alle ${list.length} freigeben</button>`}<span class="note">Plant jedes Reel in seinen Slot ein, Reihenfolge wie unten.</span></div>`;
+    let lastDay=null; h+=`<div class="queue">`;
+    for(const it of list){ const d=it.slot?it.slot.slice(0,10):'';
+      if(d!==lastDay){ lastDay=d; h+=`<h3 class="qday" style="grid-column:1/-1;margin:8px 0 0">${d?'Für '+esc(new Date(d+'T12:00:00Z').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'})):'Ohne festen Slot'}</h3>`; }
+      h+=card(it); }
+    h+=`</div>`;
+  }
+  return h;
+}
+
+/* calendar */
+function calMonth(){ const base=S.cal||todayB().slice(0,7); const first=base+'-01'; const d=new Date(first+'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth()+1); d.setUTCDate(0); return {key:base, first, last:d.toISOString().slice(0,10)}; }
+function calEvents(){
+  const posts=mxFor('sched').data, reels=mxFor('reels').data, mt=matches();
+  const ev=[]; const used=new Set();
+  for(const p of posts){
+    const it=S.items.find(i=>i.scheduled_for && Math.abs(new Date(i.scheduled_for)-p.when)<3*60e3 && (!i.caption||p.text.startsWith((i.caption||'').slice(0,40))));
+    if(it) used.add(it.id);
+    const st=p.status==='PUBLISHED'?'online':/ERROR|FAIL/i.test(p.status)?'fehler':'geplant';
+    const reel=p.url?reels.find(r=>p.url.includes(r.code)):null;
+    ev.push({when:p.when, day:localDate(p.when), st, title:it?(it.title||it.hook_de):p.text.split('\n')[0].slice(0,90), url:p.url, brand:p.brand, item:it, reel, net:p.networks.map(n=>NET_LABEL[n]||n).join(' + '), post:p});
+  }
+  for(const it of S.items){
+    if(used.has(it.id)||!brandOk(it)) continue;
+    const when=it.scheduled_for||it.scheduling; if(!when||!['geplant','freigegeben','gepostet'].includes(it.status)) continue;
+    const d=new Date(when); const reel=mt.byItem[it.id]||null;
+    ev.push({when:d, day:localDate(d), st:reel||d<new Date()?'online':'geplant', title:it.title||it.hook_de||it.id, url:reel?reel.url:'', brand:it.brand, item:it, reel, net:'instagram'});
+  }
+  return ev.sort((a,b)=>a.when-b.when);
+}
+function vCal(){
+  const m=calMonth(), ev=calEvents(), today=todayB();
+  if(!S.calSel||S.calSel.slice(0,7)!==m.key) S.calSel=(today.slice(0,7)===m.key)?today:m.first;
+  const by={}; ev.forEach(e=>(by[e.day]=by[e.day]||[]).push(e));
+  const firstDow=(new Date(m.first+'T12:00:00Z').getUTCDay()+6)%7;
+  const start=addDays(m.first,-firstDow);
+  const cells=[]; for(let i=0;i<42;i++){ const d=addDays(start,i); if(i>=35 && d>m.last) break; cells.push(d); }
+  const mName=new Date(m.first+'T12:00:00Z').toLocaleDateString('de-DE',{month:'long',year:'numeric',timeZone:'UTC'});
+  const dotC=st=>st==='online'?'ok':st==='fehler'?'bad':'plan';
+  const sel=by[S.calSel]||[];
+  const monthEv=ev.filter(e=>e.day.slice(0,7)===m.key);
+  let h=mxBanner(['sched'])+`<div class="calhead"><h3>${esc(mName)}</h3><button class="btn sm" data-act="calprev" aria-label="Vormonat">←</button><button class="btn sm" data-act="caltoday">Heute</button><button class="btn sm" data-act="calnext" aria-label="Nächster Monat">→</button>
+    <div class="legend"><span><i class="dot ok"></i>online (${monthEv.filter(e=>e.st==='online').length})</span><span><i class="dot plan"></i>geplant (${monthEv.filter(e=>e.st==='geplant').length})</span><span><i class="dot bad"></i>fehlgeschlagen</span></div></div>
+  <div class="cal">${['Mo','Di','Mi','Do','Fr','Sa','So'].map(d=>`<div class="wd">${d}</div>`).join('')}
+  ${cells.map(d=>{ const e=by[d]||[]; return `<button class="day ${d.slice(0,7)!==m.key?'out':''} ${d===today?'today':''} ${d===S.calSel?'sel':''}" data-day="${d}" aria-label="${d}, ${e.length} Posts"><span class="dn">${Number(d.slice(8))}</span>
+    ${e.slice(0,3).map(x=>`<span class="ev"><i class="dot ${dotC(x.st)}"></i><span class="t">${fmtTime(x.when)}</span><span class="x">${esc(x.title)}</span></span>`).join('')}${e.length>3?`<span class="ev"><span class="t">+${e.length-3}</span></span>`:''}
+    <span class="dots">${e.map(x=>`<i class="dot ${dotC(x.st)}"></i>`).join('')}</span></button>`; }).join('')}</div>
+  <div class="daylist"><h2 style="margin:0">${esc(new Date(S.calSel+'T12:00:00Z').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}))}</h2>`;
+  if(!sel.length) h+=`<p class="note">An diesem Tag ist nichts online gegangen oder geplant.</p>`;
+  const reels=mxFor('reels').data, b=baseline(reels);
+  for(const e of sel){
+    const d=e.reel?diagnose(e.reel,b,e.item):null;
+    h+=`<div class="dayitem"><div class="h"><i class="dot ${dotC(e.st)}"></i><span class="mono">${fmtTime(e.when)}</span><b>${esc(e.title)}</b>${e.brand?`<span class="pill">${esc(e.brand)}</span>`:''}${d?`<span class="pill ${d.cls==='g'?'green':d.cls==='r'?'red':''}">${esc(d.label)}</span>`:''}</div>
+      ${e.reel?`<div class="kv"><span>Views <b>${nf(e.reel.views)}</b></span><span>Reichweite <b>${nf(e.reel.reach)}</b></span><span>3-Sek-Quote <b>${nf1(e.reel.viewRate)} %</b></span><span>Ø Wiedergabe <b>${nf1(e.reel.avgWatch)} s</b></span><span>Geteilt <b>${nf(e.reel.shares)}</b></span><span>Gespeichert <b>${nf(e.reel.saved)}</b></span></div>`:''}
+      ${e.post&&e.post.provs.length?`<div class="qa">${e.post.provs.map(q=>{ const ok=q.status==='PUBLISHED', bad=/ERROR|FAIL/i.test(q.status); return `<span class="chip ${ok?'g':bad?'r':'b'}" title="${esc(q.detail)}">${esc(NET_LABEL[q.net]||q.net)} · ${ok?'online':bad?'fehlgeschlagen':'geplant'}</span>${q.url?` <a class="note" href="${esc(q.url)}" target="_blank" rel="noopener">ansehen</a>`:''}`; }).join(' ')}</div>`:''}
+      <div class="actions">${!e.post&&e.url?`<a class="note" href="${esc(e.url)}" target="_blank" rel="noopener">Auf Instagram ansehen</a>`:''}${e.reel?`<button class="btn sm" data-act="goana" data-code="${esc(e.reel.code)}">Analyse öffnen</button>`:''}${e.st==='geplant'&&e.post&&S.canWrite!==false?`<button class="btn sm" data-act="openmove" data-post="${esc(e.post.id)}">Verschieben</button>`:''}${e.st==='geplant'?`<span class="note">geht automatisch online</span>`:''}</div>
+      ${e.post&&S.move[e.post.id]&&(S.move[e.post.id].open||S.move[e.post.id].busy)?`<div class="fb"><label for="mv-${esc(e.post.id)}">Neuer Termin (Berlin)</label><input id="mv-${esc(e.post.id)}" type="datetime-local" value="${esc(localDate(e.when)+'T'+fmtTime(e.when))}"><div class="actions"><button class="btn primary sm" data-act="domove" data-post="${esc(e.post.id)}" ${S.move[e.post.id].busy?'disabled':''}>${S.move[e.post.id].busy?'Wird verschoben …':'Verschieben'}</button><button class="btn sm" data-act="closemove" data-post="${esc(e.post.id)}">Abbrechen</button></div>${S.move[e.post.id].err?`<p class="note err">${esc(S.move[e.post.id].err)}</p>`:''}</div>`:''}</div>`;
+  }
+  return h+`</div>`;
+}
+
+/* analytics */
+function barChart(evo){
+  const pts=evo.filter(x=>x.reelViews!=null);
+  if(!pts.length) return '';
+  const W=760,H=200,P={l:44,r:8,t:12,b:26}; const max=Math.max(10,...pts.map(p=>p.reelViews)); const nice=Math.pow(10,Math.floor(Math.log10(max))); const top=Math.ceil(max/nice)*nice;
+  const bw=(W-P.l-P.r)/pts.length; const y=v=>P.t+(H-P.t-P.b)*(1-v/top);
+  const ticks=[0,top/2,top];
+  return `<div class="chart"><h2>Reel-Views pro Tag · letzte 30 Tage</h2><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Reel-Views pro Tag">
+    ${ticks.map(t=>`<line x1="${P.l}" x2="${W-P.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" stroke-width="1"/><text x="${P.l-6}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="Geist Mono, monospace">${nf(t)}</text>`).join('')}
+    ${pts.map((p,i)=>`<rect x="${P.l+i*bw+bw*0.15}" y="${y(p.reelViews)}" width="${bw*0.7}" height="${Math.max(0,y(0)-y(p.reelViews))}" rx="2" fill="${i===pts.length-1?'var(--blue)':'var(--ink)'}"><title>${p.day.slice(6,8)}.${p.day.slice(4,6)}.: ${nf(p.reelViews)} Views</title></rect>`).join('')}
+    ${pts.map((p,i)=>i%5===0||i===pts.length-1?`<text x="${P.l+i*bw+bw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="Geist Mono, monospace">${p.day.slice(6,8)}.${p.day.slice(4,6)}.</text>`:'').join('')}
+  </svg></div>`;
+}
+function hasTT(){ return brandList().some(b=>{ const mb=mbrand(b.blogId); return mb&&mb.nets.tiktok; }); }
+function platSwitch(){ if(!hasTT()) { S.plat='ig'; return ''; } return `<div class="brands" role="group" aria-label="Plattform" style="display:inline-flex;margin-bottom:16px"><button data-act="plat" data-plat="ig" aria-pressed="${S.plat==='ig'}">Instagram</button><button data-act="plat" data-plat="tt" aria-pressed="${S.plat==='tt'}">TikTok</button></div>`; }
+function baselineTT(v){ const old=v.filter(r=>Date.now()-r.ts>24*3600e3); const watchQ=r=>r.avgWatch!=null&&r.duration?r.avgWatch/r.duration:null;
+  return {n:old.length, views:median(old.map(r=>r.views)), avgWatch:median(old.map(r=>r.avgWatch)), watchQ:median(old.map(watchQ)), fullRate:median(old.map(r=>r.fullRate)), forYou:median(old.map(r=>r.forYou)), shares:median(old.map(r=>r.views?(r.shares||0)/r.views*1000:null)), cmt:median(old.map(r=>r.views?(r.comments||0)/r.views*1000:null))}; }
+function diagnoseTT(r,b){
+  const ageH=(Date.now()-r.ts)/3600e3;
+  if(ageH<24) return {label:'zu früh',cls:'',score:null,reasons:[{k:'Abwarten',c:'',t:'Noch keine 24 Stunden online. TikTok testet Videos oft erst in Wellen.'}]};
+  const score=b.views?r.views/b.views:null, few=b.n<3, R=[];
+  const q=r.avgWatch!=null&&r.duration?r.avgWatch/r.duration:null;
+  if(q!=null){ if(few?q<0.3:q<0.8*b.watchQ) R.push({k:'Halten',c:'r',t:`Im Schnitt ${nf1(r.avgWatch)} s von ${nf1(r.duration)} s geschaut (${Math.round(q*100)} %)${few?'':`, dein Schnitt ${Math.round(b.watchQ*100)} %`}. Hook oder Mitte verlieren die Leute.`}); else if(!few&&q>1.15*b.watchQ) R.push({k:'Halten',c:'g',t:`${Math.round(q*100)} % der Länge geschaut, besser als dein Schnitt.`}); }
+  if(r.fullRate!=null && !few && b.fullRate && r.fullRate<0.7*b.fullRate) R.push({k:'Ende',c:'r',t:`Nur ${nf1(r.fullRate)} % schauen bis zum Schluss (Schnitt ${nf1(b.fullRate)} %). Kürzer machen oder das Ende früher anteasern.`});
+  if(r.forYou!=null && !few && b.forYou && r.forYou<0.7*b.forYou) R.push({k:'Ausspielung',c:'r',t:`Nur ${nf1(r.forYou)} % der Views kommen aus „Für dich“ (Schnitt ${nf1(b.forYou)} %). TikTok hat es kaum an Fremde verteilt.`});
+  const sh=r.views?(r.shares||0)/r.views*1000:null; if(!few&&sh!=null&&b.shares&&sh<0.6*b.shares) R.push({k:'Mehrwert',c:'r',t:`Wenig geteilt (${nf1(sh)} pro 1.000 Views, Schnitt ${nf1(b.shares)}).`});
+  const cm=r.views?(r.comments||0)/r.views*1000:null; if(!few&&cm!=null&&b.cmt&&cm<0.6*b.cmt) R.push({k:'CTA',c:'r',t:`Wenig Kommentare (${nf1(cm)} pro 1.000 Views, Schnitt ${nf1(b.cmt)}). Keyword-CTA zieht nicht.`});
+  if(score!=null&&score<0.6&&!R.some(x=>x.c==='r')) R.push({k:'Thema',c:'r',t:'Halten und Verteilung sind unauffällig, aber das Video blieb unter deinem Schnitt. Wahrscheinlich Thema oder Einstieg: ähnliches Thema meiden oder anderen Hook testen.'});
+  if(few) R.push({k:'Hinweis',c:'',t:'Vergleichswerte gibt es ab 3 Videos, die älter als einen Tag sind.'});
+  const label=score==null?'erste Daten':score>=1.5?'stark':score<0.6?'schwach':'normal';
+  return {label, cls:label==='stark'?'g':label==='schwach'?'r':'', score, reasons:R};
+}
+function anaDetail(r,d,it,colspan){
+  const an=S.analyses[r.code];
+  return `<tr class="expand"><td colspan="${colspan}"><div class="why">
+    ${d.reasons.map(x=>`<div class="reason"><span class="k ${x.c}">${esc(x.k)}</span><span>${esc(x.t)}</span></div>`).join('')||'<p class="note">Keine Auffälligkeiten gegenüber deinem Schnitt.</p>'}
+    ${an?`<div class="ai"><b>${esc(an.urteil)}</b>${(an.gruende||[]).length?`<ul>${an.gruende.map(g=>`<li><b>${esc(g.titel)}:</b> ${esc(g.beleg)}</li>`).join('')}</ul>`:''}${(an.naechstes_mal||[]).length?`<div><span class="note">Nächstes Mal</span><ul>${an.naechstes_mal.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${an.lernpunkt?`<span class="note">Lernpunkt: ${esc(an.lernpunkt)}</span>`:''}<span class="note">${an.by==='dashboard'?'Analyse aus dem Dashboard':'Analyse aus dem automatischen Lauf'} · ${fmtDate(an.at)}</span></div>`:''}
+    <div class="actions">${S.sample?`<button class="btn sm ${an?'':'primary'}" data-act="deep" data-code="${esc(r.code)}" ${S.aiBusy[r.code]?'disabled':''}>${S.aiBusy[r.code]?'Claude analysiert …':an?'Neu analysieren':'Mit Claude genauer analysieren'}</button>`:''}<a class="note" href="${esc(r.url)}" target="_blank" rel="noopener">${r.plat==='tt'?'Auf TikTok ansehen':'Auf Instagram ansehen'}</a>${it&&it.source_url?`<a class="note" href="${esc(it.source_url)}" target="_blank" rel="noopener">Original-Reel</a>`:''}</div>
+  </div></td></tr>`;
+}
+function ttItem(r){ return S.items.find(i=>i.scheduled_for && r.ts>=new Date(i.scheduled_for)-5*60e3 && r.ts<=new Date(i.scheduled_for).getTime()+45*60e3)||null; }
+function vAnaTT(){
+  const m=mxFor('tt'), v=m.data, b=baselineTT(v);
+  const handle=brandList().map(x=>{ const mb=mbrand(x.blogId); return mb&&mb.nets.tiktok?'@'+mb.nets.tiktok:''; }).filter(Boolean).join(', ');
+  const last30=v.filter(r=>Date.now()-r.ts<30*864e5);
+  let h=platSwitch()+mxBanner(['tt'])+`<p class="note" style="margin:-4px 0 16px">${esc(handle)} · TikTok · ${m.at?'Stand '+fmtDate(new Date(m.at)):'lädt …'}</p>
+  <div class="summary"><div class="stat"><small>Views · 30 Tage</small><b>${nf(last30.reduce((a,r)=>a+(r.views||0),0))}</b><span class="d">${last30.length} Videos</span></div>
+  <div class="stat"><small>Median Views pro Video</small><b>${nf(b.views)}</b><span class="d">${b.n} Videos · 90 Tage</span></div>
+  <div class="stat"><small>Median Ø Wiedergabe</small><b>${b.avgWatch!=null?nf1(b.avgWatch)+' s':'–'}</b><span class="d">pro View</span></div>
+  <div class="stat"><small>Median bis zum Ende</small><b>${b.fullRate!=null?nf1(b.fullRate)+' %':'–'}</b><span class="d">schauen komplett</span></div></div>
+  <h2>Videos · letzte 90 Tage</h2>`;
+  if(!v.length) return h+vEmpty('Noch keine TikTok-Videos mit Daten.','Sobald ein Video über die Engine oder Metricool auf TikTok online ist, stehen hier die Zahlen und die Analyse.');
+  h+=`<div class="tbl"><table><thead><tr><th>Online seit</th><th>Video</th><th class="num">Views</th><th class="num">×&nbsp;Median</th><th class="num">Ø Watch</th><th class="num">Bis Ende</th><th class="num">Für dich</th><th class="num">Geteilt</th><th class="num">Komm.</th><th>Bewertung</th></tr></thead><tbody>`;
+  for(const r of v){ const it=ttItem(r), d=diagnoseTT(r,b), open=S.anaOpen===r.code;
+    h+=`<tr class="click" data-code="${esc(r.code)}" tabindex="0" aria-expanded="${open}"><td>${fmtDate(r.ts)}</td><td>${esc(it?(it.title||it.hook_de):r.text.slice(0,80)||r.code)}${it?` <span class="chip b">Engine</span>`:''}</td><td class="num">${nf(r.views)}</td><td class="num">${d.score!=null?nf1(d.score)+'×':'–'}</td><td class="num">${r.avgWatch!=null?nf1(r.avgWatch)+' s':'–'}</td><td class="num">${r.fullRate!=null?nf1(r.fullRate)+' %':'–'}</td><td class="num">${r.forYou!=null?nf1(r.forYou)+' %':'–'}</td><td class="num">${nf(r.shares)}</td><td class="num">${nf(r.comments)}</td><td><span class="pill ${d.cls==='g'?'green':d.cls==='r'?'red':''}">${esc(d.label)}</span>${S.analyses[r.code]?' <span class="chip">analysiert</span>':''}</td></tr>`;
+    if(open) h+=anaDetail(r,d,it,10); }
+  return h+`</tbody></table></div>`;
+}
+function vAna(){
+  if(S.plat==='tt'&&hasTT()) return vAnaTT();
+  const reelsM=mxFor('reels'), evoM=mxFor('evo'), reels=reelsM.data, evo=evoM.data;
+  const brands=brandList(); const handle=brands.map(b=>'@'+(b.handle||b.key)).join(', ');
+  const b=baseline(reels), mt=matches();
+  const last30=reels.filter(r=>Date.now()-r.ts<30*864e5);
+  const fol=[...evo].reverse().find(x=>x.followers!=null);
+  const gained=evo.reduce((a,x)=>a+(x.gained||0),0), lost=evo.reduce((a,x)=>a+(x.lost||0),0);
+  const rv30=evo.reduce((a,x)=>a+(x.reelViews||0),0);
+  let h=platSwitch()+mxBanner(['reels','evo']);
+  h+=`<p class="note" style="margin:-4px 0 16px">${esc(handle||'Kein Account mit Metricool-ID')} · Instagram · ${reelsM.at?'Stand '+fmtDate(new Date(reelsM.at)):'lädt …'}</p>`;
+  h+=`<div class="summary">
+    <div class="stat"><small>Follower</small><b>${nf(fol&&fol.followers)}</b><span class="d ${gained-lost>0?'up':gained-lost<0?'down':''}">${gained-lost>=0?'+':''}${nf(gained-lost)} in 30 Tagen</span></div>
+    <div class="stat"><small>Reel-Views · 30 Tage</small><b>${nf(rv30)}</b><span class="d">${last30.length} Reels</span></div>
+    <div class="stat"><small>Median Views pro Reel</small><b>${nf(b.views)}</b><span class="d">${b.n} Reels · 90 Tage</span></div>
+    <div class="stat"><small>Median 3-Sek-Quote</small><b>${b.viewRate!=null?nf1(b.viewRate)+' %':'–'}</b><span class="d">schauen länger als 3 s</span></div>
+    <div class="stat"><small>Median Ø Wiedergabe</small><b>${b.avgWatch!=null?nf1(b.avgWatch)+' s':'–'}</b><span class="d">pro View</span></div>
+  </div>`;
+  h+=barChart(evo);
+  const L=(S.insights&&S.insights.learnings)||[];
+  if(L.length) h+=`<h2>Was wir gelernt haben</h2><div class="learn"><ol>${L.slice(0,10).map(x=>`<li>${esc(typeof x==='string'?x:x.text)}</li>`).join('')}</ol><p class="note" style="margin:10px 0 0">Diese Regeln fließen automatisch in die nächsten Skripte ein.</p></div>`;
+  h+=`<h2 class="sp">Reels · letzte 90 Tage</h2>`;
+  if(!reels.length) return h+vEmpty('Noch keine Reels mit Daten.', reelsM.any||!S.mcp?'Sobald das erste freigegebene Reel online ist, stehen hier Views, 3-Sekunden-Quote, Wiedergabezeit und die Analyse, warum es lief oder nicht.':'Die Daten werden gerade aus Metricool geladen.');
+  h+=`<div class="tbl"><table><thead><tr><th>Online seit</th><th>Reel</th><th class="num">Views</th><th class="num">×&nbsp;Median</th><th class="num">3-Sek</th><th class="num">Ø Watch</th><th class="num">Geteilt</th><th class="num">Gespeichert</th><th class="num">Komm.</th><th>Bewertung</th></tr></thead><tbody>`;
+  for(const r of reels){
+    const it=mt.byCode[r.code], d=diagnose(r,b,it), open=S.anaOpen===r.code, an=S.analyses[r.code];
+    h+=`<tr class="click" data-act="anarow" data-code="${esc(r.code)}" tabindex="0" aria-expanded="${open}"><td class="num" style="text-align:left">${fmtDate(r.ts)}</td><td>${esc(it?(it.title||it.hook_de):r.text.split('\n')[0].slice(0,80)||r.code)}${it?` <span class="chip b">Engine</span>`:''}</td>
+      <td class="num">${nf(r.views)}</td><td class="num">${d.score!=null?nf1(d.score)+'×':'–'}</td><td class="num">${r.viewRate!=null?nf1(r.viewRate)+' %':'–'}</td><td class="num">${r.avgWatch!=null?nf1(r.avgWatch)+' s':'–'}</td><td class="num">${nf(r.shares)}</td><td class="num">${nf(r.saved)}</td><td class="num">${nf(r.comments)}</td>
+      <td><span class="pill ${d.cls==='g'?'green':d.cls==='r'?'red':''}">${esc(d.label)}</span>${an?' <span class="chip">analysiert</span>':''}</td></tr>`;
+    if(open) h+=anaDetail(r,d,it,10);
+  }
+  return h+`</tbody></table></div>`;
+}
+/* live workflow overview */
+const STAGE_NODE={quelle:'detect',erkennen:'detect',skript:'script',stimme:'voice',avatar:'avatar',assets:'cut',schnitt:'cut',qa:'qa',upload:'qa',performance:'learn',analyse:'learn'};
+const STAGE_TXT={quelle:'lädt Original',erkennen:'sucht neue Reels',skript:'schreibt Skript',stimme:'Stimme wird erzeugt',avatar:'Avatar wird erzeugt',assets:'3D-Objekte entstehen',schnitt:'wird geschnitten',qa:'Qualitätscheck',upload:'lädt hoch',performance:'prüft Performance',analyse:'analysiert Reels',abschluss:'schließt ab'};
+function nextRun(){ const times=(settings().runTimes||[]).slice().sort(); for(let k=0;k<3;k++){ const day=addDays(todayB(),k); for(const t of times){ const d=berlin(day,(t.length===5?t:t.padStart(5,'0'))+':00'); if(d>new Date()) return d; } } return null; }
+function ago(d){ const m=Math.round((Date.now()-new Date(d))/60000); if(m<1) return 'gerade eben'; if(m<60) return `vor ${m} min`; const h=Math.round(m/60); return h<48?`vor ${h} h`:`vor ${Math.round(h/24)} Tagen`; }
+function until(d){ const m=Math.round((new Date(d)-Date.now())/60000); if(m<60) return `in ${Math.max(1,m)} min`; const h=Math.round(m/60); return h<36?`in ${h} h`:`in ${Math.round(h/24)} Tagen`; }
+function styleName(id){ const s=S.styles.find(x=>x.id===id); return s?s.name+(s.version?` v${s.version}`:''):(id||'Standard'); }
+function flowData(){
+  const st=S.status||{}; const running=st.state==='läuft'; const stale=running&&st.updated&&Date.now()-new Date(st.updated)>3*3600e3;
+  const items=S.items.filter(brandOk);
+  const inProd=items.filter(i=>i.status==='in_arbeit');
+  const queued=items.filter(i=>['erkannt','ueberarbeiten'].includes(i.status));
+  const review=items.filter(i=>i.status==='zur_freigabe');
+  const errors=items.filter(i=>i.status==='fehler');
+  const ev=calEvents(); const now=new Date();
+  const upcoming=ev.filter(e=>e.st==='geplant'&&e.when>now).sort((a,b)=>a.when-b.when);
+  const failed=ev.filter(e=>e.st==='fehler'&&now-e.when<7*864e5);
+  const online=ev.filter(e=>e.st==='online'&&e.when<=now).sort((a,b)=>b.when-a.when);
+  const onlineWeek=online.filter(e=>now-e.when<7*864e5);
+  const reels=mxFor('reels').data, b=baseline(reels), mt=matches();
+  const weak=reels.filter(r=>diagnose(r,b,mt.byCode[r.code]).label==='schwach');
+  const nAn=Object.keys(S.analyses).length, L=(S.insights&&S.insights.learnings)||[];
+  const skipped=items.filter(i=>i.status==='uebersprungen'&&now-new Date(i.created||0)<7*864e5);
+  const activeNode=running&&!stale?(STAGE_NODE[st.step]||null):null;
+  const byStage=n=>inProd.filter(i=>STAGE_NODE[i.stage||'skript']===n);
+  return {st,running,stale,inProd,queued,review,errors,upcoming,failed,online,onlineWeek,weak,nAn,L,skipped,activeNode,byStage,reels};
+}
+/* Heute: pro Account die festen Slots mit Live-Status */
+function vToday(brands){
+  if(!brands.length) return '';
+  const lead=Math.max(0,Math.min(4,Number(settings().leadDays??2))); let all='';
+  const names=['Heute','Morgen','Übermorgen'];
+  for(let k=0;k<=lead;k++){ const day=addDays(todayB(),k); const r=vDay(brands,day,k);
+    if(r) all+=`<h2 style="margin-top:${k?'20px':'0'}">${names[k]||''}${names[k]?' · ':''}${esc(new Date(day+'T12:00:00Z').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'}))}</h2><div class="today">${r}</div>`; }
+  return all;
+}
+function vDay(brands,day,k){
+  const now=Date.now(), ev=calEvents(), runs=(settings().runTimes||[]).slice().sort();
+  
+  const W=45*60e3, BL=x=>x==='Contenthuette'?'Contenthütte':x; let out='';
+  for(const [bk,b] of brands){
+    const times=(b.times||[]).slice().sort(); if(!times.length) continue;
+    const used=new Set();
+    const slots=times.map(t=>{ const base=new Date(isoB(day,t+':00')).getTime(); const lt=slotTime(bk,day,t); const plan=new Date(isoB(day,lt)).getTime();
+      const e=ev.find(x=>x.brand===bk&&Math.abs(x.when-base)<=W&&!used.has(x)); if(e){ used.add(e); if(e.item) used.add(e.item.id); return {t,plan,e}; }
+      const it=S.items.find(i=>i.brand===bk&&!used.has(i.id)&&(i.slot===`${day}|${t}`||((i.scheduled_for||i.scheduling)&&Math.abs(new Date(i.scheduled_for||i.scheduling)-base)<=W)));
+      if(it){ used.add(it.id); return {t,plan,it}; } return {t,plan}; });
+    // Reels in Produktion/Freigabe ohne festen Slot → nächste offene Slots
+    const loose=S.items.filter(i=>i.brand===bk&&!used.has(i.id)&&!i.slot&&['in_arbeit','zur_freigabe','freigegeben'].includes(i.status)&&!i.scheduled_for).sort((a,c)=>String(a.created||'').localeCompare(String(c.created||'')));
+    for(const sl of slots){ if(!sl.e&&!sl.it&&sl.plan>now&&loose.length){ sl.it=loose.shift(); sl.guess=true; } }
+    const cell=sl=>{
+      const hm=fmtHM(sl.e?sl.e.when:sl.it&&(sl.it.scheduled_for||sl.it.scheduling)?new Date(sl.it.scheduled_for||sl.it.scheduling):new Date(sl.plan));
+      let c='',lab,sub='',title='';
+      if(sl.e){ title=sl.e.title||''; if(sl.e.st==='online'){ c='ok'; lab='Online'; sub=sl.e.reel?`${nf(sl.e.reel.views)} Views · ${nf1(sl.e.reel.viewRate)} % 3-Sek`:`seit ${ago(sl.e.when)}`; }
+        else if(sl.e.st==='fehler'){ c='err'; lab='Post fehlgeschlagen'; } else { c='plan'; lab='Geplant'; sub=until(sl.e.when); } }
+      else if(sl.it){ const i=sl.it; title=i.title||i.hook_de||i.id;
+        if(i.status==='in_arbeit'){ c='busy'; lab='In Produktion'; sub=STAGE_TXT[i.stage]||i.stage||''; }
+        else if(i.status==='zur_freigabe'){ c='attn'; lab='Wartet auf Freigabe'; sub=sl.plan>now?`Post ${until(new Date(sl.plan))}`:''; }
+        else if(i.status==='fehler'){ c='err'; lab='Fehler'; sub=i.error||''; }
+        else if(['geplant','freigegeben'].includes(i.status)){ c='plan'; lab='Geplant'; sub=until(new Date(i.scheduled_for||i.scheduling||sl.plan)); }
+        else if(i.status==='gepostet'){ c='ok'; lab='Online'; }
+        else { lab=STATUS[i.status]?.l||i.status; } }
+      else if(sl.plan<=now){ c='miss'; lab='Kein Post'; sub='Slot ohne Video'; }
+      else { if(k===0){ lab='Leer'; sub='heute wird nichts nachgebaut'; c='miss'; } else { lab='Offen'; sub='ein Lauf baut das Video vor'; } }
+      return `<div class="slot ${c}"><div class="sh"><span class="mono">${esc(hm)}</span><span class="sl">${esc(lab)}</span></div>${title?`<b>${esc(title)}</b>`:''}${sub?`<span class="note">${esc(sub)}${sl.guess?' · Slot vorläufig':''}</span>`:''}</div>`; };
+    const done=slots.filter(sl=>sl.e&&sl.e.st==='online').length;
+    out+=`<div class="todayrow"><div class="th"><b>${esc(BL(bk))}</b>${b.handle?`<span class="note">@${esc(b.handle)}</span>`:''}<span class="chip ${done===slots.length?'g':''}">${done}/${slots.length} online</span></div><div class="slots">${slots.map(cell).join('')}</div></div>`;
+  }
+  return out;
+}
+const fmtHM=d=>new Intl.DateTimeFormat('de-DE',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}).format(d);
+function vFlow(){
+  const D=flowData(), st=D.st, nr=nextRun(), brands=Object.entries(settings().brands).filter(([k,b])=>b.active&&(S.brand==='all'||S.brand===k));
+  const srcActive=S.sources.filter(s=>s.active&&brandOk(s));
+  const styleTxt=brands.map(([k,b])=>styleName(b.style||'fast_bw_v1')).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')||'–';
+  const nets=[...new Set(brands.flatMap(([k])=>postNets(k)))].map(n=>NET_LABEL[n]||n).join(' + ')||'–';
+  const cur=D.inProd.find(i=>i.id===st.item)||D.inProd[0];
+  // headline
+  let head;
+  if(D.stale) head={c:'red',t:`Der Lauf meldet sich seit ${ago(st.updated)} nicht mehr`,s:`Letzter Schritt: ${STAGE_TXT[st.step]||st.step||'–'}${st.title?` · „${st.title}“`:''}. Wahrscheinlich abgebrochen – der nächste Lauf macht weiter.`};
+  else if(D.running) head={c:'blue',t:`Gerade: ${STAGE_TXT[st.step]||st.step||'Lauf aktiv'}${st.title?` · „${st.title}“`:''}`,s:`Lauf gestartet ${st.started?ago(st.started):''}${st.updated?` · letzte Meldung ${ago(st.updated)}`:''}`};
+  else head={c:'',t:`Engine wartet${nr?` · nächster Lauf ${fmtDate(nr)} (${until(nr)})`:''}`,s:st.last_run_end?`Letzter Lauf ${ago(st.last_run_end)}${st.last_run_summary?`: ${st.last_run_summary}`:''}`:'Noch kein Lauf seit Einrichtung.'};
+  const todo=[];
+  if(D.review.length) todo.push(`<button class="btn sm primary" data-tab="review">${D.review.length} ${D.review.length===1?'Reel wartet':'Reels warten'} auf deine Freigabe</button>`);
+  if(D.upcoming[0]) todo.push(`<span class="note">Nächster Post: <b>${fmtDate(D.upcoming[0].when)}</b> (${until(D.upcoming[0].when)}) · ${esc(D.upcoming[0].title)}</span>`);
+  if(D.failed.length) todo.push(`<span class="note err">${D.failed.length} Post${D.failed.length>1?'s':''} fehlgeschlagen</span>`);
+  if(D.errors.length) todo.push(`<span class="note err">${D.errors.length} Reel${D.errors.length>1?'s':''} mit Fehler in der Produktion</span>`);
+  // nodes: [id, col, row, step, title, line, detail, state, badge]
+  const prodLine=n=>{ const a=D.byStage(n); if(D.activeNode===n) return {l:STAGE_TXT[st.step]||'läuft',d:st.title?`„${st.title}“`:'',s:'active'}; if(a.length) return {l:`${a.length} in Arbeit`,d:a[0].title||a[0].id,s:'busy'}; return null; };
+  const N=[
+    ['src',0,0,'01','Quellen',`${srcActive.length} Account${srcActive.length===1?'':'s'} aktiv`,srcActive.slice(0,2).map(s=>'@'+s.handle).join(', ')||'keine',srcActive.length?'ok':'warn'],
+    ['detect',1,0,'02','Erkennen',D.activeNode==='detect'?STAGE_TXT[st.step]:(nr?`nächster Lauf ${until(nr)}`:'kein Lauf geplant'),`${D.queued.length} vorgemerkt · ${D.skipped.length} übersprungen (7 T.)`,D.activeNode==='detect'?'active':D.queued.length?'busy':'idle',D.queued.length],
+    ['script',2,0,'03','Skript',...(()=>{const p=prodLine('script'); return p?[p.l,p.d,p.s]:['bereit',`${D.L.length} Learnings fließen ein`,'idle'];})()],
+    ['voice',3,0,'04','Stimme',...(()=>{const p=prodLine('voice'); return p?[p.l,p.d,p.s]:['bereit','ElevenLabs · Leif','idle'];})()],
+    ['avatar',4,0,'05','Avatar',...(()=>{const p=prodLine('avatar'); return p?[p.l,p.d,p.s]:['bereit','Aurora · Hook + CTA','idle'];})()],
+    ['cut',5,0,'06','Schnitt',...(()=>{const p=prodLine('cut'); return p?[p.l,p.d,p.s]:['bereit',styleTxt,'idle'];})()],
+    ['qa',6,0,'07','Qualitätscheck',...(()=>{const p=prodLine('qa'); return p?[p.l,p.d,p.s]:[D.errors.length?`${D.errors.length} Fehler`:'bereit','Tempo, Safe Zones, Ton',D.errors.length?'err':'idle'];})()],
+    ['review',6,1,'08','Freigabe',D.review.length?`${D.review.length} warten auf dich`:'nichts offen',D.review[0]?(D.review[0].title||D.review[0].id):'du entscheidest',D.review.length?'attn':'idle',D.review.length],
+    ['sched',5,1,'09','Geplant',D.upcoming.length?`${D.upcoming.length} geplant`:'nichts geplant',D.upcoming[0]?`nächster ${fmtDate(D.upcoming[0].when)}`:nets,D.failed.length?'err':D.upcoming.length?'ok':'idle',D.upcoming.length],
+    ['online',4,1,'10','Online',`${D.onlineWeek.length} diese Woche`,D.online[0]?`zuletzt ${ago(D.online[0].when)} · ${D.online[0].title}`:'noch nichts online',D.online.length?'ok':'idle'],
+    ['ana',3,1,'11','Analytics',D.reels.length?`${D.reels.length} Reels gemessen`:'wartet auf Daten',D.weak.length?`${D.weak.length} schwach gelaufen`:'Metricool',D.weak.length?'warn':D.reels.length?'ok':'idle',D.weak.length||0],
+    ['learn',2,1,'12','Learnings',`${D.L.length} Regel${D.L.length===1?'':'n'}`,`${D.nAn} Analysen · fließen ins Skript`,D.activeNode==='learn'?'active':D.L.length?'ok':'idle'],
+  ];
+  const W=146,H=96,PX=166,X0=14,Y=[20,190]; const pos={}; N.forEach(n=>pos[n[0]]={x:X0+n[1]*PX,y:Y[n[2]]});
+  const CW=X0*2+6*PX+W, CH=Y[1]+H+20;
+  const E=[['src','detect'],['detect','script'],['script','voice'],['voice','avatar'],['avatar','cut'],['cut','qa'],['qa','review','v'],['review','sched','l'],['sched','online','l'],['online','ana','l'],['ana','learn','l'],['learn','script','up']];
+  const hot=new Set(); if(D.activeNode){ E.forEach(e=>{ if(e[1]===D.activeNode) hot.add(e.join()); }); }
+  const path=([a,b2,k])=>{ const A=pos[a],B=pos[b2];
+    if(k==='v') return `M${A.x+W/2},${A.y+H} C${A.x+W/2},${A.y+H+40} ${B.x+W/2},${B.y-40} ${B.x+W/2},${B.y}`;
+    if(k==='up') return `M${A.x+W/2},${A.y} C${A.x+W/2},${A.y-40} ${B.x+W/2},${B.y+H+40} ${B.x+W/2},${B.y+H}`;
+    if(k==='l') return `M${A.x},${A.y+H/2} C${A.x-20},${A.y+H/2} ${B.x+W+20},${B.y+H/2} ${B.x+W},${B.y+H/2}`;
+    return `M${A.x+W},${A.y+H/2} C${A.x+W+20},${A.y+H/2} ${B.x-20},${B.y+H/2} ${B.x},${B.y+H/2}`; };
+  const stCls={active:'active',busy:'busy',attn:'attn',ok:'ok',err:'err',warn:'warn',idle:''};
+  let h=`<div class="flowhead ${head.c}"><div><b>${esc(head.t)}</b><span class="note">${esc(head.s)}</span></div>${D.running&&!D.stale?'<i class="pulse" aria-hidden="true"></i>':''}</div>
+  ${todo.length?`<div class="actions" style="margin:12px 0 20px">${todo.join('')}</div>`:'<div style="height:16px"></div>'}
+  ${vToday(brands)}
+  <div class="flowwrap"><div class="flow" style="width:${CW}px;height:${CH}px">
+    <svg width="${CW}" height="${CH}" aria-hidden="true">${E.map(e=>`<path d="${path(e)}" class="edge ${e[2]==='up'?'loop':''} ${hot.has(e.join())?'hot':''}"/>`).join('')}
+      <text x="${pos.learn.x+W/2+8}" y="${(Y[0]+H+Y[1])/2+4}" class="elabel">Learnings</text></svg>
+    ${N.map(n=>`<button class="node ${stCls[n[7]]||''} ${S.flowSel===n[0]?'sel':''}" data-node="${n[0]}" style="left:${pos[n[0]].x}px;top:${pos[n[0]].y}px;width:${W}px;height:${H}px">
+      <span class="nh"><span class="ns">${n[3]}</span><b>${esc(n[4])}</b>${n[8]?`<span class="nb">${n[8]}</span>`:''}</span>
+      <span class="nl">${esc(n[5])}</span><span class="nd">${esc(n[6]||'')}</span></button>`).join('')}
+    <div class="flowlegend" style="left:${X0}px;top:${Y[1]}px;width:${PX+W-10}px"><span><i class="dot plan"></i>läuft gerade</span><span><i class="dot" style="background:var(--blue);outline:2px solid var(--bluebg)"></i>wartet auf dich</span><span><i class="dot ok"></i>erledigt / läuft</span><span><i class="dot bad"></i>Problem</span>${D.running?'':`<span class="note">Nächster Lauf: ${nr?fmtDate(nr):'–'}</span>`}</div>
+  </div></div>
+  <div class="flowlist">${N.map(n=>`<button class="node ${stCls[n[7]]||''} ${S.flowSel===n[0]?'sel':''}" data-node="${n[0]}"><span class="nh"><span class="ns">${n[3]}</span><b>${esc(n[4])}</b>${n[8]?`<span class="nb">${n[8]}</span>`:''}</span><span class="nl">${esc(n[5])}</span><span class="nd">${esc(n[6]||'')}</span></button>`).join('')}</div>`;
+  // detail panel
+  const sel=S.flowSel; const list=(arr,fn)=>arr.length?`<div class="daylist" style="margin-top:12px">${arr.map(fn).join('')}</div>`:'<p class="note">Nichts hier gerade.</p>';
+  const itemRow=i=>`<div class="dayitem"><div class="h"><b>${esc(i.title||i.id)}</b>${pill(effStatus(i))}${i.stage&&i.status==='in_arbeit'?`<span class="chip b">${esc(STAGE_TXT[i.stage]||i.stage)}${i.stage_at?' · '+ago(i.stage_at):''}</span>`:''}</div>${i.error?`<span class="note err">${esc(i.error)}</span>`:''}${i.feedback&&i.status==='ueberarbeiten'?`<span class="note">Feedback: ${esc(i.feedback)}</span>`:''}</div>`;
+  const evRow=e=>`<div class="dayitem"><div class="h"><span class="mono">${fmtDate(e.when)}</span><b>${esc(e.title)}</b><span class="note">${esc(e.net||'')}</span>${e.st==='geplant'?`<span class="chip b">${until(e.when)}</span>`:e.st==='fehler'?'<span class="chip r">fehlgeschlagen</span>':`<span class="chip g">${ago(e.when)}</span>`}</div>${e.reel?`<div class="kv"><span>Views <b>${nf(e.reel.views)}</b></span><span>3-Sek <b>${nf1(e.reel.viewRate)} %</b></span></div>`:''}</div>`;
+  if(sel){
+    const T={src:'Quellen',detect:'Erkennen',script:'Skript',voice:'Stimme',avatar:'Avatar',cut:'Schnitt',qa:'Qualitätscheck',review:'Freigabe',sched:'Geplant',online:'Online',ana:'Analytics',learn:'Learnings'}[sel];
+    h+=`<h2 class="sp">${esc(T)}</h2>`;
+    if(sel==='src') h+=list(srcActive,s=>`<div class="dayitem"><div class="h"><b>@${esc(s.handle)}</b><span class="pill">${esc(s.brand)}</span><span class="note">${S.items.filter(i=>i.source===s.handle&&i.status!=='uebersprungen').length} Videos übernommen</span></div></div>`)+`<div class="actions" style="margin-top:12px"><button class="btn sm" data-tab="src">Quellen verwalten</button></div>`;
+    else if(sel==='detect') h+=`<p class="note">Läufe täglich um ${esc((settings().runTimes||[]).join(' und '))} Uhr. Gesponserte und ältere Reels (> ${esc(settings().maxAgeDays)} Tage) werden übersprungen.</p>`+list([...D.queued,...D.skipped],itemRow);
+    else if(['script','voice','avatar','cut','qa'].includes(sel)){ const a=sel==='qa'?[...D.byStage('qa'),...D.errors]:D.byStage(sel); h+=(sel==='cut'?`<p class="note">Editing-Stil: ${esc(styleTxt)}. Ändern unter Einstellungen.</p>`:'')+list(a.length?a:D.inProd,itemRow); }
+    else if(sel==='review') h+=list(D.review,itemRow)+(D.review.length?`<div class="actions" style="margin-top:12px"><button class="btn sm primary" data-tab="review">Jetzt prüfen</button></div>`:'');
+    else if(sel==='sched') h+=list([...D.failed,...D.upcoming],evRow);
+    else if(sel==='online') h+=list(D.online.slice(0,10),evRow);
+    else if(sel==='ana') h+=`<div class="actions"><button class="btn sm" data-tab="ana">Analytics öffnen</button></div>`;
+    else if(sel==='learn') h+=D.L.length?`<div class="learn" style="margin-top:12px"><ol>${D.L.map(x=>`<li>${esc(typeof x==='string'?x:x.text)}</li>`).join('')}</ol></div>`:'<p class="note">Noch keine Learnings. Sie entstehen, sobald die ersten Reels 48 Stunden online sind.</p>';
+  } else h+=`<p class="note" style="margin-top:12px">Tippe auf einen Schritt, um zu sehen, was dort gerade liegt.</p>`;
+  return h;
+}
+function rows(list,cols){ if(!list.length) return ''; return `<div class="tbl"><table><thead><tr>${cols.map(c=>`<th class="${c[2]||''}">${c[0]}</th>`).join('')}</tr></thead><tbody>${list.map(it=>`<tr>${cols.map(c=>`<td class="${c[2]||''}">${c[1](it)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`; }
+function vPipe(){
+  const list=S.items.filter(brandOk);
+  const add=S.canWrite===false?'':`<div class="box" style="margin-bottom:20px"><b>Reel manuell in die Warteschlange</b><div class="row"><div><label for="addUrl">Instagram-Link</label><input id="addUrl" placeholder="https://www.instagram.com/reel/…"></div><div style="flex:0 1 180px"><label for="addBrand">Marke</label><select id="addBrand"><option>ULTRA</option><option value="Contenthuette">Contenthütte</option></select></div><button class="btn primary" data-act="addreel">Hinzufügen</button></div><span class="note" id="addNote"></span></div>`;
+  return add+`<h2>Alle Videos</h2>`+(rows(list,[['Erkannt',i=>fmtDate(i.created)],['Status',i=>pill(effStatus(i))],['Reel',i=>`${esc(i.title||i.id)}${i.error?`<div class="note err">${esc(i.error)}</div>`:''}${i.reason?`<div class="note">${esc(i.reason)}</div>`:''}${i.feedback&&i.status==='ueberarbeiten'?`<div class="note">Feedback: ${esc(i.feedback)}</div>`:''}`],['Quelle',i=>`<a href="${esc(i.source_url||'#')}" target="_blank" rel="noopener">@${esc(i.source||'')}</a>`],['Marke',i=>esc(i.brand||'')],['Kosten',i=>i.cost_usd!=null?usd(i.cost_usd):'–','num']])||vEmpty('Noch keine Videos erkannt.','Der erste Lauf füllt diese Liste. Du kannst oben auch ein Reel von Hand hinzufügen.'));
+}
+function vSrc(){
+  const list=S.sources.filter(brandOk); const ro=S.canWrite===false;
+  const add=ro?'':`<div class="box" style="margin-bottom:20px"><b>Quelle hinzufügen</b><div class="row"><div><label for="srcHandle">Instagram-Account</label><input id="srcHandle" placeholder="z. B. nick_saraev"></div><div style="flex:0 1 180px"><label for="srcBrand">Für Marke</label><select id="srcBrand"><option>ULTRA</option><option value="Contenthuette">Contenthütte</option></select></div><div><label for="srcNote">Notiz</label><input id="srcNote" placeholder="Thema, optional"></div><button class="btn primary" data-act="addsrc">Hinzufügen</button></div></div>`;
+  return add+`<h2>Beobachtete Accounts</h2>`+(rows(list,[['Account',s=>`<a href="https://www.instagram.com/${esc(s.handle)}/" target="_blank" rel="noopener">@${esc(s.handle)}</a>`],['Marke',s=>esc(s.brand)],['Notiz',s=>esc(s.note||'')],['Videos',s=>String(S.items.filter(i=>i.source===s.handle&&i.status!=='uebersprungen').length),'num'],['Aktiv',s=>ro?(s.active?'ja':'nein'):`<button class="btn sm" data-act="togsrc" data-id="${esc(s.id)}">${s.active?'Aktiv · pausieren':'Pausiert · aktivieren'}</button>`],['',s=>ro?'':(S.open['src'+s.id]?`<button class="btn sm danger" data-act="delsrc" data-id="${esc(s.id)}">Wirklich entfernen</button>`:`<button class="btn sm" data-act="askdelsrc" data-id="${esc(s.id)}">Entfernen</button>`)]])||vEmpty('Noch keine Quellen.','Füge oben die Accounts hinzu, deren neue Reels nachgebaut werden sollen.'));
+}
+function vCost(){
+  const st=settings(); const m=todayB().slice(0,7);
+  const list=S.items.filter(i=>brandOk(i)&&i.cost_usd!=null).sort((a,b)=>String(b.built_at||'').localeCompare(String(a.built_at||'')));
+  const n=list.filter(i=>(i.built_at||'').slice(0,7)===m).length, mc=monthCost(S.brand);
+  const runs=S.runs.slice().sort((a,b)=>String(b.at||b.id).localeCompare(String(a.at||a.id))).slice(0,15);
+  return `<div class="summary"><div class="stat"><small>Diesen Monat</small><b>${usd(mc)}</b></div><div class="stat"><small>Gebaute Reels</small><b>${n}</b></div><div class="stat"><small>Pro Reel</small><b>${n?usd(mc/n):'–'}</b></div><div class="stat"><small>Monatsbudget</small><b>${usd(st.budgetMonthUsd)}</b></div></div>
+  <p class="note" style="margin:-12px 0 20px">fal.ai-Kosten (Avatar, 3D-Objekte, Musik). ElevenLabs-Stimme läuft über deine Credits und ist hier nicht enthalten.</p>
+  <h2>Pro Reel</h2>${rows(list,[['Gebaut',i=>fmtDate(i.built_at)],['Reel',i=>esc(i.title||i.id)],['Marke',i=>esc(i.brand||'')],['Kosten',i=>usd(i.cost_usd),'num']])||vEmpty('Noch keine Kosten.','Jeder gebaute Reel trägt hier seine fal.ai-Kosten ein.')}
+  <h2 class="sp">Letzte Läufe</h2>${rows(runs,[['Zeit',r=>fmtDate(r.at)],['Gefunden',r=>String(r.found??'–'),'num'],['Gebaut',r=>esc((r.built||[]).length),'num'],['Kosten',r=>usd(r.cost_usd),'num'],['Hinweise',r=>esc([...(r.errors||[]),r.notes||''].filter(Boolean).join(' · '))]])||vEmpty('Noch kein Lauf.','Nach jedem automatischen Lauf steht hier, was passiert ist.')}`;
+}
+function vAccounts(){
+  const st=settings(); const used={}; for(const [k,b] of Object.entries(st.brands)) if(b.blogId) used[String(b.blogId)]=k==='Contenthuette'?'Contenthütte':k;
+  let h=`<h2>Verbundene Accounts</h2><div class="box" style="margin-bottom:28px">
+    <div class="actions" style="justify-content:space-between"><span class="note">Instagram, TikTok und Co. verbindest du einmal in Metricool. Danach tauchen sie hier automatisch auf und die Engine kann dort posten.</span>
+    <span class="actions"><button class="btn sm" data-act="refbrands">Neu laden</button><a class="btn sm primary" href="${METRICOOL_URL}" target="_blank" rel="noopener" style="text-decoration:none">In Metricool verbinden ↗</a></span></div>`;
+  if(!S.mcp) return h+`<p class="note">Accounts laden nur, wenn die Seite in claude.ai geöffnet ist.</p></div>`;
+  if(S.mbrandsErr&&!S.mbrands) return h+`<div class="actions"><span class="note ${needsGrant(S.mbrandsErr)?'':'err'}">${esc(mcpMsg(S.mbrandsErr))}</span>${needsGrant(S.mbrandsErr)?`<button class="btn sm primary" data-act="grant">Metricool erlauben</button>`:''}</div></div>`;
+  if(!S.mbrands) return h+`<p class="note">Lädt Accounts aus Metricool …</p></div>`;
+  h+=`<div class="tbl"><table><thead><tr><th>Metricool-Marke</th><th>Verbunden</th><th>Nutzt die Engine als</th></tr></thead><tbody>`;
+  for(const mb of S.mbrands.slice().sort((a,b)=>(used[b.id]?1:0)-(used[a.id]?1:0)||a.label.localeCompare(b.label))){
+    const nets=Object.entries(mb.nets);
+    h+=`<tr><td><b>${esc(mb.label)}</b><div class="note mono">ID ${esc(mb.id)}</div></td><td><div class="qa">${nets.length?nets.map(([n,hd])=>`<span class="chip ${['instagram','tiktok','youtube'].includes(n)?'g':''}">${esc(NET_LABEL[n]||n)} · ${esc(/^[\w.]+$/.test(hd)?'@'+hd:hd)}</span>`).join(''):'<span class="note">nichts verbunden</span>'}</div></td><td>${used[mb.id]?`<span class="pill blue">${esc(used[mb.id])}</span>`:'<span class="note">–</span>'}</td></tr>`;
+  }
+  return h+`</tbody></table></div></div>`;
+}
+function vSet(){
+  const st=settings(), ro=S.canWrite===false?'disabled':''; const b=k=>st.brands[k]||{};
+  const brandBox=(k,label)=>{
+    const cur=String(b(k).blogId||''); const mb=mbrand(cur); const have=mb?Object.keys(mb.nets):null; const want=b(k).networks||['instagram'];
+    const sel=S.mbrands?`<select id="s-${k}-blogId" ${ro}><option value="">– keine –</option>${S.mbrands.map(x=>`<option value="${esc(x.id)}" ${x.id===cur?'selected':''}>${esc(x.label)}</option>`).join('')}${cur&&!mb?`<option value="${esc(cur)}" selected>ID ${esc(cur)} (nicht gefunden)</option>`:''}</select>`:`<input id="s-${k}-blogId" class="mono" value="${esc(cur)}" ${ro}>`;
+    const best=S.best[k];
+    return `<div class="box"><b>${label}</b>
+    <div class="row"><div><label for="s-${k}-active">Status</label><select id="s-${k}-active" ${ro}><option value="1" ${b(k).active?'selected':''}>Aktiv</option><option value="0" ${!b(k).active?'selected':''}>Pausiert</option></select></div><div><label for="s-${k}-perDay">Reels pro Tag</label><input id="s-${k}-perDay" type="number" min="0" max="6" value="${esc(b(k).perDay??2)}" ${ro}></div></div>
+    <div><label for="s-${k}-blogId">Metricool-Marke</label>${sel}</div>
+    <div><label for="s-${k}-style">Editing-Stil</label><select id="s-${k}-style" ${ro}>${(S.styles.length?S.styles:[{id:'fast_bw_v1',name:'Fast Clean Motion S/W',version:1}]).map(x=>`<option value="${esc(x.id)}" ${(b(k).style||'fast_bw_v1')===x.id?'selected':''}>${esc(x.name)}${x.version?' · v'+x.version:''}${x.frozen?'':' (in Entwicklung)'}</option>`).join('')}</select></div>
+    <div><label>Posten auf</label><div class="qa">${NETS.map(([n,l])=>{ const ok=!have||have.includes(n); return `<label class="chip ${ok&&want.includes(n)?'g':''}" style="display:inline-flex;gap:6px;align-items:center;margin:0;cursor:${ok?'pointer':'not-allowed'}"><input type="checkbox" id="s-${k}-net-${n}" ${want.includes(n)&&ok?'checked':''} ${ok?'':'disabled'} ${ro} style="width:auto;margin:0">${esc(l)}${ok?(mb&&mb.nets[n]?' · @'+esc(mb.nets[n]):''):' · nicht verbunden'}</label>`; }).join('')}</div></div>
+    <div><label for="s-${k}-times">Post-Zeiten (Berlin, Komma-getrennt · variieren automatisch ±13 Min.)</label><input id="s-${k}-times" class="mono" value="${esc((b(k).times||[]).join(', '))}" ${ro}></div>
+    ${cur&&S.mcp?`<div class="actions">${best&&best.times?`<span class="note">Metricool empfiehlt für ${esc(NET_LABEL[best.net]||best.net)} werktags: <b>${esc(best.times.join(' und '))}</b></span>${ro?'':`<button class="btn sm" data-act="usebest" data-key="${k}">Übernehmen</button>`}`:best&&best.err?`<span class="note err">${esc(best.err)}</span>`:`<button class="btn sm" data-act="best" data-key="${k}" ${best&&best.busy?'disabled':''}>${best&&best.busy?'Lädt …':'Beste Zeiten laut Metricool'}</button>`}</div>`:''}
+    <div><label for="s-${k}-handle">Instagram-Account (Anzeige)</label><input id="s-${k}-handle" class="mono" value="${esc(b(k).handle||(mb&&mb.nets.instagram)||'')}" ${ro}></div></div>`; };
+  const usedBy=id=>Object.entries(st.brands).filter(([k,x])=>(x.style||'fast_bw_v1')===id).map(([k])=>k==='Contenthuette'?'Contenthütte':k);
+  const styles=S.styles.length?`<h2>Editing-Stile</h2><div class="grid2" style="margin-bottom:28px">${S.styles.map(x=>`<div class="box stylecard">${x.preview_asset?`<video src="/_blob/${esc(x.preview_asset)}" controls playsinline preload="metadata"></video>`:'<div class="vid"><div class="none">keine Vorschau</div></div>'}<div style="display:flex;flex-direction:column;gap:8px;min-width:0"><div class="h" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b style="font-size:16px">${esc(x.name)}</b>${x.version?`<span class="chip">v${esc(x.version)}</span>`:''}${x.frozen?'<span class="chip g">eingefroren</span>':'<span class="chip b">in Entwicklung</span>'}</div><span class="note">${esc(x.summary||'')}</span>${(x.traits||[]).length?`<div class="qa">${x.traits.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>`:''}<span class="note">${usedBy(x.id).length?'Aktiv bei: '+esc(usedBy(x.id).join(', ')):'Gerade bei keiner Marke aktiv'}${x.frozen_at?' · eingefroren am '+esc(new Date(x.frozen_at).toLocaleDateString('de-DE')):''}</span></div></div>`).join('')}</div>`:'';
+  return vAccounts()+styles+`<h2>Marken in der Engine</h2><div class="grid2">${brandBox('ULTRA','ULTRA Intelligence')}${brandBox('Contenthuette','Contenthütte')}
+    <div class="box"><b>Allgemein</b>
+      <div class="row"><div><label for="s-maxAge">Videos nicht älter als (Tage)</label><input id="s-maxAge" type="number" min="1" max="30" value="${esc(st.maxAgeDays)}" ${ro}></div><div><label for="s-budget">Monatsbudget fal.ai ($)</label><input id="s-budget" type="number" min="0" step="5" value="${esc(st.budgetMonthUsd)}" ${ro}></div></div>
+      <div><label for="s-runs">Laufzeiten (nur Anzeige, Zeitplan liegt in Claude)</label><input id="s-runs" class="mono" value="${esc((st.runTimes||[]).join(', '))}" ${ro}></div>
+    </div></div>
+    <div class="actions" style="margin-top:16px"><button class="btn primary" data-act="saveset" ${ro}>Einstellungen speichern</button><span class="note" id="setNote"></span></div>`;
+}
+function render(){
+  const act=document.activeElement, actId=act&&act.id, sel=act&&act.selectionStart, selE=act&&act.selectionEnd;
+  const drafts={}; document.querySelectorAll('textarea[id],input[id]').forEach(e=>drafts[e.id]=e.value);
+  $('#brands').innerHTML=BRANDS.map(([k,l])=>`<button data-brand="${k}" aria-pressed="${S.brand===k}">${l}</button>`).join('');
+  const nRev=S.items.filter(i=>brandOk(i)&&i.status==='zur_freigabe').length;
+  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}${k==='review'&&nRev?`<span class="n hot">${nRev}</span>`:''}</button>`).join('');
+  const v={flow:vFlow,review:vReview,cal:vCal,ana:vAna,pipe:vPipe,src:vSrc,cost:vCost,set:vSet}[S.tab]||vReview;
+  $('#main').innerHTML=(S.canWrite===false?`<div class="ro">Du kannst hier nur ansehen. Freigeben kann nur, wer die Seite bearbeiten darf.</div>`:'')+(!S.db&&S.live===null?`<div class="ro">Die Datenbank ist in dieser Ansicht nicht verfügbar. Öffne die Seite in claude.ai, angemeldet.</div>`:'')+v();
+  for(const [k,val] of Object.entries(drafts)){ const e=document.getElementById(k); if(e && e.value!==val && /^(fbt-|cap-|tag-|src|add|s-|mv-)/.test(k)) e.value=val; }
+  if(actId){ const e=document.getElementById(actId); if(e){ e.focus(); try{ if(sel!=null) e.setSelectionRange(sel,selE); }catch(x){} } }
+}
+let pending=false;
+function softRender(){
+  const playing=[...document.querySelectorAll('video')].some(v=>!v.paused);
+  const typing=document.activeElement&&/^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement.tagName);
+  if(playing||typing){ pending=true; return; } pending=false; render();
+}
+document.addEventListener('pause',e=>{ if(e.target.tagName==='VIDEO'&&pending) setTimeout(softRender,50); },true);
+document.addEventListener('focusout',()=>{ if(pending) setTimeout(softRender,50); });
+document.addEventListener('change',e=>{ const id=e.target.dataset&&e.target.dataset.save; if(id) saveText(id); });
+document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('tr.click')){ e.preventDefault(); e.target.click(); } });
+
+document.addEventListener('click',async e=>{
+  const tr=e.target.closest('tr.click');
+  if(tr && !e.target.closest('a,button')){ const c=tr.dataset.code; S.anaOpen=S.anaOpen===c?null:c; render(); return; }
+  const day=e.target.closest('button.day'); if(day){ S.calSel=day.dataset.day; render(); return; }
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.node){ S.flowSel=S.flowSel===b.dataset.node?null:b.dataset.node; render(); return; }
+  if(b.dataset.brand){ S.brand=b.dataset.brand; try{localStorage.setItem('uce_brand',S.brand)}catch(x){} ensureWatches(); render(); return; }
+  if(b.dataset.tab){ S.tab=b.dataset.tab; try{localStorage.setItem('uce_tab2',S.tab)}catch(x){} render(); return; }
+  const a=b.dataset.act, id=b.dataset.id; if(!a) return;
+  if(a==='approve') return approve(id);
+  if(a==='openfb'){ S.open[id]='fb'; render(); const t=document.getElementById('fbt-'+id); if(t) t.focus(); return; }
+  if(a==='openrej'){ S.open[id]='rej'; render(); return; }
+  if(a==='close'){ S.open[id]=null; render(); return; }
+  if(a==='rework') return rework(id);
+  if(a==='reject') return reject(id);
+  if(a==='grant') return grantMetricool();
+  if(a==='plat'){ S.plat=b.dataset.plat; S.anaOpen=null; render(); return; }
+  if(a==='refbrands') return refreshBrands();
+  if(a==='best') return loadBest(b.dataset.key);
+  if(a==='approveallask'){ S.open.allok=true; render(); return; }
+  if(a==='approveallno'){ S.open.allok=false; render(); return; }
+  if(a==='approveall'){ S.open.allok=false; const ids=S.items.filter(i=>brandOk(i)&&i.status==='zur_freigabe').sort((x,y)=>((x.slot||'9999')+(x.created||'')).localeCompare((y.slot||'9999')+(y.created||''))).map(i=>i.id);
+    render(); for(const id of ids){ try{ await approve(id); }catch(e){} } toast(`${ids.length} Reels bearbeitet`); return; }
+  if(a==='usebest'){ const k=b.dataset.key, t=document.getElementById(`s-${k}-times`); if(t&&S.best[k]&&S.best[k].times){ t.value=S.best[k].times.join(', '); toast('Übernommen – jetzt speichern'); } return; }
+  if(a==='openmove'){ S.move[b.dataset.post]={open:true}; render(); return; }
+  if(a==='closemove'){ S.move[b.dataset.post]=null; render(); return; }
+  if(a==='domove') return movePost(b.dataset.post);
+  if(a==='deep') return deepAnalyse(b.dataset.code);
+  if(a==='goana'){ S.tab='ana'; S.anaOpen=b.dataset.code; render(); return; }
+  if(a==='calprev'||a==='calnext'||a==='caltoday'){
+    const m=calMonth(); let k=m.key;
+    if(a==='caltoday') k=todayB().slice(0,7); else { const d=new Date(m.first+'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth()+(a==='calnext'?1:-1)); k=d.toISOString().slice(0,7); }
+    S.cal=k; S.calSel=null; ensureWatches(); render(); return;
+  }
+  if(!S.db){ toast('Datenbank nicht verfügbar'); return; }
+  try{
+    if(a==='addsrc'){
+      const h=$('#srcHandle').value.trim().replace(/^@/,'').replace(/^https?:\/\/(www\.)?instagram\.com\//,'').replace(/[/?].*$/,'');
+      if(!/^[A-Za-z0-9._]{2,30}$/.test(h)){ toast('Bitte einen gültigen Account-Namen eingeben'); return; }
+      const brand=$('#srcBrand').value; const sid=(brand+'-'+h).replace(/[^A-Za-z0-9_.-]/g,'_');
+      await S.db.doc('sources/'+sid).set({brand,platform:'instagram',handle:h,active:true,note:$('#srcNote').value.trim(),added:new Date().toISOString()});
+      $('#srcHandle').value=''; $('#srcNote').value=''; toast('@'+h+' wird jetzt beobachtet');
+    }
+    if(a==='togsrc'){ const s=S.sources.find(x=>x.id===id); await S.db.doc('sources/'+id).update({active:!s.active}); }
+    if(a==='askdelsrc'){ S.open['src'+id]=true; render(); }
+    if(a==='delsrc'){ await S.db.doc('sources/'+id).delete(); S.open['src'+id]=false; toast('Quelle entfernt'); }
+    if(a==='addreel'){
+      const m=$('#addUrl').value.match(/instagram\.com\/(?:[A-Za-z0-9._]+\/)?(?:reel|reels|p)\/([A-Za-z0-9_-]{5,})/);
+      if(!m){ $('#addNote').textContent='Das sieht nicht nach einem Instagram-Reel-Link aus.'; return; }
+      if(S.items.some(i=>i.id===m[1])){ $('#addNote').textContent='Dieses Reel ist schon in der Liste.'; return; }
+      await S.db.doc('items/'+m[1]).set({brand:$('#addBrand').value,source:'manuell',source_url:`https://www.instagram.com/reel/${m[1]}/`,status:'erkannt',manual:true,created:new Date().toISOString()});
+      $('#addUrl').value=''; $('#addNote').textContent='Hinzugefügt. Der nächste Lauf baut es.';
+    }
+    if(a==='saveset'){
+      const st=settings(); const nb={};
+      for(const k of ['ULTRA','Contenthuette']){
+        const times=$(`#s-${k}-times`).value.split(',').map(x=>x.trim()).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,'0'));
+        const blogId=$(`#s-${k}-blogId`).value.trim(); const mb=mbrand(blogId);
+        const networks=NETS.map(n=>n[0]).filter(n=>{ const c=document.getElementById(`s-${k}-net-${n}`); return c&&c.checked; });
+        let handle=$(`#s-${k}-handle`).value.trim().replace(/^@/,''); if(blogId!==String(st.brands[k].blogId||'') && mb) handle=mb.nets.instagram||'';
+        const styleEl=document.getElementById(`s-${k}-style`);
+        nb[k]={...st.brands[k],style:styleEl?styleEl.value:(st.brands[k].style||'fast_bw_v1'),active:$(`#s-${k}-active`).value==='1',perDay:Math.max(0,parseInt($(`#s-${k}-perDay`).value)||0),times,blogId,handle,networks:networks.length?networks:(st.brands[k].networks||['instagram']),timezone:TZ};
+      }
+      await S.db.doc('settings/main').set({...st,brands:nb,maxAgeDays:parseInt($('#s-maxAge').value)||4,budgetMonthUsd:Number($('#s-budget').value)||0,runTimes:$('#s-runs').value.split(',').map(x=>x.trim()).filter(Boolean),updated:new Date().toISOString()});
+      $('#setNote').textContent='Gespeichert.';
+    }
+  }catch(err){ toast(err&&err.code==='invalid_argument'?'Keine Schreibrechte':'Speichern fehlgeschlagen'); }
+});
+
+render();
+
+/* ---------- capabilities ---------- */
+(async()=>{
+  const c=window.claude; if(!c||!c.use){ S.live=null; $('#liveTxt').textContent='offline'; render(); return; }
+  c.use('user').then(async u=>{ if(!u) return; try{ const w=await u.can('data.write'); S.canWrite=w; render(); }catch(e){} });
+  c.use('sample').then(s=>{ S.sample=s; softRender(); });
+  c.use('mcp').then(m=>{ S.mcp=m; ensureWatches(); softRender(); });
+  const db=await c.use('db');
+  if(!db){ S.live=null; $('#dot').className='dot bad'; $('#liveTxt').textContent='keine Datenbank'; render(); return; }
+  S.db=db;
+  const onErr=()=>{ $('#dot').className='dot bad'; $('#liveTxt').textContent='Verbindung unterbrochen'; };
+  db.collection('items').orderBy('created','desc').limit(400).onSnapshot(s=>{ S.items=s.docs.map(d=>({id:d.id,...d.data()})); S.live=true; $('#dot').className='dot ok'; $('#liveTxt').textContent='live'; softRender(); }, onErr);
+  db.collection('sources').onSnapshot(s=>{ S.sources=s.docs.map(d=>({id:d.id,...d.data()})); softRender(); }, onErr);
+  db.collection('runs').orderBy('at','desc').limit(30).onSnapshot(s=>{ S.runs=s.docs.map(d=>({id:d.id,...d.data()})); softRender(); }, onErr);
+  db.collection('analyses').orderBy('at','desc').limit(300).onSnapshot(s=>{ const o={}; s.docs.forEach(d=>{ const x=d.data(); o[x.code||d.id]=x; }); S.analyses=o; softRender(); }, onErr);
+  db.doc('engine/status').onSnapshot(s=>{ S.status=s.exists?s.data():null; softRender(); }, onErr);
+  db.collection('styles').onSnapshot(s=>{ S.styles=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.version||0)-(a.version||0)); softRender(); }, onErr);
+  db.doc('insights/main').onSnapshot(s=>{ S.insights=s.exists?s.data():null; softRender(); }, onErr);
+  db.doc('settings/main').onSnapshot(s=>{ S.settings=s.exists?s.data():null; ensureWatches(); softRender(); }, onErr);
+})();
+})();
+</script>

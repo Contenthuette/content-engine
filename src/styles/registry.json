@@ -1,0 +1,73 @@
+{
+  "default": "library",
+  "styles": [
+    {
+      "id": "library",
+      "name": "Dunkelmann Library (Schnittplan)",
+      "version": 1,
+      "composition": "DL-Reel",
+      "spec": "style/LIBRARY.md",
+      "rules": "style/feedback.md",
+      "summary": "Standard ab 14.10.2026: Reel = JSON-Schnittplan aus Library-Codes (layers: code/at/props), Format aus style/formats.json, Sounds aus style/sfx.json.",
+      "qa": {
+        "motion": 14,
+        "still_pct": 5,
+        "longest_still_s": 0.35
+      },
+      "benchmark": "out/jobs/rea20v2/2026-10-14_ULTRA_REA-Reverse-Engineer_v4.mp4 (motion 16.5, still 2.3 %, längste Ruhe 0.2 s, 1.9 Layer/s, 1.25 Punches/s, 1.45 harte Wechsel/s)"
+    },
+    {
+      "id": "fast_bw_v1",
+      "name": "Fast Clean Motion S/W",
+      "version": 1,
+      "frozen": true,
+      "frozen_at": "2026-10-11",
+      "composition": "Style-fast-bw-v1",
+      "spec": "src/styles/fast_bw_v1/SPEC.md",
+      "rules": "src/styles/fast_bw_v1/STYLE.md",
+      "reference_spec": "src/styles/fast_bw_v1/specs/reference_nick1.json",
+      "summary": "Schnell (Shot alle 0,6–2,5 s, Reframes alle 0,75 s), Schwarz/Weiß mit kleinen Akzenten Rot/Grün/Blau, 3D-Objekte, 20 Shot-Typen, unerwartete Momente (Portal, Shatter, Flip, Montage), Avatar nur Hook + CTA im Rahmen, deutsche Wort-Pop-Untertitel, weiche SFX, Tempo-QA ≥ 8.",
+      "qa": {
+        "motion": 8,
+        "still_pct": 15,
+        "longest_still_s": 0.8
+      }
+    },
+    {
+      "id": "apple_motion_v2",
+      "name": "Apple Motion",
+      "version": 2.1,
+      "frozen": true,
+      "composition": "Style-apple-motion-v2",
+      "spec": "src/styles/apple_motion_v2/SPEC.md",
+      "rules": "src/styles/apple_motion_v2/STYLE.md",
+      "reference_spec": "src/styles/apple_motion_v2/specs/reference_nick1.json",
+      "summary": "iOS-natives Motion Design nach Leifs Referenzordner: keine harten Schnitte, Shared-Element-Morphs (Pille → Fenster → Liste …), 3D-Kartenstapel/Fächer, Pops in 4 Frames mit Blur/3D-Tilt, Dynamic-Island-Pillen, Siri-Feld, iMessage, Widgets, Listen, Mitteilungen, 3D-Emojis (HD) mit Glow, Cursor, Wallpaper/Rays/Rings, Wort-Reveal-Untertitel, Motionix-SFX, strenger Randabstand (840-px-Spalte). Hook (0–1,5 s) knallt immer: Avatar schlägt ab Frame 0 ein, Wörter slammen, Schockwellen + Bass-Impact, Pattern-Interrupt.",
+      "qa": {
+        "motion": 5.5,
+        "still_pct": 50,
+        "longest_still_s": 0.8
+      },
+      "frozen_at": "2026-10-11",
+      "updated_at": "2026-10-12",
+      "changelog": [
+        "2.1 (12.10.2026, auf Leifs Wunsch): Hook-Formel – Slam-Avatar ab Frame 0, Slam-Wörter, Schockwellen, Kamera-Punch, Sub-Impact-Sound, Pattern-Interrupt; Avatar redet beim Ein-/Ausblenden weiter"
+      ]
+    },
+    {
+      "id": "dev",
+      "name": "Entwicklung (nächste Version)",
+      "version": 0,
+      "frozen": false,
+      "composition": "MotionV2",
+      "spec": "src/motion/SPEC.md",
+      "rules": "src/motion/STYLE.md",
+      "summary": "Arbeitskopie für v3 (baut auf Apple Motion v2 auf). Nur nutzen, wenn im Dashboard ausdrücklich ausgewählt.",
+      "qa": {
+        "motion": 5.5,
+        "still_pct": 50,
+        "longest_still_s": 0.8
+      }
+    }
+  ]
+}
