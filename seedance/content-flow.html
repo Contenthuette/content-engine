@@ -163,6 +163,11 @@ const TYPES={
   schedule:{label:'Planung',short:'PLAN',color:'#60a5fa',title:'Metricool',sub:'Posts einplanen'},
   main:{label:'Hauptaccount',short:'MAIN',color:'#ff4757',title:'leifdunkelmann',sub:'Instagram',accounts:1,perDay:3},
   sub:{label:'Sub-Accounts',short:'SUB',color:'#fb7185',title:'Sub-Accounts',sub:'TikTok + Instagram',accounts:10,perDay:3},
+  platform:{label:'Plattform',short:'KANAL',color:'#cbd5e1',title:'YouTube Shorts',sub:'Zweitverwertung'},
+  tofu:{label:'Top of Funnel',short:'TOFU',color:'#ff8a3d',title:'Viraler Content',sub:'unterhält jeden'},
+  mofu:{label:'Middle of Funnel',short:'MOFU',color:'#e879f9',title:'Bindungs-Content',sub:'Leif als Person'},
+  bofu:{label:'Bottom of Funnel',short:'BOFU',color:'#a3e635',title:'Verkaufs-Content',sub:'Kommentar → DM'},
+  offer:{label:'Einnahme',short:'€',color:'#10b981',title:'Angebot',sub:''},
   analytics:{label:'Auswertung',short:'DATA',color:'#facc15',title:'Auswertung',sub:'Views & Follower'},
   note:{label:'Notiz',short:'NOTIZ',color:'#6b7385',title:'Notiz',sub:'',noPorts:true}
 };
@@ -211,7 +216,7 @@ function nodeEl(n){
   el.querySelector('.ntitle').textContent=n.title||t.title;
   const sub=el.querySelector('.nsub'); sub.textContent=n.type==='note'?(n.notes||''):(n.sub||''); if(!sub.textContent)sub.remove();
   const f=el.querySelector('.nfoot'), tag=(txt,hot)=>{const s=document.createElement('span');s.className='tag'+(hot?' hot':'');s.textContent=txt;f.appendChild(s)};
-  if(ACC(n.type)){const a=num(n.accounts),p=num(n.perDay);if(p){tag(`${a} Acc × ${p}/Tag`);tag(`${a*p} Videos/Tag`,true)}else{tag(`${a} Acc`);tag('nur Reposts',true)}}
+  if(ACC(n.type)){const a=num(n.accounts),p=num(n.perDay);if(p){tag(`${a} Acc × ${p}/Tag`);tag(`${a*p} Videos/Tag`,true)}else{tag(`${a} Acc`);tag('Hub',true)}}
   else if(n.count){tag(`${n.count} ${n.unit||''}`.trim(),true)}
   if(n.cost)tag(n.cost);
   return el;
