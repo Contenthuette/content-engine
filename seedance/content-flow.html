@@ -122,12 +122,60 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
   .insp .close{display:inline-block;align-self:flex-end}
   header .stats{order:3;flex-basis:100%}
 }
-@media (prefers-reduced-motion:reduce){.flow,.st-aktiv .sdot{animation:none}}
+
+/* Tabs + Plan-Ansicht */
+.tabs{display:flex;gap:2px;background:var(--panel3);border:1px solid var(--line);border-radius:9px;padding:2px}
+.tabs button{border:0;background:none;padding:5px 12px;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted)}
+.tabs button.on{background:var(--panel2);color:var(--fg);box-shadow:0 1px 3px rgba(16,24,40,.12)}
+.tabs button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.plan{overflow-y:auto;min-height:0;padding-block:28px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.pw{max-width:1120px;margin:0 auto;display:grid;gap:36px}
+.pw h2{margin:0 0 4px;font-size:22px;letter-spacing:-.015em;text-wrap:balance}
+.pw .lead{margin:0;color:var(--muted);font-size:14px;line-height:1.5;max-width:68ch}
+.sec{display:grid;gap:14px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.box{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+.box h4{margin:0;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.box h4 .cnt{font-family:var(--f-mono);letter-spacing:0;text-transform:none;margin-left:auto;font-size:12px}
+.prog{height:6px;border-radius:4px;background:var(--panel3);overflow:hidden}.prog i{display:block;height:100%;background:var(--ok);border-radius:4px;transition:width .4s}
+.todo{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.todo:first-of-type{border-top:0}
+.todo input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--ok);cursor:pointer}
+.todo .t{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.todo.done .t{color:var(--muted);text-decoration:line-through}
+.todo .due{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap;padding-top:3px}
+.todo .due.soon{color:var(--brand);font-weight:600}
+.addrow{display:flex;gap:8px;flex-wrap:wrap}
+.addrow input{flex:1;min-width:160px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:14px}
+.addrow select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px;font-size:13px}
+.rout{display:grid;gap:8px}
+.ri{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;font-size:14px;line-height:1.4}
+.ri .when{font-family:var(--f-mono);font-size:11px;color:var(--muted);min-width:62px}
+.ri .dur{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.who{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--panel3);border:1px solid var(--line)}
+.who.leif{color:#0369a1;border-color:#bae6fd;background:#f0f9ff}.who.claude{color:#7c3aed;border-color:#ddd6fe;background:#f5f3ff}
+.tblw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+.tbl th,.tbl td{text-align:left;padding:10px 14px;border-top:1px solid var(--line);vertical-align:top}
+.tbl thead th{border-top:0;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--panel)}
+.tbl td.num,.tbl th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl tr.sum td{font-weight:800;background:var(--panel)}
+.tbl .note{color:var(--muted);font-size:12.5px}
+.opt{display:grid;gap:6px}
+.opt .ph{display:flex;align-items:center;gap:8px}
+.opt b{font-size:15px}
+.prio{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px}
+.prio.hoch{background:#fee2e2;color:#b91c1c}.prio.mittel{background:#fef3c7;color:#92400e}.prio.später{background:var(--panel3);color:var(--muted)}
+.opt p{margin:0;font-size:14px;line-height:1.5;color:var(--fg)}
+.pempty{color:var(--muted);font-size:14px;padding:30px 0;text-align:center}
+@media (max-width:820px){header .tabs{order:2}}
+@media (prefers-reduced-motion:reduce){.flow,.st-aktiv .sdot{animation:none}.prog i{transition:none}}
 </style>
 
 <div class="app">
   <header>
     <div class="brand"><i></i>Content-Flow</div>
+    <nav class="tabs" aria-label="Ansicht"><button id="tabFlow" class="on" aria-pressed="true">Flow</button><button id="tabPlan" aria-pressed="false">Plan</button></nav>
     <div class="stats" id="stats"></div>
     <div class="tools">
       <button class="btn on" id="flowBtn" aria-pressed="true">Fluss animiert</button>
@@ -150,6 +198,7 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
     </div>
     <aside class="insp idle" id="insp" aria-label="Eigenschaften"></aside>
   </div>
+  <section class="plan" id="plan" hidden><div class="pw" id="pw"><div class="pempty">Plan wird geladen…</div></div></section>
 </div>
 
 <script>
@@ -417,7 +466,62 @@ async function boot(){
     applyRemote(d);
     if(first){first=false;if(!readOnly)setStatus('saved');requestAnimationFrame(()=>{if(!safeHasView())fit()})}
   },err=>{setStatus('error')});
+  startPlan();
 }
+
+/* ---------- Plan: Vorbereitung, Routinen, Budget, Optimierungen ---------- */
+let plan=null, planRef=null, planBusy=false;
+const mainEl=document.querySelector('.main'), planEl=$('#plan'), pw=$('#pw');
+function showTab(t){const p=t==='plan';mainEl.hidden=p;planEl.hidden=!p;$('#tabFlow').classList.toggle('on',!p);$('#tabPlan').classList.toggle('on',p);
+  $('#tabFlow').setAttribute('aria-pressed',!p);$('#tabPlan').setAttribute('aria-pressed',p);$('#flowBtn').hidden=p;
+  try{localStorage.setItem('cf_tab',t)}catch(e){} if(!p)requestAnimationFrame(()=>renderEdges())}
+$('#tabFlow').onclick=()=>showTab('flow');$('#tabPlan').onclick=()=>showTab('plan');
+const elx=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+function dueInfo(d){if(!d)return['', false];const t=new Date(d+'T12:00:00'),now=new Date();const days=Math.round((t-now)/864e5);
+  return[t.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),days<=1]}
+function renderPlan(){
+  pw.innerHTML='';
+  if(!plan){pw.appendChild(elx('div','pempty','Noch kein Plan hinterlegt. Claude trägt ihn hier ein.'));return}
+  const todos=plan.todos||[];const done=todos.filter(x=>x.done).length;
+  // Vorbereitung
+  const s1=elx('section','sec');const h=elx('div');h.append(elx('h2',null,'Vorbereitung'),elx('p','lead',`${done} von ${todos.length} erledigt. Abhaken speichert sofort.`));
+  const pr=elx('div','prog');const bar=elx('i');bar.style.width=(todos.length?done/todos.length*100:0)+'%';pr.appendChild(bar);s1.append(h,pr);
+  const cols=elx('div','cols');
+  for(const owner of ['Leif','Claude']){
+    const list=todos.map((x,i)=>({...x,i})).filter(x=>(x.owner||'Leif')===owner).sort((a,b)=>(a.done-b.done)||String(a.due||'9').localeCompare(String(b.due||'9')));
+    const box=elx('div','box');const h4=elx('h4');h4.append(elx('span',`who ${owner.toLowerCase()}`,owner),elx('span',null,'Aufgaben'),elx('span','cnt',`${list.filter(x=>x.done).length}/${list.length}`));box.appendChild(h4);
+    for(const x of list){const r=elx('label','todo'+(x.done?' done':''));const cb=elx('input');cb.type='checkbox';cb.checked=!!x.done;cb.disabled=readOnly;cb.id='td_'+x.id;
+      cb.onchange=()=>{todos[x.i].done=cb.checked;savePlan()};const [dt,soon]=dueInfo(x.due);r.append(cb,elx('span','t',x.text),elx('span','due'+(soon&&!x.done?' soon':''),dt));box.appendChild(r)}
+    if(!readOnly){const ar=elx('form','addrow');const inp=elx('input');inp.placeholder='Neue Aufgabe';inp.id='add_'+owner;inp.maxLength=160;const dd=elx('input');dd.type='date';dd.id='addd_'+owner;dd.style.flex='0 0 auto';dd.style.minWidth='0';
+      const b=elx('button','btn','Hinzufügen');ar.append(inp,dd,b);ar.onsubmit=e=>{e.preventDefault();const v=inp.value.trim();if(!v)return;todos.push({id:uid('t_'),text:v,owner,due:dd.value||'',done:false});plan.todos=todos;savePlan()};box.appendChild(ar)}
+    cols.appendChild(box)}
+  s1.appendChild(cols);pw.appendChild(s1);
+  // Routinen
+  const s2=elx('section','sec');const h2=elx('div');h2.append(elx('h2',null,'Routinen'),elx('p','lead','Was jeden Tag und jede Woche passiert, damit die Maschine läuft.'));s2.appendChild(h2);
+  const c2=elx('div','cols');
+  for(const [key,title] of [['daily','Täglich'],['weekly','Wöchentlich']]){
+    const box=elx('div','box');box.appendChild(elx('h4',null,title));const r=elx('div','rout');
+    for(const it of plan[key]||[]){const row=elx('div','ri');const w=elx('span','when',it.when||'');const mid=elx('span');mid.append(elx('span',`who ${(it.who||'').toLowerCase()}`,it.who||''),document.createTextNode(' '+(it.text||'')));row.append(w,mid,elx('span','dur',it.dur||''));r.appendChild(row)}
+    box.appendChild(r);c2.appendChild(box)}
+  s2.appendChild(c2);pw.appendChild(s2);
+  // Budget
+  const s3=elx('section','sec');const h3=elx('div');h3.append(elx('h2',null,'Budget pro Monat'),elx('p','lead',plan.budgetNote||''));s3.appendChild(h3);
+  const tw=elx('div','tblw');const tb=elx('table','tbl');const th=elx('thead');const trh=elx('tr');trh.append(elx('th',null,'Posten'),elx('th','num','Start (Unlimited)'),elx('th','num','Skalierung (Enterprise)'),elx('th',null,'Hinweis'));th.appendChild(trh);tb.appendChild(th);
+  const tbody=elx('tbody');for(const b of plan.budget||[]){const tr=elx('tr',b.sum?'sum':'');tr.append(elx('td',null,b.item),elx('td','num',b.start||'–'),elx('td','num',b.scale||'–'),elx('td','note',b.note||''));tbody.appendChild(tr)}
+  tb.appendChild(tbody);tw.appendChild(tb);s3.appendChild(tw);pw.appendChild(s3);
+  // Optimierungen
+  const s4=elx('section','sec');const h5=elx('div');h5.append(elx('h2',null,'So wird der Flow besser'),elx('p','lead','Empfehlungen von Claude, nach Wirkung sortiert.'));s4.appendChild(h5);
+  const c4=elx('div','cols');for(const o of plan.optimizations||[]){const box=elx('div','box opt');const ph=elx('div','ph');ph.append(elx('span','prio '+(o.prio||'mittel'),o.prio||'mittel'),elx('b',null,o.title));box.append(ph,elx('p',null,o.text));c4.appendChild(box)}
+  s4.appendChild(c4);pw.appendChild(s4);
+}
+async function savePlan(){renderPlan();if(!planRef||readOnly)return;if(planBusy){planBusy='again';return}planBusy=true;
+  try{await planRef.update({todos:clone(plan.todos||[])})}catch(e){if(e&&e.code==='invalid_argument'){readOnly=true;setStatus('readonly');renderPlan()}}
+  const again=planBusy==='again';planBusy=false;if(again)savePlan()}
+function startPlan(){planRef=db.doc('plan/main');planRef.onSnapshot(snap=>{if(snap.metadata.hasPendingWrites||planBusy)return;plan=snap.exists?clone(snap.data()):null;
+  const a=document.activeElement;if(a&&a.closest&&a.closest('.addrow')&&a.value)return;renderPlan()},()=>{})}
+try{if(localStorage.getItem('cf_tab')==='plan'||location.hash==='#plan')showTab('plan')}catch(e){}
+renderPlan();
+
 function safeHasView(){try{return !!localStorage.getItem('cf_view2')}catch(e){return false}}
 function loadLocal(){try{const j=localStorage.getItem('cf_flow');if(j){state=JSON.parse(j);renderAll()}}catch(e){}setStatus('local')}
 window.addEventListener('resize',()=>renderEdges());
