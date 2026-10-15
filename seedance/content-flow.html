@@ -182,7 +182,7 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
 <div class="app">
   <header>
     <div class="brand"><i></i>Content-Flow</div>
-    <nav class="tabs" aria-label="Ansicht"><button id="tabFlow" class="on" aria-pressed="true">Flow</button><button id="tabPlan" aria-pressed="false">Plan</button></nav>
+    <nav class="tabs" aria-label="Ansicht"><button data-tab="main" class="on" aria-pressed="true">Higgsfield-Flow</button><button data-tab="clipping" aria-pressed="false">Clipping-Flow</button><button data-tab="plan" aria-pressed="false">Plan</button></nav>
     <div class="stats" id="stats"></div>
     <div class="tools">
       <button class="btn on" id="flowBtn" aria-pressed="true">Fluss animiert</button>
@@ -246,7 +246,10 @@ const uid=p=>p+Math.random().toString(36).slice(2,8);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 
-try{const v=JSON.parse(localStorage.getItem('cf_view3')||'null');if(v&&v.k)view=v}catch(e){}
+let flowId='main', unsubFlow=null;
+try{const t=localStorage.getItem('cf_tab');if(t==='clipping')flowId='clipping'}catch(e){}
+function loadView(){try{const v=JSON.parse(localStorage.getItem('cf_view3_'+flowId)||'null');if(v&&v.k){view=v;return true}}catch(e){}return false}
+loadView();
 
 /* ---------- Palette ---------- */
 const pal=$('#pal');
@@ -261,7 +264,7 @@ function applyView(){
   world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.k})`;
   canvas.style.backgroundSize=`${20*view.k}px ${20*view.k}px`;
   canvas.style.backgroundPosition=`${view.x}px ${view.y}px`;
-  try{localStorage.setItem('cf_view3',JSON.stringify(view))}catch(e){}
+  try{localStorage.setItem('cf_view3_'+flowId,JSON.stringify(view))}catch(e){}
 }
 function nodeEl(n){
   const t=TYPES[n.type]||TYPES.note, st=n.status||'geplant';
@@ -465,7 +468,7 @@ const snapJson=()=>JSON.stringify({nodes:state.nodes,edges:state.edges});
 function scheduleSave(){if(readOnly)return;clearTimeout(saveTimer);setStatus('dirty');saveTimer=setTimeout(save,700)}
 async function save(){
   saveTimer=null;const j=snapJson();
-  if(!docRef){try{localStorage.setItem('cf_flow',j)}catch(e){}setStatus('local');return}
+  if(!docRef){try{localStorage.setItem('cf_flow_'+flowId,j)}catch(e){}setStatus('local');return}
   if(j===lastSaved){setStatus('saved');return}
   if(saving){saveQueued=true;return}
   saving=true;
@@ -484,25 +487,38 @@ async function boot(){
   try{db=await api.use('db')}catch(e){db=null}
   if(!db){loadLocal();return}
   try{const user=await api.use('user');if(user&&user.can&&(await user.can('data.write'))===false){readOnly=true;setStatus('readonly')}}catch(e){}
-  docRef=db.doc('flow/main');let first=true;
-  docRef.onSnapshot(snap=>{
-    if(snap.metadata.hasPendingWrites)return;
+  subscribeFlow();
+  startPlan();
+}
+function subscribeFlow(){
+  if(unsubFlow){unsubFlow();unsubFlow=null}
+  state={nodes:[],edges:[]};lastSaved='';pendingRemote=null;sel=null;
+  const hadView=loadView();applyView();renderAll();
+  docRef=db.doc('flow/'+flowId);let first=true;const myId=flowId;
+  unsubFlow=docRef.onSnapshot(snap=>{
+    if(myId!==flowId||snap.metadata.hasPendingWrites)return;
     if(!snap.exists){if(first){first=false;setStatus(readOnly?'readonly':'saved');renderAll()}return}
     const d=snap.data();
     if(mode||saveTimer||saving){pendingRemote=d;return}
     applyRemote(d);
-    if(first){first=false;if(!readOnly)setStatus('saved');requestAnimationFrame(()=>{if(!safeHasView())fit()})}
+    if(first){first=false;if(!readOnly)setStatus('saved');requestAnimationFrame(()=>{if(!hadView)fit()})}
   },err=>{setStatus('error')});
-  startPlan();
+}
+async function switchFlow(id){
+  if(id===flowId)return;
+  if(saveTimer){clearTimeout(saveTimer);await save()}
+  flowId=id;
+  if(db)subscribeFlow();else{state={nodes:[],edges:[]};sel=null;loadView();applyView();loadLocal()}
 }
 
 /* ---------- Plan: Vorbereitung, Routinen, Budget, Optimierungen ---------- */
 let plan=null, planRef=null, planBusy=false;
 const mainEl=document.querySelector('.main'), planEl=$('#plan'), pw=$('#pw');
-function showTab(t){const p=t==='plan';mainEl.hidden=p;planEl.hidden=!p;$('#tabFlow').classList.toggle('on',!p);$('#tabPlan').classList.toggle('on',p);
-  $('#tabFlow').setAttribute('aria-pressed',!p);$('#tabPlan').setAttribute('aria-pressed',p);$('#flowBtn').hidden=p;
-  try{localStorage.setItem('cf_tab',t)}catch(e){} if(!p)requestAnimationFrame(()=>renderEdges())}
-$('#tabFlow').onclick=()=>showTab('flow');$('#tabPlan').onclick=()=>showTab('plan');
+function showTab(t){const p=t==='plan';mainEl.hidden=p;planEl.hidden=!p;$('#flowBtn').hidden=p;$('#stats').hidden=p;
+  document.querySelectorAll('.tabs [data-tab]').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
+  try{localStorage.setItem('cf_tab',t)}catch(e){}
+  if(!p){switchFlow(t);requestAnimationFrame(()=>renderEdges())}}
+document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 const elx=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
 function dueInfo(d){if(!d)return['', false];const t=new Date(d+'T12:00:00'),now=new Date();const days=Math.round((t-now)/864e5);
   return[t.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}),days<=1]}
@@ -546,11 +562,11 @@ async function savePlan(){renderPlan();if(!planRef||readOnly)return;if(planBusy)
   const again=planBusy==='again';planBusy=false;if(again)savePlan()}
 function startPlan(){planRef=db.doc('plan/main');planRef.onSnapshot(snap=>{if(snap.metadata.hasPendingWrites||planBusy)return;plan=snap.exists?clone(snap.data()):null;
   const a=document.activeElement;if(a&&a.closest&&a.closest('.addrow')&&a.value)return;renderPlan()},()=>{})}
-try{if(localStorage.getItem('cf_tab')==='plan'||location.hash==='#plan')showTab('plan')}catch(e){}
+try{const t0=location.hash==='#plan'?'plan':location.hash==='#clipping'?'clipping':(localStorage.getItem('cf_tab')||'main');if(t0==='clipping'){flowId='clipping';loadView()}showTab(t0==='flow'?'main':t0)}catch(e){}
 renderPlan();
 
-function safeHasView(){try{return !!localStorage.getItem('cf_view3')}catch(e){return false}}
-function loadLocal(){try{const j=localStorage.getItem('cf_flow');if(j){state=JSON.parse(j);renderAll()}}catch(e){}setStatus('local')}
+function safeHasView(){try{return !!localStorage.getItem('cf_view3_'+flowId)}catch(e){return false}}
+function loadLocal(){try{const j=localStorage.getItem('cf_flow_'+flowId);if(j){state=JSON.parse(j);renderAll()}}catch(e){}setStatus('local')}
 window.addEventListener('resize',()=>renderEdges());
 boot();
 </script>
