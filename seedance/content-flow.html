@@ -93,6 +93,16 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
 .lhead{position:absolute;top:12px;left:16px;display:flex;align-items:baseline;gap:10px;cursor:move;max-width:calc(100% - 32px)}
 .lhead b{font-size:13px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,var(--fg))}
 .lhead span{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.node.clipper{width:150px}
+.chead{display:flex;align-items:center;gap:8px;padding:11px 10px 0 14px;min-width:0}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font:800 11px var(--f-mono);flex:none}
+.chead .ntitle{padding:0;font-size:14px}
+.chead .nsub{padding:0;font-size:11px}
+.plats{display:grid;gap:4px;padding:9px 10px 0 14px}
+.pf{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;border:1px solid var(--line);border-radius:6px;padding:3px 7px;background:var(--panel)}
+.pf::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pc)}
+.pf.ig{--pc:#e1306c}.pf.tt{--pc:#111827}.pf.yt{--pc:#ff0000}
+.node.clipper .nfoot{padding:8px 10px 11px 14px}
 .node.note{background:color-mix(in srgb,var(--warn) 9%,var(--panel2));border-style:dashed}
 
 .empty{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;padding:24px}
@@ -227,6 +237,7 @@ const TYPES={
   offer:{label:'Einnahme',short:'€',color:'#10b981',title:'Angebot',sub:''},
   analytics:{label:'Auswertung',short:'DATA',color:'#facc15',title:'Auswertung',sub:'Views & Follower'},
   note:{label:'Notiz',short:'NOTIZ',color:'#6b7385',title:'Notiz',sub:'',noPorts:true},
+  clipper:{label:'Clipper',short:'CLIP',color:'#ff8a3d',title:'Clipper',sub:'',accounts:3,perDay:3},
   lane:{label:'Bereich',short:'BEREICH',color:'#94a3b8',title:'Neuer Bereich',sub:'',noPorts:true,w:700,h:320}
 };
 const STATUS={idee:'Idee',geplant:'Geplant',aktiv:'Läuft',blockiert:'Blockiert'};
@@ -248,7 +259,7 @@ const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 
 let flowId='main', unsubFlow=null;
 try{const t=localStorage.getItem('cf_tab');if(t==='clipping')flowId='clipping'}catch(e){}
-function loadView(){try{const v=JSON.parse(localStorage.getItem('cf_view3_'+flowId)||'null');if(v&&v.k){view=v;return true}}catch(e){}return false}
+function loadView(){try{const v=JSON.parse(localStorage.getItem('cf_view4_'+flowId)||'null');if(v&&v.k){view=v;return true}}catch(e){}return false}
 loadView();
 
 /* ---------- Palette ---------- */
@@ -264,11 +275,21 @@ function applyView(){
   world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.k})`;
   canvas.style.backgroundSize=`${20*view.k}px ${20*view.k}px`;
   canvas.style.backgroundPosition=`${view.x}px ${view.y}px`;
-  try{localStorage.setItem('cf_view3_'+flowId,JSON.stringify(view))}catch(e){}
+  try{localStorage.setItem('cf_view4_'+flowId,JSON.stringify(view))}catch(e){}
 }
+const PLATS={ig:'Instagram',tt:'TikTok',yt:'YouTube'};
+function platsOf(n){return Array.isArray(n.platforms)?n.platforms.filter(p=>PLATS[p]):['ig','tt','yt']}
 function nodeEl(n){
   const t=TYPES[n.type]||TYPES.note, st=n.status||'geplant';
   const el=document.createElement('div');
+  if(n.type==='clipper'){const pl=platsOf(n),v=num(n.perDay);
+    el.className=`node clipper st-${st}${sel&&sel.kind==='node'&&sel.id===n.id?' sel':''}`;el.dataset.id=n.id;el.style.setProperty('--c',t.color);el.style.transform=`translate(${n.x}px,${n.y}px)`;
+    el.innerHTML='<div class="chead"><span class="avatar"></span><div style="min-width:0"><div class="ntitle"></div><div class="nsub"></div></div></div><div class="plats"></div><div class="nfoot"></div><div class="port in" data-port="in"></div><div class="port out" data-port="out"></div>';
+    el.querySelector('.avatar').textContent=n.badge||'C';el.querySelector('.ntitle').textContent=n.title||t.title;
+    const sb=el.querySelector('.nsub');sb.textContent=n.sub||STATUS[st]||'';
+    const P=el.querySelector('.plats');for(const k of pl){const x=document.createElement('span');x.className='pf '+k;x.textContent=PLATS[k];P.appendChild(x)}
+    const f=el.querySelector('.nfoot');const t1=document.createElement('span');t1.className='tag hot';t1.textContent=`${v} Videos/Tag`;const t2=document.createElement('span');t2.className='tag';t2.textContent=`${v*pl.length} Posts`;f.append(t1,t2);
+    return el}
   if(n.type==='lane'){el.className='node lane'+(sel&&sel.kind==='node'&&sel.id===n.id?' sel':'');el.dataset.id=n.id;el.style.setProperty('--c',n.tone||t.color);
     el.style.transform=`translate(${n.x}px,${n.y}px)`;el.style.width=(n.w||t.w)+'px';el.style.height=(n.h||t.h)+'px';
     el.innerHTML='<div class="lhead"><b></b><span></span></div>';el.querySelector('b').textContent=n.title||t.title;el.querySelector('span').textContent=n.sub||'';return el}
@@ -312,12 +333,13 @@ function renderEdges(temp){
   svg.innerHTML=`<g transform="translate(10000,10000)">${h}</g>`;
 }
 function renderStats(){
-  const acc=state.nodes.filter(n=>ACC(n.type));
-  const accounts=acc.reduce((s,n)=>s+num(n.accounts),0);
-  const perDay=acc.reduce((s,n)=>s+num(n.accounts)*num(n.perDay),0);
+  const acc=state.nodes.filter(n=>ACC(n.type)),cl=state.nodes.filter(n=>n.type==='clipper');
+  const accounts=acc.reduce((s,n)=>s+num(n.accounts),0)+cl.reduce((s,n)=>s+platsOf(n).length,0);
+  const perDay=acc.reduce((s,n)=>s+num(n.accounts)*num(n.perDay),0)+cl.reduce((s,n)=>s+num(n.perDay),0);
+  const posts=acc.reduce((s,n)=>s+num(n.accounts)*num(n.perDay),0)+cl.reduce((s,n)=>s+num(n.perDay)*platsOf(n).length,0);
   const cap=state.nodes.filter(n=>n.type==='ai'&&/tag/i.test(n.unit||'')).reduce((s,n)=>s+num(n.count),0);
   const blocked=state.nodes.filter(n=>n.status==='blockiert').length;
-  const items=[[accounts,'Accounts'],[perDay,'Videos/Tag benötigt'],[perDay*30,'Videos/Monat']];
+  const items=[[accounts,'Accounts'],[perDay,'Videos/Tag benötigt'],[posts,'Posts/Tag'],[perDay*30,'Videos/Monat']];
   let html=items.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
   if(cap||perDay){const ok=cap>=perDay;html+=`<div class="stat ${ok?'good':'warn'}"><b>${cap}</b><span>Videos/Tag Kapazität${ok?'':' · fehlen '+(perDay-cap)}</span></div>`}
   if(blocked)html+=`<div class="stat warn"><b>${blocked}</b><span>blockiert</span></div>`;
@@ -347,6 +369,24 @@ function renderInsp(){
     return;
   }
   const n=byId(sel.id);if(!n){sel=null;return renderInsp()}
+  if(n.type==='clipper'){
+    const pl=platsOf(n);
+    insp.innerHTML=`<button class="btn close" data-act="close">Schließen</button><h3>Clipper</h3>
+    <div class="row2">${field('Name',`<input id="f_title" maxlength="30"${dis}>`)}${field('Kürzel',`<input id="f_badge" maxlength="3"${dis}>`)}</div>
+    ${field('Account / Handle',`<input id="f_sub" maxlength="60" placeholder="@seitenname"${dis}>`)}
+    ${field('Videos pro Tag',`<input id="f_perDay" type="number" min="0" step="1"${dis}>`)}
+    <div class="field"><label>Plattformen (jedes Video auf allen)</label><div class="row2" style="grid-template-columns:repeat(3,1fr)">${Object.entries(PLATS).map(([k,v])=>`<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="pf_${k}" ${pl.includes(k)?'checked':''}${dis}>${v}</label>`).join('')}</div></div>
+    <div class="calc" id="ccalc"></div>
+    <div class="row2">${field('Status',`<select id="f_status"${dis}>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>`)}${field('Preis',`<input id="f_cost" maxlength="30" placeholder="0,50 €/Post"${dis}>`)}</div>
+    ${field('Notizen',`<textarea id="f_notes" maxlength="1500"${dis}></textarea>`)}
+    <div class="row2"><button class="btn" data-act="dup"${dis}>Duplizieren</button><button class="btn danger" data-act="del"${dis}>Löschen</button></div>`;
+    const cc=()=>{const p2=platsOf(n);$('#ccalc').textContent=`${num(n.perDay)} Videos × ${p2.length} Plattformen = ${num(n.perDay)*p2.length} Posts/Tag`};
+    const b3=(id,key,isNum)=>{const el=$('#f_'+id);el.value=n[key]??'';el.oninput=ev=>{n[key]=isNum?num(ev.target.value):ev.target.value;refreshNode(n);cc();scheduleSave()}};
+    b3('title','title');b3('badge','badge');b3('sub','sub');b3('perDay','perDay',true);b3('cost','cost');b3('notes','notes');
+    for(const k of Object.keys(PLATS)){$('#pf_'+k).onchange=()=>{n.platforms=Object.keys(PLATS).filter(x=>$('#pf_'+x).checked);refreshNode(n);cc();scheduleSave()}}
+    const st=$('#f_status');st.value=n.status||'geplant';st.onchange=ev=>{n.status=ev.target.value;refreshNode(n);scheduleSave()};
+    cc();return;
+  }
   if(n.type==='lane'){
     insp.innerHTML=`<button class="btn close" data-act="close">Schließen</button><h3>Bereich</h3>
     ${field('Titel',`<input id="f_title" maxlength="40"${dis}>`)}${field('Beschreibung',`<input id="f_sub" maxlength="80"${dis}>`)}
@@ -406,6 +446,7 @@ function addNode(type){
   const n={id:uid('n_'),type,x,y,title:t.title,sub:t.sub,status:'geplant'};
   if(ACC(type)){n.accounts=t.accounts;n.perDay=t.perDay}
   if(type==='lane'){n.w=t.w;n.h=t.h;n.tone=TONES.Grau;delete n.status}
+  if(type==='clipper'){const k=state.nodes.filter(x=>x.type==='clipper').length+1;n.title='Clipper '+k;n.badge='C'+k;n.perDay=t.perDay;n.platforms=['ig','tt','yt'];n.sub=''}
   state.nodes.push(n);sel={kind:'node',id:n.id};renderAll();scheduleSave();
 }
 function deleteSel(){
@@ -565,7 +606,7 @@ function startPlan(){planRef=db.doc('plan/main');planRef.onSnapshot(snap=>{if(sn
 try{const t0=location.hash==='#plan'?'plan':location.hash==='#clipping'?'clipping':(localStorage.getItem('cf_tab')||'main');if(t0==='clipping'){flowId='clipping';loadView()}showTab(t0==='flow'?'main':t0)}catch(e){}
 renderPlan();
 
-function safeHasView(){try{return !!localStorage.getItem('cf_view3_'+flowId)}catch(e){return false}}
+function safeHasView(){try{return !!localStorage.getItem('cf_view4_'+flowId)}catch(e){return false}}
 function loadLocal(){try{const j=localStorage.getItem('cf_flow_'+flowId);if(j){state=JSON.parse(j);renderAll()}}catch(e){}setStatus('local')}
 window.addEventListener('resize',()=>renderEdges());
 boot();
