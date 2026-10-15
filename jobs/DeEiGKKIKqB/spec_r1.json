@@ -1,0 +1,1103 @@
+{
+ "dur": 36.3,
+ "bg": "BG-13",
+ "vo": "fast_DeEiGKKIKqB_vo.wav",
+ "words": [
+  "CLAUDE",
+  "PLUGIN",
+  "SKILLS",
+  "GITHUB",
+  "SPEC",
+  "TESTS",
+  "CODE",
+  "AGENT",
+  "PROFI",
+  "MODELLE"
+ ],
+ "theme": {
+  "topic": "4 Plugins für Claude Code",
+  "words": [
+   "CLAUDE",
+   "PLUGIN",
+   "SKILLS",
+   "GITHUB",
+   "SPEC",
+   "TESTS",
+   "CODE",
+   "AGENT",
+   "PROFI",
+   "MODELLE"
+  ],
+  "names": [
+   "obra",
+   "karpathy",
+   "ayghri",
+   "nyldn"
+  ],
+  "handles": [],
+  "comments": [
+   "PROFI",
+   "PROFI 🙏",
+   "PROFI bitte"
+  ],
+  "numbers": [],
+  "apps": [
+   "Claude Code",
+   "GitHub",
+   "Codex"
+  ],
+  "brand": "ULTRA",
+  "kw": "PROFI",
+  "views": false
+ },
+ "face": {
+  "src": "face/fast_DeEiGKKIKqB.mp4",
+  "segs": [
+   [
+    0,
+    3.95,
+    0
+   ],
+   [
+    33.4,
+    36.3,
+    33.4
+   ]
+  ]
+ },
+ "musics": [
+  {
+   "src": "music/phonk130.mp3",
+   "at": 0,
+   "from": 0.93
+  },
+  {
+   "src": "music/dnb174.mp3",
+   "at": 12.15,
+   "from": 4.0
+  },
+  {
+   "src": "music/techno132.mp3",
+   "at": 26.45,
+   "from": 10.0
+  }
+ ],
+ "punches": [
+  0,
+  0.84,
+  1.38,
+  2.02,
+  2.82,
+  3.1,
+  4.06,
+  4.84,
+  5.68,
+  6.86,
+  7.94,
+  8.92,
+  9.54,
+  10.52,
+  11.2,
+  12.2,
+  13.14,
+  14.48,
+  15.06,
+  15.96,
+  16.86,
+  17.78,
+  18.86,
+  20.4,
+  21.48,
+  22.64,
+  23.8,
+  24.46,
+  25.24,
+  26.52,
+  27.36,
+  28.1,
+  29.48,
+  30.64,
+  31.54,
+  32.58,
+  33.56,
+  34.0,
+  35.24
+ ],
+ "layers": [
+  {
+   "code": "KC-14",
+   "at": 0,
+   "dur": 2.1,
+   "skip": 0.35,
+   "props": {
+    "n": 18,
+    "word": "VIBE CODING"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 0,
+   "dur": 2.1,
+   "place": [
+    540,
+    520
+   ],
+   "size": 0.44,
+   "z": 4,
+   "props": {
+    "live": false
+   },
+   "skip": 0.3,
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 0,
+   "dur": 2.0,
+   "place": [
+    500,
+    1420
+   ],
+   "size": 1.15,
+   "z": 5,
+   "skip": 0.2,
+   "props": {
+    "text": "Bevor du vibe-codest …"
+   },
+   "fp": [
+    164,
+    936,
+    920,
+    1092
+   ]
+  },
+  {
+   "code": "UI-21",
+   "at": 1.95,
+   "dur": 2.4,
+   "push": 0.08,
+   "props": {
+    "cmd": "/plugin install",
+    "out": [
+     "superpowers ✓",
+     "karpathy-skills ✓",
+     "i-have-adhd ✓",
+     "claude-octopus ✓"
+    ],
+    "bin": "claude"
+   },
+   "fp": [
+    24,
+    520,
+    1056,
+    1368
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 1.95,
+   "dur": 2.0,
+   "place": [
+    200,
+    1400
+   ],
+   "size": 0.27,
+   "z": 4,
+   "props": {
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "T-45",
+   "at": 2.05,
+   "dur": 1.9,
+   "place": "top",
+   "size": 1.1,
+   "z": 4,
+   "props": {
+    "text": "4 Plugins"
+   },
+   "fp": [
+    192,
+    896,
+    900,
+    1064
+   ]
+  },
+  {
+   "code": "ME-05",
+   "at": 4.0,
+   "dur": 1.75,
+   "push": 0.08,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+    "url": "github.com/obra/superpowers",
+    "scroll": 0.3,
+    "label": "Plugin 1"
+   },
+   "fp": [
+    64,
+    296,
+    1016,
+    1616
+   ]
+  },
+  {
+   "code": "KT-01",
+   "at": 4.05,
+   "dur": 1.7,
+   "place": "mid",
+   "z": 3,
+   "card": true,
+   "props": {
+    "lines": [
+     "PLUGIN 1",
+     "SUPERPOWERS"
+    ]
+   },
+   "fp": [
+    0,
+    772,
+    1080,
+    1036
+   ]
+  },
+  {
+   "code": "KC-06",
+   "at": 5.6,
+   "dur": 2.3,
+   "push": 0.08,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-09",
+   "at": 5.65,
+   "dur": 2.2,
+   "place": "mid",
+   "z": 3,
+   "bare": false,
+   "props": {
+    "src": "media/DeEiGKKIKqB/logo_github.svg",
+    "from": 250000,
+    "to": 299000,
+    "prefix": "",
+    "suffix": "",
+    "label": "GitHub-Sterne",
+    "chip": "obra/superpowers"
+   },
+   "fp": [
+    100,
+    684,
+    984,
+    1152
+   ]
+  },
+  {
+   "code": "3D-04",
+   "at": 7.85,
+   "dur": 2.3,
+   "push": 0.08,
+   "fp": [
+    0,
+    688,
+    1080,
+    1328
+   ]
+  },
+  {
+   "code": "DA-07",
+   "at": 7.95,
+   "dur": 4.1,
+   "place": "mid",
+   "z": 3,
+   "card": true,
+   "props": {
+    "steps": [
+     "Spec",
+     "Tests",
+     "Code"
+    ]
+   },
+   "size": 1.6,
+   "fp": [
+    156,
+    392,
+    508,
+    1460
+   ]
+  },
+  {
+   "code": "T-20",
+   "at": 10.3,
+   "dur": 1.8,
+   "place": "top",
+   "size": 1.1,
+   "z": 4,
+   "props": {
+    "text": "Erst Spec, dann Code."
+   },
+   "fp": [
+    0,
+    340,
+    1080,
+    1520
+   ]
+  },
+  {
+   "code": "ME-05",
+   "at": 12.15,
+   "dur": 2.3,
+   "push": 0.08,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+    "url": "github.com/multica-ai/andrej-karpathy-skills",
+    "scroll": 0.3,
+    "label": "Plugin 2"
+   },
+   "fp": [
+    64,
+    296,
+    1016,
+    1616
+   ]
+  },
+  {
+   "code": "KT-02",
+   "at": 12.2,
+   "dur": 2.2,
+   "place": "mid",
+   "z": 3,
+   "card": true,
+   "props": {
+    "lines": [
+     "PLUGIN 2",
+     "KARPATHY-SKILLS"
+    ],
+    "acc": "#FF3B30"
+   },
+   "fp": [
+    0,
+    772,
+    1080,
+    1136
+   ]
+  },
+  {
+   "code": "KC-19",
+   "at": 14.4,
+   "dur": 6.9,
+   "push": 0.06,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 14.5,
+   "dur": 2.3,
+   "place": "top",
+   "size": 1.1,
+   "z": 4,
+   "props": {
+    "text": "1 CLAUDE.md · 4 Regeln"
+   },
+   "fp": [
+    156,
+    932,
+    924,
+    1092
+   ]
+  },
+  {
+   "code": "KD-17",
+   "at": 16.8,
+   "dur": 4.4,
+   "place": "mid",
+   "z": 3,
+   "card": true,
+   "props": {
+    "items": [
+     "Erst denken",
+     "Simpel bleiben",
+     "Nur ändern, was gefragt ist",
+     "Ziel prüfen"
+    ]
+   },
+   "size": 1.6,
+   "fp": [
+    148,
+    400,
+    848,
+    1500
+   ]
+  },
+  {
+   "code": "ME-05",
+   "at": 21.35,
+   "dur": 2.3,
+   "push": 0.08,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
+    "url": "github.com/ayghri/i-have-adhd",
+    "scroll": 0.3,
+    "label": "Plugin 3"
+   },
+   "fp": [
+    64,
+    296,
+    1016,
+    1616
+   ]
+  },
+  {
+   "code": "KT-03",
+   "at": 21.4,
+   "dur": 2.2,
+   "place": "mid",
+   "z": 3,
+   "card": true,
+   "props": {
+    "lines": [
+     "PLUGIN 3",
+     "I HAVE ADHD"
+    ]
+   },
+   "fp": [
+    84,
+    772,
+    1000,
+    1032
+   ]
+  },
+  {
+   "code": "3D-09",
+   "at": 23.6,
+   "dur": 2.85,
+   "push": 0.08,
+   "fp": [
+    208,
+    308,
+    872,
+    1356
+   ]
+  },
+  {
+   "code": "T-28",
+   "at": 23.75,
+   "dur": 2.6,
+   "place": "mid",
+   "z": 3,
+   "card": true,
+   "props": {
+    "wrong": "Gute Frage! Hoffe, das hilft.",
+    "text": "Nächste Aktion zuerst."
+   },
+   "size": 1.6,
+   "fp": [
+    148,
+    856,
+    920,
+    1076
+   ]
+  },
+  {
+   "code": "ME-05",
+   "at": 26.4,
+   "dur": 1.8,
+   "push": 0.08,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+    "url": "github.com/nyldn/claude-octopus",
+    "scroll": 0.3,
+    "label": "Plugin 4"
+   },
+   "fp": [
+    64,
+    296,
+    1016,
+    1616
+   ]
+  },
+  {
+   "code": "KT-04",
+   "at": 26.45,
+   "dur": 1.75,
+   "place": "mid",
+   "z": 3,
+   "card": true,
+   "props": {
+    "lines": [
+     "PLUGIN 4",
+     "CLAUDE",
+     "OCTOPUS"
+    ]
+   },
+   "fp": [
+    236,
+    772,
+    848,
+    1104
+   ]
+  },
+  {
+   "code": "3D-25",
+   "at": 28.05,
+   "dur": 2.7,
+   "push": 0.08,
+   "fp": [
+    0,
+    684,
+    1080,
+    1332
+   ]
+  },
+  {
+   "code": "T-52",
+   "at": 28.2,
+   "dur": 2.5,
+   "place": "top",
+   "size": 1.15,
+   "z": 4,
+   "props": {
+    "text": "Bis zu 12 Modelle"
+   },
+   "fp": [
+    200,
+    928,
+    880,
+    1100
+   ]
+  },
+  {
+   "code": "KC-26",
+   "at": 30.65,
+   "dur": 2.85,
+   "push": 0.08,
+   "fp": [
+    108,
+    348,
+    948,
+    1696
+   ]
+  },
+  {
+   "code": "T-14",
+   "at": 31.5,
+   "dur": 1.9,
+   "place": "mid",
+   "size": 1.1,
+   "z": 4,
+   "props": {
+    "text": "Wo sie sich widersprechen"
+   },
+   "fp": [
+    164,
+    932,
+    916,
+    1092
+   ]
+  },
+  {
+   "code": "KC-36",
+   "at": 33.35,
+   "dur": 2.95,
+   "push": 0.06,
+   "props": {
+    "label": "4 Links"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 33.4,
+   "dur": 2.9,
+   "place": [
+    540,
+    600
+   ],
+   "size": 0.46,
+   "z": 4,
+   "props": {
+    "live": false
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "UI-46",
+   "at": 33.6,
+   "dur": 2.7,
+   "place": "bottom",
+   "z": 3,
+   "props": {
+    "kw": "PROFI"
+   },
+   "fp": [
+    80,
+    748,
+    992,
+    1224
+   ]
+  },
+  {
+   "code": "KX-04",
+   "at": 3.85,
+   "dur": 0.45,
+   "z": 9,
+   "fp": [
+    0,
+    148,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KX-06",
+   "at": 12.0,
+   "dur": 0.45,
+   "z": 9,
+   "fp": [
+    0,
+    136,
+    428,
+    1920
+   ]
+  },
+  {
+   "code": "KX-08",
+   "at": 21.2,
+   "dur": 0.45,
+   "z": 9,
+   "fp": [
+    76,
+    0,
+    1080,
+    764
+   ]
+  },
+  {
+   "code": "KX-05",
+   "at": 26.25,
+   "dur": 0.45,
+   "z": 9,
+   "fp": [
+    0,
+    148,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KX-07",
+   "at": 33.2,
+   "dur": 0.45,
+   "z": 9,
+   "fp": [
+    576,
+    204,
+    1080,
+    1708
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 4.0,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "FX-21",
+   "at": 6.6,
+   "dur": 1.2,
+   "z": 2,
+   "fp": [
+    224,
+    448,
+    956,
+    1512
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 12.3,
+   "dur": 1.2,
+   "z": 2,
+   "fp": [
+    224,
+    448,
+    888,
+    1364
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 16.8,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 21.5,
+   "dur": 1.2,
+   "z": 2,
+   "fp": [
+    224,
+    448,
+    888,
+    1364
+   ]
+  },
+  {
+   "code": "FX-21",
+   "at": 23.8,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    208,
+    452,
+    968,
+    1508
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 26.5,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "FX-21",
+   "at": 28.6,
+   "dur": 1.2,
+   "z": 2,
+   "fp": [
+    224,
+    448,
+    956,
+    1512
+   ]
+  },
+  {
+   "code": "FX-16",
+   "at": 30.7,
+   "dur": 1.4,
+   "z": 1,
+   "fp": [
+    0,
+    348,
+    1080,
+    1516
+   ]
+  },
+  {
+   "code": "FX-11",
+   "at": 33.4,
+   "dur": 2.8,
+   "z": 1,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-01",
+   "at": 9.0,
+   "dur": 1.1,
+   "place": "bottom",
+   "size": 1.0,
+   "z": 4,
+   "props": {
+    "text": "Tests zuerst."
+   },
+   "fp": [
+    204,
+    912,
+    880,
+    1008
+   ]
+  },
+  {
+   "code": "T-01",
+   "at": 19.0,
+   "dur": 1.2,
+   "place": "top",
+   "size": 1.0,
+   "z": 4,
+   "props": {
+    "text": "Weniger Code."
+   },
+   "fp": [
+    152,
+    908,
+    932,
+    1028
+   ]
+  },
+  {
+   "code": "ME-03",
+   "at": 0.45,
+   "dur": 1.2,
+   "place": [
+    540,
+    1150
+   ],
+   "size": 0.38,
+   "z": 5,
+   "props": {
+    "src": "media/DeEiGKKIKqB/logo_claude.svg",
+    "color": "#D97757",
+    "label": "Claude Code"
+   },
+   "fp": [
+    16,
+    348,
+    1064,
+    1412
+   ]
+  },
+  {
+   "code": "ME-03",
+   "at": 5.0,
+   "dur": 0.6,
+   "place": [
+    820,
+    370
+   ],
+   "size": 0.28,
+   "z": 5,
+   "props": {
+    "src": "media/DeEiGKKIKqB/logo_github.svg",
+    "color": "#181717",
+    "label": "GitHub"
+   },
+   "fp": [
+    24,
+    364,
+    1056,
+    1400
+   ]
+  },
+  {
+   "code": "T-01",
+   "at": 13.1,
+   "dur": 1.1,
+   "place": "top",
+   "size": 1.0,
+   "z": 4,
+   "props": {
+    "text": "Karpathy."
+   },
+   "fp": [
+    172,
+    892,
+    920,
+    1060
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 14.5,
+   "dur": 1.2,
+   "z": 2,
+   "fp": [
+    224,
+    448,
+    888,
+    1364
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 18.86,
+   "dur": 0.9,
+   "z": 2,
+   "fp": [
+    216,
+    448,
+    892,
+    1376
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 20.4,
+   "dur": 0.9,
+   "z": 2,
+   "fp": [
+    216,
+    448,
+    892,
+    1376
+   ]
+  },
+  {
+   "code": "T-01",
+   "at": 22.2,
+   "dur": 1.2,
+   "place": "top",
+   "size": 1.0,
+   "z": 4,
+   "props": {
+    "text": "Kein Gelaber."
+   },
+   "fp": [
+    200,
+    908,
+    888,
+    1008
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 25.2,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "T-01",
+   "at": 27.3,
+   "dur": 0.75,
+   "place": "top",
+   "size": 1.0,
+   "z": 4,
+   "props": {
+    "text": "Octopus."
+   },
+   "fp": [
+    148,
+    884,
+    940,
+    1072
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 29.5,
+   "dur": 0.9,
+   "z": 2,
+   "fp": [
+    216,
+    448,
+    892,
+    1376
+   ]
+  },
+  {
+   "code": "FX-21",
+   "at": 31.6,
+   "dur": 1.3,
+   "z": 2,
+   "fp": [
+    236,
+    448,
+    960,
+    1516
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 34.0,
+   "dur": 1.4,
+   "z": 2,
+   "fp": [
+    248,
+    448,
+    892,
+    1364
+   ]
+  },
+  {
+   "code": "T-45",
+   "at": 30.7,
+   "dur": 0.8,
+   "place": "top",
+   "size": 1.0,
+   "z": 4,
+   "props": {
+    "text": "Codex · Copilot · Grok"
+   },
+   "fp": [
+    216,
+    928,
+    868,
+    1000
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 10.1,
+   "dur": 2.1,
+   "push": 0.08,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+    "label": "Spec → Tests → Code"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  }
+ ]
+}

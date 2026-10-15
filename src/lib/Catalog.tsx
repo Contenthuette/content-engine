@@ -15,10 +15,22 @@ const FPS = 30;
 export const BARE_CSS = '.dl-bare .dl-root{background:transparent!important}';
 const CH = 1.2; // Kapitelkarte
 const f = (s: number) => Math.max(1, Math.round(s * FPS));
+const f0 = (s: number) => Math.max(0, Math.round(s * FPS)); // Startframe: 0 erlaubt (sonst ist Frame 0 = Thumbnail leer – QA 15.10.)
 
 // ---------- Bausteine ----------
-const Sounds: React.FC<{e: Entry; mute?: boolean}> = ({e, mute}) =>
-  mute ? null : <>{(e.sfx || []).map(([t, n, v = 0.8], i) => <Sequence key={i} from={Math.round(t * FPS)} durationInFrames={f(1.5)} layout="none"><Audio src={asset(SFX(n))} volume={v * 0.9} /></Sequence>)}</>;
+// SFX-Mix (QA 15.10.: SFX lagen auf Schlüsselwörtern so laut wie die Stimme): Bus-Gain + Ducking während Sprache (spec.speech aus mixprep)
+type SfxMix = {speech: number[][]; gain: number; base: number};
+const SfxCtx = React.createContext<SfxMix | null>(null);
+const sfxVol = (c: SfxMix | null, t: number, v: number) => (fr: number) => {
+  if (!c) return v;
+  const at = c.base + t + fr / FPS;
+  const talk = c.speech.some(([a, b]) => at > a - 0.12 && at < b + 0.08);
+  return v * c.gain * (talk ? 0.3 : 1);  // −16,5 dB unter Sprache (QA R1 r4: SFX maskierten Konsonanten 1–4 kHz)
+};
+const Sounds: React.FC<{e: Entry; mute?: boolean}> = ({e, mute}) => {
+  const c = React.useContext(SfxCtx);
+  return mute ? null : <>{(e.sfx || []).map(([t, n, v = 0.8], i) => <Sequence key={i} from={Math.round(t * FPS)} durationInFrames={f(1.5)} layout="none"><Audio src={asset(SFX(n))} volume={sfxVol(c, t, v * 0.9)} /></Sequence>)}</>;
+};
 
 const TrDemo: React.FC<{dur: number}> = ({dur}) => (
   <>
@@ -105,8 +117,8 @@ export const Catalog: React.FC<CatalogProps> = (props) => {
     <AbsoluteFill className="dl-root" style={{background: C.PAPER}}>
       <DEFAULT_BG dur={total + 1} />
       {items.map((it, k) => it.kind === 'ch'
-        ? <Sequence key={k} from={f(it.at)} durationInFrames={f(CH)}><Chapter title={CATS.find((c) => c.cat === it.cat)!.title} sub={CATS.find((c) => c.cat === it.cat)!.sub} n={it.n} codes={it.codes} i={CATS.findIndex((c) => c.cat === it.cat) + 1} of={CATS.length} />{props.mute ? null : <Audio src={asset(SFX('swish'))} volume={0.5} />}</Sequence>
-        : <Sequence key={k} from={f(it.at)} durationInFrames={f(it.e.dur)}><EntryView e={it.e} mute={props.mute} demo /><Label e={it.e} idx={props.codes?.length ? it.idx : LIB.indexOf(it.e) + 1} total={props.codes?.length ? count : LIB.length} /></Sequence>)}
+        ? <Sequence key={k} from={f0(it.at)} durationInFrames={f(CH)}><Chapter title={CATS.find((c) => c.cat === it.cat)!.title} sub={CATS.find((c) => c.cat === it.cat)!.sub} n={it.n} codes={it.codes} i={CATS.findIndex((c) => c.cat === it.cat) + 1} of={CATS.length} />{props.mute ? null : <Audio src={asset(SFX('swish'))} volume={0.5} />}</Sequence>
+        : <Sequence key={k} from={f0(it.at)} durationInFrames={f(it.e.dur)}><EntryView e={it.e} mute={props.mute} demo /><Label e={it.e} idx={props.codes?.length ? it.idx : LIB.indexOf(it.e) + 1} total={props.codes?.length ? count : LIB.length} /></Sequence>)}
     </AbsoluteFill>
   );
 };
@@ -120,7 +132,7 @@ export const Preview: React.FC<PreviewProps> = ({code, props, loops = 2}) => {
   return (
     <AbsoluteFill className="dl-root" style={{background: C.PAPER}}>
       <DEFAULT_BG dur={e.dur * loops} />
-      {Array.from({length: loops}, (_, i) => <Sequence key={i} from={f(i * e.dur)} durationInFrames={f(e.dur)}><EntryView e={e} props={props} demo /><Label e={e} idx={1} total={1} /></Sequence>)}
+      {Array.from({length: loops}, (_, i) => <Sequence key={i} from={f0(i * e.dur)} durationInFrames={f(e.dur)}><EntryView e={e} props={props} demo /><Label e={e} idx={1} total={1} /></Sequence>)}
     </AbsoluteFill>
   );
 };
@@ -133,7 +145,7 @@ export const Preview: React.FC<PreviewProps> = ({code, props, loops = 2}) => {
 export type Place = 'full' | 'top' | 'mid' | 'bottom' | 'left' | 'right' | 'tl' | 'tr' | 'bl' | 'br' | [number, number];
 export type Layer = {push?: number; fp?: number[]; card?: boolean; skip?: number; words?: string[]; code: string; at: number; dur?: number; props?: Record<string, unknown>; mute?: boolean; place?: Place; size?: number; z?: number; bare?: boolean};
 export type ReelSpec = {dur: number; bg?: string; music?: string; musics?: {src: string; at: number; from?: number; vol?: number}[]; musicVol?: number; musicFrom?: number; vo?: string; voVol?: number;
-  words?: string[]; theme?: Theme; testProps?: boolean; face?: {src: string; segs: FaceSeg[]};
+  words?: string[]; theme?: Theme; testProps?: boolean; face?: {src: string; segs: FaceSeg[]}; speech?: number[][]; sfxGain?: number;
   layers: Layer[]; sfx?: [number, string, number?][]; punches?: number[]};
 export const ZONES: Record<string, [number, number, number, number]> = {
   top: [80, 230, 960, 760], mid: [80, 700, 960, 1240], bottom: [80, 1180, 960, 1580],
@@ -160,7 +172,7 @@ const Placed: React.FC<{l: Layer; k: number; children: React.ReactNode}> = ({l, 
   const bare = l.bare ?? !!pl;
   const iso: React.CSSProperties = {zIndex: k, isolation: 'isolate'};  // jede Ebene eigener Stapel: 3D-Teile einer Bühne können nicht nach oben durchstechen
   const fr = useCurrentFrame(); const pushS = l.push ? 1 + l.push * fr / Math.max(1, f(l.dur ?? 2)) : 1;  // push = langsame Kamerafahrt (Bühne lebt weiter)
-  if (!pl) return <AbsoluteFill className={bare ? 'dl-bare' : undefined} style={{...iso, transform: l.push ? `scale(${pushS})` : undefined}}>{children}</AbsoluteFill>;
+  if (!pl) return <AbsoluteFill className={bare ? 'dl-bare' : undefined} style={{...iso, transform: l.push ? `scale(${pushS}) translateY(${-l.push * 260 * (pushS - 1) / l.push}px) rotate(${(k % 2 ? 1 : -1) * 12 * (pushS - 1)}deg)` : undefined}}>{children}</AbsoluteFill>;
   const [x0, y0, x1, y1] = pl.box;
   return (
     <AbsoluteFill className={bare ? 'dl-bare' : undefined} style={iso}>
@@ -176,6 +188,7 @@ const Punch: React.FC<{punches: number[]; children: React.ReactNode}> = ({punche
   const s = punches.reduce((acc, pt) => { const d = t - pt; return d < 0 || d > 0.35 ? acc : acc + 0.045 * Math.exp(-d * 9); }, 0);
   return <AbsoluteFill style={{transform: `scale(${1 + s})`}}>{children}</AbsoluteFill>;
 };
+const isStage = (l: Layer) => !l.place && !/^(KX|FX|TR|AV|SF)-/.test(l.code);
 export const Reel: React.FC<ReelSpec> = (s) => {
   const bg = s.bg ? byCode(s.bg) : undefined;
   const BGC = bg?.C || DEFAULT_BG;
@@ -185,14 +198,18 @@ export const Reel: React.FC<ReelSpec> = (s) => {
       <BGC {...(bg?.props || {})} dur={s.dur + 1} />
       <Punch punches={s.punches || []}>
         <style>{BARE_CSS}</style>
-        {s.layers.map((l, i) => ({l, i})).sort((a, b) => (a.l.z ?? 0) - (b.l.z ?? 0) || a.i - b.i).map(({l, i}, rank) => { const e = byCode(l.code); if (!e) return null; const d = l.dur ?? e.dur;
-          const sk = l.skip ?? 0;
+        {s.layers.map((l, i) => ({l, i})).sort((a, b) => (a.l.z ?? 0) - (b.l.z ?? 0) || (isStage(a.l) && isStage(b.l) ? a.l.at - b.l.at : 0) || a.i - b.i).map(({l, i}, rank) => { const e = byCode(l.code); if (!e) return null;
+          // Bühnen-Übergabe ohne Weiß-Loch (QA 15.10.): folgt direkt eine neue Bühne, bleibt die alte 0,25 s länger darunter stehen
+          const d0 = l.dur ?? e.dur; const d = (isStage(l) && s.layers.some((o) => o !== l && isStage(o) && Math.abs(o.at - (l.at + d0)) < 0.08) ? d0 + 0.3 : d0) + (l.at + d0 >= s.dur - 0.08 ? 0.5 : 0);  // letzte Ebenen laufen über das Ende → keine Schlussblende/Geistergesicht
+          // Bühne direkt nach Bühne ohne eigenes skip: 0,3 s in die Animation springen – sonst startet sie als leere Fläche (Weiß-Loch)
+          const follows = isStage(l) && s.layers.some((o) => o !== l && isStage(o) && Math.abs(o.at + (o.dur ?? 2) - l.at) < 0.08);
+          const sk = l.skip ?? (follows ? 0.3 : 0);
           // Avatar-Bausteine: Lipsync-Datei + Startzeit automatisch aus spec.face (auch bei skip exakt synchron)
           const fa = s.face && e.cat === 'AV' ? faceAt(s.face, l.at - sk) : null;
           const props = fa ? {...(l.props || {}), src: fa.src, start: fa.start} : l.props;
-          return <Sequence key={i} from={f(l.at)} durationInFrames={f(d)}><ThemeCtx.Provider value={{...(s.theme || {}), words: l.words ?? s.theme?.words ?? s.words}}><WordsCtx.Provider value={l.words ?? s.words ?? s.theme?.words ?? null}><FaceCtx.Provider value={s.face ? {...s.face, at: l.at - sk} : null}><BigFaceCtx.Provider value={!s.face || (!!faceAt(s.face, l.at) && !!faceAt(s.face, l.at + d - 0.05))}><Placed l={l} k={rank}><Sequence from={-Math.round(sk * FPS)} durationInFrames={f(d + sk)} layout="none"><EntryView e={e} props={props} dur={d + sk} mute={l.mute} testWords={s.testProps ? (s.theme?.words || s.words) : undefined} /></Sequence></Placed></BigFaceCtx.Provider></FaceCtx.Provider></WordsCtx.Provider></ThemeCtx.Provider></Sequence>; })}
+          return <Sequence key={i} from={f0(l.at)} durationInFrames={f(d)}><ThemeCtx.Provider value={{...(s.theme || {}), words: l.words ?? s.theme?.words ?? s.words}}><WordsCtx.Provider value={l.words ?? s.words ?? s.theme?.words ?? null}><FaceCtx.Provider value={s.face ? {...s.face, at: l.at - sk} : null}><BigFaceCtx.Provider value={!s.face || (!!faceAt(s.face, l.at) && !!faceAt(s.face, l.at + d - 0.05))}><SfxCtx.Provider value={s.speech ? {speech: s.speech, gain: s.sfxGain ?? 0.5, base: l.at - sk} : null}><Placed l={l} k={rank}><Sequence from={-Math.round(sk * FPS)} durationInFrames={f(d + sk)} layout="none"><EntryView e={e} props={props} dur={d + sk} mute={l.mute} testWords={s.testProps ? (s.theme?.words || s.words) : undefined} /></Sequence></Placed></SfxCtx.Provider></BigFaceCtx.Provider></FaceCtx.Provider></WordsCtx.Provider></ThemeCtx.Provider></Sequence>; })}
       </Punch>
-      {(s.sfx || []).map(([t, n, v = 0.8], i) => <Sequence key={'s' + i} from={f(t)} durationInFrames={f(1.5)} layout="none"><Audio src={asset(SFX(n))} volume={v} /></Sequence>)}
+      {(s.sfx || []).map(([t, n, v = 0.8], i) => <Sequence key={'s' + i} from={f0(t)} durationInFrames={f(1.5)} layout="none"><Audio src={asset(SFX(n))} volume={sfxVol(s.speech ? {speech: s.speech, gain: s.sfxGain ?? 0.5, base: 0} : null, t, v)} /></Sequence>)}
       {s.music ? <Audio src={asset(s.music)} startFrom={Math.round((s.musicFrom ?? 0) * FPS)} loop volume={(fr) => (s.musicVol ?? 0.5) * (voOn ? 0.55 : 1) * interpolate(fr, [f(s.dur) - 20, f(s.dur)], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})} /> : null}
       {/* Musikwechsel: mehrere Betten, harter Wechsel an m.at (3 Frames Überblendung), Ende blendet aus */}
       {(s.musics || []).map((m, i, A) => { const a = f(m.at), b = i < A.length - 1 ? f(A[i + 1].at) + 3 : f(s.dur); const L = b - a; return <Sequence key={'m' + i} from={a} durationInFrames={L} layout="none"><Audio src={asset(m.src)} startFrom={Math.round((m.from ?? 0) * FPS)} loop volume={(fr) => (m.vol ?? s.musicVol ?? 0.5) * (voOn ? 0.55 : 1) * interpolate(fr, [0, 3, L - 3, L], [i ? 0 : 1, 1, 1, i < A.length - 1 ? 0 : 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}) * interpolate(a + fr, [f(s.dur) - 20, f(s.dur)], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})} /></Sequence>; })}

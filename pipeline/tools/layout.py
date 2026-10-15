@@ -43,6 +43,13 @@ def area(a): return max(0, a[2] - a[0]) * max(0, a[3] - a[1])
 
 def check(spec):
     errs = []
+    # Verbotene Bausteine (Leif 14.10. + QA 15.10.): billige Flächen-Wischer, Kreis-/Form-Masken, Strahlen, Schockwellen-Kreise,
+    # Bausteine, die von selbst taktunabhängig Wörter durchrollen (laufen dem VO davon)
+    BANNED = {'KX-04', 'KX-11', 'KX-12', 'KX-13', 'KX-14', 'KX-15', 'KX-16', 'KX-17', 'KX-19', 'KX-20', 'KX-21', 'KX-30', 'TR-02', 'TR-04', 'TR-16',
+              'TR-17', 'TR-18', 'TR-19', 'TR-01', 'TR-08', 'KX-24', 'FX-02', 'FX-19', 'FX-20', 'FX-10', 'FX-16', 'FX-17', 'FX-25', 'KB-07', 'KB-08', 'T-10', 'T-51'}
+    for l in spec['layers']:
+        if l['code'].upper() in BANNED:
+            errs.append(f"{l['code']} @ {l['at']:.1f}s ist gesperrt (billiger Wischer/Kreis/Strahlen oder Wortrolle ohne VO-Takt) – harter Schnitt, Whip (KX-06–09), Blur-Push (TR-14/15) oder Glas (TR-06)")
     L = []
     for i, l in enumerate(spec['layers']):
         box, face, opq = place(l)

@@ -212,6 +212,7 @@ const me = mk('ME', [
   ['Footage-Collage', ME.FootageWall, undefined, 2.0, 'Viele Bilder/Clips als dichte Wand (Bühne)', [[0, 'swipe', 0.4], [0.15, 'tick2', 0.3]]],
   ['Footage-Split', ME.FootageSplit, undefined, 2.0, 'Original vs. Nachbau nebeneinander', [[0.05, 'slide2', 0.4], [0.35, 'pop2', 0.4]]],
   ['Stat-Karte', ME.StatCard, undefined, 2.2, 'Beweis-Zahl mit Logo (Sterne, Nutzer, Umsatz …)', [[0.05, 'swipe', 0.4], [0.15, 'counter', 0.35], [1.3, 'sparkle', 0.4]]],
+  ['Steckdosenleiste', ME.PowerStrip, undefined, 2.0, 'Leitobjekt: Stecker Nr. n steckt ein, Zähler n/total (Plugins, Tools nacheinander)', [[0.05, 'whoosh', 0.35], [0.32, 'snap', 0.6]]],
 ]);
 
 export const CREATOROLY: Entry[] = [...bg, ...S2.bg2, ...tx, ...S2.tx2, ...ui, ...S2.ui2, ...wd, ...S2.wd2, ...d3, ...S2.d32, ...mp, ...S2.mp2, ...da, ...S2.da2, ...fx, ...S2.fx2, ...tr, ...S2.tr2, ...av, ...S2.av2, ...me];

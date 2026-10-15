@@ -1,5 +1,5 @@
 {
- "dur": 36.3,
+ "dur": 34.358,
  "bg": "BG-13",
  "vo": "fast_DeEiGKKIKqB_vo.wav",
  "words": [
@@ -17,15 +17,15 @@
  "theme": {
   "topic": "4 Plugins für Claude Code",
   "words": [
-   "CLAUDE",
-   "PLUGIN",
-   "SKILLS",
-   "GITHUB",
    "SPEC",
    "TESTS",
    "CODE",
+   "SKILLS",
+   "PLUGIN",
    "AGENT",
-   "PROFI",
+   "GITHUB",
+   "CLAUDE",
+   "REGELN",
    "MODELLE"
   ],
   "names": [
@@ -48,96 +48,145 @@
   ],
   "brand": "ULTRA",
   "kw": "PROFI",
-  "views": false
+  "views": false,
+  "emoji": [
+   "laptop",
+   "gear",
+   "high_voltage",
+   "brain",
+   "bullseye",
+   "rocket",
+   "magic_wand",
+   "keyboard",
+   "link"
+  ]
  },
  "face": {
   "src": "face/fast_DeEiGKKIKqB.mp4",
   "segs": [
    [
-    0,
+    0.0,
     3.95,
     0
    ],
    [
-    33.4,
-    36.3,
-    33.4
+    31.551,
+    34.358,
+    33.493
    ]
   ]
  },
  "musics": [
   {
    "src": "music/phonk130.mp3",
-   "at": 0,
+   "at": 0.0,
    "from": 0.93
   },
   {
    "src": "music/dnb174.mp3",
-   "at": 12.15,
+   "at": 11.613,
    "from": 4.0
   },
   {
    "src": "music/techno132.mp3",
-   "at": 26.45,
+   "at": 24.791,
    "from": 10.0
   }
  ],
  "punches": [
-  0,
-  0.84,
+  0.0,
+  0.5,
   1.38,
-  2.02,
+  1.95,
+  2.42,
   2.82,
-  3.1,
-  4.06,
-  4.84,
-  5.68,
-  6.86,
-  7.94,
-  8.92,
-  9.54,
-  10.52,
-  11.2,
-  12.2,
-  13.14,
-  14.48,
-  15.06,
-  15.96,
-  16.86,
-  17.78,
-  18.86,
-  20.4,
-  21.48,
-  22.64,
-  23.8,
-  24.46,
-  25.24,
-  26.52,
-  27.36,
-  28.1,
-  29.48,
-  30.64,
-  31.54,
-  32.58,
-  33.56,
-  34.0,
-  35.24
+  4.0,
+  4.8,
+  5.65,
+  6.32,
+  6.85,
+  7.64,
+  8.21,
+  8.61,
+  9.07,
+  9.536,
+  9.93,
+  10.536,
+  11.03,
+  11.613,
+  12.271,
+  12.97,
+  13.371,
+  13.86,
+  14.232,
+  15.14,
+  15.846,
+  16.81,
+  17.19,
+  17.88,
+  18.43,
+  18.93,
+  19.43,
+  20.115,
+  20.71,
+  21.17,
+  22.127,
+  22.55,
+  22.99,
+  23.427,
+  24.13,
+  24.791,
+  25.599,
+  26.349,
+  26.96,
+  27.56,
+  28.24,
+  28.7,
+  29.44,
+  29.84,
+  30.48,
+  30.88,
+  31.551,
+  32.06,
+  32.5,
+  32.9,
+  33.3
  ],
  "layers": [
   {
    "code": "KC-14",
-   "at": 0,
-   "dur": 2.1,
+   "at": 0.0,
+   "dur": 0.82,
    "skip": 0.35,
    "props": {
     "n": 18,
     "word": "VIBE CODING"
-   }
+   },
+   "push": 0.16,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-03",
+   "at": 0.8,
+   "dur": 1.17,
+   "skip": 0.6,
+   "push": 0.16,
+   "fp": [
+    0,
+    224,
+    1080,
+    1920
+   ]
   },
   {
    "code": "AV-01",
-   "at": 0,
-   "dur": 2.1,
+   "at": 0.0,
+   "dur": 1.97,
    "place": [
     540,
     520
@@ -147,12 +196,18 @@
    "props": {
     "live": false
    },
-   "skip": 0.3
+   "skip": 0.3,
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
   },
   {
    "code": "T-52",
-   "at": 0,
-   "dur": 2.0,
+   "at": 0.0,
+   "dur": 1.95,
    "place": [
     500,
     1420
@@ -162,13 +217,70 @@
    "skip": 0.2,
    "props": {
     "text": "Bevor du vibe-codest …"
-   }
+   },
+   "fp": [
+    164,
+    936,
+    920,
+    1092
+   ]
+  },
+  {
+   "code": "ME-03",
+   "at": 0.45,
+   "dur": 0.9,
+   "place": [
+    540,
+    1150
+   ],
+   "size": 0.38,
+   "z": 5,
+   "props": {
+    "src": "media/DeEiGKKIKqB/logo_claude.svg",
+    "color": "#D97757",
+    "label": "Claude Code"
+   },
+   "fp": [
+    16,
+    348,
+    1064,
+    1412
+   ]
+  },
+  {
+   "code": "ME-07",
+   "at": 1.95,
+   "dur": 1.1,
+   "push": 0.16,
+   "props": {
+    "srcs": [
+     "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+     "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+     "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
+     "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+     "media/DeEiGKKIKqB/logo_claude.svg",
+     "media/DeEiGKKIKqB/logo_github.svg"
+    ],
+    "crops": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   },
   {
    "code": "UI-21",
    "at": 1.95,
-   "dur": 2.4,
-   "push": 0.08,
+   "dur": 1.1,
    "props": {
     "cmd": "/plugin install",
     "out": [
@@ -178,50 +290,151 @@
      "claude-octopus ✓"
     ],
     "bin": "claude"
-   }
+   },
+   "skip": 0.6,
+   "place": [
+    520,
+    900
+   ],
+   "size": 0.7,
+   "z": 3,
+   "fp": [
+    24,
+    520,
+    1056,
+    1368
+   ]
+  },
+  {
+   "code": "3D-27",
+   "at": 3.0,
+   "dur": 1.05,
+   "skip": 0.3,
+   "props": {
+    "titles": [
+     "SUPERPOWERS",
+     "KARPATHY",
+     "I HAVE ADHD",
+     "OCTOPUS"
+    ],
+    "tags": [
+     "Plugin 1",
+     "Plugin 2",
+     "Plugin 3",
+     "Plugin 4"
+    ],
+    "icons": [
+     "high_voltage",
+     "brain",
+     "bullseye",
+     "gear"
+    ],
+    "n": 4
+   },
+   "push": 0.16,
+   "fp": [
+    0,
+    600,
+    1080,
+    1244
+   ]
   },
   {
    "code": "AV-01",
    "at": 1.95,
-   "dur": 2.3,
+   "dur": 2.0,
    "place": [
     200,
     1400
    ],
    "size": 0.27,
-   "z": 4,
+   "z": 5,
    "props": {
     "live": false
-   }
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
   },
   {
    "code": "T-45",
-   "at": 2.05,
-   "dur": 1.9,
+   "at": 2.75,
+   "dur": 1.25,
    "place": "top",
    "size": 1.1,
    "z": 4,
    "props": {
     "text": "4 Plugins"
-   }
+   },
+   "fp": [
+    192,
+    892,
+    900,
+    1064
+   ]
   },
   {
    "code": "ME-05",
    "at": 4.0,
-   "dur": 1.75,
-   "push": 0.08,
+   "dur": 0.8,
+   "push": 0.16,
    "props": {
     "src": "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
-    "url": "github.com/obra/superpowers",
-    "scroll": 0.3,
-    "label": "Plugin 1"
-   }
+    "url": "",
+    "scroll": 0.1,
+    "label": ""
+   },
+   "fp": [
+    60,
+    296,
+    1020,
+    1624
+   ]
+  },
+  {
+   "code": "ME-10",
+   "at": 4.0,
+   "dur": 1.2,
+   "place": [
+    540,
+    560
+   ],
+   "size": 0.9,
+   "z": 4,
+   "props": {
+    "n": 1,
+    "total": 4,
+    "labels": [
+     "SUPERPOWERS",
+     "KARPATHY",
+     "ADHD",
+     "OCTOPUS"
+    ],
+    "colors": [
+     "#FF3B30",
+     "#0A84FF",
+     "#34C759",
+     "#FFCC00"
+    ]
+   },
+   "fp": [
+    32,
+    0,
+    1048,
+    700
+   ]
   },
   {
    "code": "KT-01",
    "at": 4.05,
-   "dur": 1.7,
-   "place": "mid",
+   "dur": 1.6,
+   "place": [
+    500,
+    1240
+   ],
    "z": 3,
    "card": true,
    "props": {
@@ -229,18 +442,49 @@
      "PLUGIN 1",
      "SUPERPOWERS"
     ]
-   }
+   },
+   "size": 0.85,
+   "fp": [
+    0,
+    772,
+    1080,
+    1036
+   ]
   },
   {
-   "code": "KC-06",
-   "at": 5.6,
-   "dur": 2.3,
-   "push": 0.08
+   "code": "ME-05",
+   "at": 4.8,
+   "dur": 0.9,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+    "url": "github.com/obra/superpowers",
+    "scroll": 0.3,
+    "label": "obra/superpowers"
+   },
+   "fp": [
+    60,
+    296,
+    1020,
+    1620
+   ]
+  },
+  {
+   "code": "3D-16",
+   "at": 5.65,
+   "dur": 1.25,
+   "push": 0.16,
+   "fp": [
+    100,
+    460,
+    976,
+    1340
+   ]
   },
   {
    "code": "ME-09",
-   "at": 5.65,
-   "dur": 2.2,
+   "at": 5.7,
+   "dur": 1.941,
    "place": "mid",
    "z": 3,
    "bare": false,
@@ -252,18 +496,110 @@
     "suffix": "",
     "label": "GitHub-Sterne",
     "chip": "obra/superpowers"
-   }
+   },
+   "fp": [
+    108,
+    684,
+    976,
+    1152
+   ]
   },
   {
-   "code": "3D-04",
-   "at": 7.85,
-   "dur": 2.4,
-   "push": 0.08
+   "code": "ME-01",
+   "at": 6.85,
+   "dur": 0.791,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+    "label": "obra/superpowers"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 7.641,
+   "dur": 0.945,
+   "push": 0.16,
+   "skip": 0.4,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+    "label": "obra/superpowers"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 8.536,
+   "dur": 1.05,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+    "label": "Spec zuerst"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-07",
+   "at": 9.536,
+   "dur": 1.05,
+   "push": 0.16,
+   "props": {
+    "srcs": [
+     "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+     "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+     "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
+     "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+     "media/DeEiGKKIKqB/logo_claude.svg",
+     "media/DeEiGKKIKqB/logo_github.svg"
+    ],
+    "crops": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-21",
+   "at": 10.536,
+   "dur": 1.077,
+   "push": 0.16,
+   "skip": 0.4,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   },
   {
    "code": "DA-07",
-   "at": 7.95,
-   "dur": 4.1,
+   "at": 7.641,
+   "dur": 3.972,
    "place": "mid",
    "z": 3,
    "card": true,
@@ -273,45 +609,74 @@
      "Tests",
      "Code"
     ]
-   }
-  },
-  {
-   "code": "UI-22",
-   "at": 10.2,
-   "dur": 2.0,
-   "push": 0.08,
-   "props": {
-    "kw": "spec"
-   }
-  },
-  {
-   "code": "T-20",
-   "at": 10.3,
-   "dur": 1.8,
-   "place": "top",
-   "size": 1.1,
-   "z": 4,
-   "props": {
-    "text": "Erst Spec, dann Code."
-   }
+   },
+   "size": 1.6,
+   "fp": [
+    156,
+    392,
+    508,
+    1460
+   ]
   },
   {
    "code": "ME-05",
-   "at": 12.15,
-   "dur": 2.3,
-   "push": 0.08,
+   "at": 11.613,
+   "dur": 0.708,
+   "push": 0.16,
    "props": {
     "src": "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
-    "url": "github.com/multica-ai/andrej-karpathy-skills",
-    "scroll": 0.3,
-    "label": "Plugin 2"
-   }
+    "url": "",
+    "scroll": 0.1,
+    "label": ""
+   },
+   "fp": [
+    60,
+    300,
+    1020,
+    1628
+   ]
+  },
+  {
+   "code": "ME-10",
+   "at": 11.613,
+   "dur": 1.2,
+   "place": [
+    540,
+    560
+   ],
+   "size": 0.9,
+   "z": 4,
+   "props": {
+    "n": 2,
+    "total": 4,
+    "labels": [
+     "SUPERPOWERS",
+     "KARPATHY",
+     "ADHD",
+     "OCTOPUS"
+    ],
+    "colors": [
+     "#FF3B30",
+     "#0A84FF",
+     "#34C759",
+     "#FFCC00"
+    ]
+   },
+   "fp": [
+    32,
+    0,
+    1048,
+    700
+   ]
   },
   {
    "code": "KT-02",
-   "at": 12.2,
-   "dur": 2.2,
-   "place": "mid",
+   "at": 11.613,
+   "dur": 1.358,
+   "place": [
+    500,
+    1240
+   ],
    "z": 3,
    "card": true,
    "props": {
@@ -320,29 +685,179 @@
      "KARPATHY-SKILLS"
     ],
     "acc": "#FF3B30"
-   }
+   },
+   "size": 0.85,
+   "fp": [
+    0,
+    772,
+    1080,
+    1136
+   ]
   },
   {
-   "code": "KC-19",
-   "at": 14.4,
-   "dur": 6.9,
-   "push": 0.06
+   "code": "ME-05",
+   "at": 12.271,
+   "dur": 1.15,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+    "url": "github.com/multica-ai/andrej-karpathy-skills",
+    "scroll": 0.3,
+    "label": "Karpathy-Skills"
+   },
+   "fp": [
+    60,
+    296,
+    1020,
+    1620
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 13.371,
+   "dur": 0.911,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+    "label": "CLAUDE.md"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   },
   {
    "code": "T-52",
-   "at": 14.5,
-   "dur": 2.3,
+   "at": 13.632,
+   "dur": 2.214,
    "place": "top",
    "size": 1.1,
    "z": 4,
    "props": {
     "text": "1 CLAUDE.md · 4 Regeln"
-   }
+   },
+   "fp": [
+    156,
+    932,
+    924,
+    1092
+   ]
+  },
+  {
+   "code": "KC-11",
+   "at": 14.232,
+   "dur": 1.614,
+   "props": {},
+   "push": 0.16,
+   "words": [
+    "CLAUDE.md",
+    "REGELN",
+    "DENKEN",
+    "SIMPEL",
+    "ZIEL",
+    "KARPATHY"
+   ],
+   "fp": [
+    104,
+    380,
+    1036,
+    1492
+   ]
+  },
+  {
+   "code": "KC-05",
+   "at": 15.846,
+   "dur": 1.034,
+   "skip": 0.6,
+   "push": 0.16,
+   "words": [
+    "CLAUDE.md",
+    "REGELN",
+    "DENKEN",
+    "SIMPEL",
+    "ZIEL",
+    "KARPATHY"
+   ],
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 16.83,
+   "dur": 1.1,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+    "label": "Karpathy-Skills"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "3D-10",
+   "at": 17.88,
+   "dur": 1.1,
+   "push": 0.16,
+   "skip": 0.4,
+   "words": [
+    "CLAUDE.md",
+    "REGELN",
+    "DENKEN",
+    "SIMPEL",
+    "ZIEL",
+    "KARPATHY"
+   ],
+   "fp": [
+    0,
+    600,
+    1080,
+    1612
+   ]
+  },
+  {
+   "code": "ME-07",
+   "at": 18.93,
+   "dur": 1.185,
+   "push": 0.16,
+   "props": {
+    "srcs": [
+     "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+     "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+     "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
+     "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+     "media/DeEiGKKIKqB/logo_claude.svg",
+     "media/DeEiGKKIKqB/logo_github.svg"
+    ],
+    "crops": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   },
   {
    "code": "KD-17",
-   "at": 16.8,
-   "dur": 4.4,
+   "at": 15.88,
+   "dur": 4.235,
    "place": "mid",
    "z": 3,
    "card": true,
@@ -350,28 +865,77 @@
     "items": [
      "Erst denken",
      "Simpel bleiben",
-     "Nur ändern, was gefragt ist",
+     "Nur Gefragtes ändern",
      "Ziel prüfen"
     ]
-   }
+   },
+   "size": 1.6,
+   "fp": [
+    148,
+    400,
+    864,
+    1500
+   ]
   },
   {
    "code": "ME-05",
-   "at": 21.35,
-   "dur": 2.3,
-   "push": 0.08,
+   "at": 20.115,
+   "dur": 0.612,
+   "push": 0.16,
    "props": {
     "src": "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
-    "url": "github.com/ayghri/i-have-adhd",
-    "scroll": 0.3,
-    "label": "Plugin 3"
-   }
+    "url": "",
+    "scroll": 0.1,
+    "label": ""
+   },
+   "fp": [
+    60,
+    300,
+    1020,
+    1636
+   ]
+  },
+  {
+   "code": "ME-10",
+   "at": 20.115,
+   "dur": 1.2,
+   "place": [
+    540,
+    560
+   ],
+   "size": 0.9,
+   "z": 4,
+   "props": {
+    "n": 3,
+    "total": 4,
+    "labels": [
+     "SUPERPOWERS",
+     "KARPATHY",
+     "ADHD",
+     "OCTOPUS"
+    ],
+    "colors": [
+     "#FF3B30",
+     "#0A84FF",
+     "#34C759",
+     "#FFCC00"
+    ]
+   },
+   "fp": [
+    32,
+    0,
+    1048,
+    700
+   ]
   },
   {
    "code": "KT-03",
-   "at": 21.4,
-   "dur": 2.2,
-   "place": "mid",
+   "at": 20.115,
+   "dur": 1.212,
+   "place": [
+    500,
+    1240
+   ],
    "z": 3,
    "card": true,
    "props": {
@@ -379,43 +943,147 @@
      "PLUGIN 3",
      "I HAVE ADHD"
     ]
-   }
+   },
+   "size": 0.85,
+   "fp": [
+    84,
+    772,
+    1000,
+    1032
+   ]
   },
   {
-   "code": "3D-09",
-   "at": 23.6,
-   "dur": 2.85,
-   "push": 0.08
+   "code": "ME-05",
+   "at": 20.727,
+   "dur": 1.4,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
+    "url": "github.com/ayghri/i-have-adhd",
+    "scroll": 0.3,
+    "label": "i-have-adhd"
+   },
+   "fp": [
+    64,
+    296,
+    1016,
+    1616
+   ]
+  },
+  {
+   "code": "KC-12",
+   "at": 22.127,
+   "dur": 1.3,
+   "push": 0.16,
+   "skip": 0.7,
+   "words": [
+    "KEIN GELABER",
+    "AKTION",
+    "FOKUS",
+    "ADHD",
+    "ZUERST"
+   ],
+   "fp": [
+    68,
+    380,
+    1036,
+    1492
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 23.427,
+   "dur": 1.35,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
+    "label": "i-have-adhd"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   },
   {
    "code": "T-28",
-   "at": 23.75,
-   "dur": 2.6,
+   "at": 22.277,
+   "dur": 2.45,
    "place": "mid",
    "z": 3,
    "card": true,
    "props": {
     "wrong": "Gute Frage! Hoffe, das hilft.",
     "text": "Nächste Aktion zuerst."
-   }
+   },
+   "size": 1.6,
+   "fp": [
+    148,
+    856,
+    920,
+    1076
+   ]
   },
   {
    "code": "ME-05",
-   "at": 26.4,
-   "dur": 1.8,
-   "push": 0.08,
+   "at": 24.791,
+   "dur": 0.808,
+   "push": 0.16,
    "props": {
     "src": "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
-    "url": "github.com/nyldn/claude-octopus",
-    "scroll": 0.3,
-    "label": "Plugin 4"
-   }
+    "url": "",
+    "scroll": 0.1,
+    "label": ""
+   },
+   "fp": [
+    60,
+    296,
+    1020,
+    1624
+   ]
+  },
+  {
+   "code": "ME-10",
+   "at": 24.791,
+   "dur": 1.2,
+   "place": [
+    540,
+    560
+   ],
+   "size": 0.9,
+   "z": 4,
+   "props": {
+    "n": 4,
+    "total": 4,
+    "labels": [
+     "SUPERPOWERS",
+     "KARPATHY",
+     "ADHD",
+     "OCTOPUS"
+    ],
+    "colors": [
+     "#FF3B30",
+     "#0A84FF",
+     "#34C759",
+     "#FFCC00"
+    ]
+   },
+   "fp": [
+    32,
+    0,
+    1048,
+    700
+   ]
   },
   {
    "code": "KT-04",
-   "at": 26.45,
-   "dur": 1.75,
-   "place": "mid",
+   "at": 24.791,
+   "dur": 1.408,
+   "place": [
+    500,
+    1240
+   ],
    "z": 3,
    "card": true,
    "props": {
@@ -424,55 +1092,228 @@
      "CLAUDE",
      "OCTOPUS"
     ]
-   }
+   },
+   "size": 0.85,
+   "fp": [
+    236,
+    772,
+    848,
+    1104
+   ]
   },
   {
-   "code": "3D-25",
-   "at": 28.05,
-   "dur": 2.7,
-   "push": 0.08
+   "code": "ME-05",
+   "at": 25.599,
+   "dur": 0.8,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+    "url": "github.com/nyldn/claude-octopus",
+    "scroll": 0.3,
+    "label": "claude-octopus"
+   },
+   "fp": [
+    60,
+    296,
+    1020,
+    1624
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 26.349,
+   "dur": 1.25,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+    "label": "claude-octopus"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   },
   {
    "code": "T-52",
-   "at": 28.2,
-   "dur": 2.5,
+   "at": 26.449,
+   "dur": 1.6,
    "place": "top",
    "size": 1.15,
    "z": 4,
    "props": {
-    "text": "Bis zu 12 Modelle"
-   }
+    "text": "12 KI-Anbieter"
+   },
+   "fp": [
+    248,
+    928,
+    832,
+    1096
+   ]
+  },
+  {
+   "code": "ME-07",
+   "at": 27.599,
+   "dur": 1.3,
+   "push": 0.16,
+   "props": {
+    "srcs": [
+     "media/DeEiGKKIKqB/shot_gh_obra_superpowers.png",
+     "media/DeEiGKKIKqB/shot_gh_forrestchang_andrej-karpathy-skills.png",
+     "media/DeEiGKKIKqB/shot_gh_ayghri_i-have-adhd.png",
+     "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+     "media/DeEiGKKIKqB/logo_claude.svg",
+     "media/DeEiGKKIKqB/logo_github.svg"
+    ],
+    "crops": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-01",
+   "at": 28.899,
+   "dur": 0.95,
+   "push": 0.16,
+   "props": {
+    "src": "media/DeEiGKKIKqB/shot_gh_nyldn_claude-octopus.png",
+    "label": "claude-octopus"
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "T-45",
+   "at": 28.999,
+   "dur": 0.8,
+   "place": "mid",
+   "size": 1.0,
+   "z": 4,
+   "props": {
+    "text": "Codex · Copilot · Grok"
+   },
+   "card": true,
+   "fp": [
+    216,
+    928,
+    868,
+    1000
+   ]
   },
   {
    "code": "KC-26",
-   "at": 30.65,
-   "dur": 2.85,
-   "push": 0.08
+   "at": 29.799,
+   "dur": 0.9,
+   "push": 0.16,
+   "words": [
+    "CODEX",
+    "COPILOT",
+    "GROK",
+    "GEMINI",
+    "12 ANBIETER",
+    "QWEN"
+   ],
+   "fp": [
+    84,
+    348,
+    948,
+    1696
+   ]
   },
   {
    "code": "T-14",
-   "at": 31.5,
-   "dur": 1.9,
+   "at": 29.849,
+   "dur": 1.6,
    "place": "mid",
    "size": 1.1,
    "z": 4,
    "props": {
     "text": "Wo sie sich widersprechen"
-   }
+   },
+   "fp": [
+    164,
+    932,
+    916,
+    1092
+   ]
   },
   {
    "code": "KC-36",
-   "at": 33.35,
-   "dur": 2.95,
-   "push": 0.06,
+   "at": 31.551,
+   "dur": 1.157,
+   "push": 0.16,
    "props": {
     "label": "4 Links"
-   }
+   },
+   "words": [
+    "CODEX",
+    "COPILOT",
+    "GROK",
+    "GEMINI",
+    "12 ANBIETER",
+    "QWEN"
+   ],
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "3D-27",
+   "at": 32.658,
+   "dur": 0.9,
+   "skip": 0.3,
+   "props": {
+    "titles": [
+     "SUPERPOWERS",
+     "KARPATHY",
+     "I HAVE ADHD",
+     "OCTOPUS"
+    ],
+    "tags": [
+     "Link 1",
+     "Link 2",
+     "Link 3",
+     "Link 4"
+    ],
+    "icons": [
+     "high_voltage",
+     "brain",
+     "bullseye",
+     "gear"
+    ],
+    "n": 4
+   },
+   "push": 0.16,
+   "fp": [
+    0,
+    600,
+    1080,
+    1248
+   ]
   },
   {
    "code": "AV-01",
-   "at": 33.4,
-   "dur": 2.9,
+   "at": 31.551,
+   "dur": 2.807,
    "place": [
     540,
     600
@@ -481,247 +1322,135 @@
    "z": 4,
    "props": {
     "live": false
-   }
+   },
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
   },
   {
    "code": "UI-46",
-   "at": 33.6,
+   "at": 31.658,
    "dur": 2.7,
    "place": "bottom",
    "z": 3,
    "props": {
     "kw": "PROFI"
-   }
+   },
+   "fp": [
+    80,
+    748,
+    992,
+    1224
+   ]
   },
   {
-   "code": "KX-04",
-   "at": 3.85,
-   "dur": 0.45,
-   "z": 9
-  },
-  {
-   "code": "KX-16",
-   "at": 12.0,
-   "dur": 0.45,
-   "z": 9
-  },
-  {
-   "code": "TR-01",
-   "at": 21.2,
-   "dur": 0.45,
-   "z": 9
-  },
-  {
-   "code": "KX-23",
-   "at": 26.25,
-   "dur": 0.45,
-   "z": 9
-  },
-  {
-   "code": "KX-29",
-   "at": 33.2,
-   "dur": 0.45,
-   "z": 9
-  },
-  {
-   "code": "FX-10",
+   "code": "FX-03",
    "at": 4.0,
    "dur": 1.0,
-   "z": 2
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 11.671,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 20.194,
+   "dur": 0.833,
+   "z": 2,
+   "fp": [
+    220,
+    452,
+    888,
+    1372
+   ]
+  },
+  {
+   "code": "FX-03",
+   "at": 24.799,
+   "dur": 1.0,
+   "z": 2,
+   "fp": [
+    216,
+    452,
+    888,
+    1372
+   ]
   },
   {
    "code": "FX-21",
    "at": 6.6,
-   "dur": 1.2,
-   "z": 2
-  },
-  {
-   "code": "FX-03",
-   "at": 12.3,
-   "dur": 1.2,
-   "z": 2
-  },
-  {
-   "code": "FX-10",
-   "at": 16.8,
    "dur": 1.0,
-   "z": 2
-  },
-  {
-   "code": "FX-03",
-   "at": 21.5,
-   "dur": 1.2,
-   "z": 2
-  },
-  {
-   "code": "FX-25",
-   "at": 23.8,
-   "dur": 1.0,
-   "z": 2
-  },
-  {
-   "code": "FX-10",
-   "at": 26.5,
-   "dur": 1.0,
-   "z": 2
-  },
-  {
-   "code": "FX-21",
-   "at": 28.6,
-   "dur": 1.2,
-   "z": 2
-  },
-  {
-   "code": "FX-16",
-   "at": 30.7,
-   "dur": 1.4,
-   "z": 1
+   "z": 2,
+   "fp": [
+    208,
+    452,
+    968,
+    1508
+   ]
   },
   {
    "code": "FX-11",
-   "at": 33.4,
-   "dur": 2.8,
-   "z": 1
+   "at": 31.551,
+   "dur": 2.707,
+   "z": 1,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   },
   {
-   "code": "T-01",
-   "at": 9.0,
-   "dur": 1.1,
-   "place": "bottom",
-   "size": 1.0,
-   "z": 4,
-   "props": {
-    "text": "Tests zuerst."
-   }
+   "code": "KC-01",
+   "at": 33.55,
+   "dur": 0.82,
+   "skip": 0.5,
+   "push": 0.16,
+   "fp": [
+    0,
+    136,
+    1080,
+    1920
+   ]
   },
   {
-   "code": "T-01",
-   "at": 19.0,
-   "dur": 1.2,
-   "place": "top",
-   "size": 1.0,
-   "z": 4,
-   "props": {
-    "text": "Weniger Code."
-   }
-  },
-  {
-   "code": "ME-03",
-   "at": 0.45,
-   "dur": 1.2,
-   "place": [
-    540,
-    1150
-   ],
-   "size": 0.38,
-   "z": 5,
-   "props": {
-    "src": "media/DeEiGKKIKqB/logo_claude.svg",
-    "color": "#D97757",
-    "label": "Claude Code"
-   }
-  },
-  {
-   "code": "ME-03",
-   "at": 5.0,
-   "dur": 0.6,
-   "place": [
-    860,
-    330
-   ],
-   "size": 0.3,
-   "z": 5,
-   "props": {
-    "src": "media/DeEiGKKIKqB/logo_github.svg",
-    "color": "#181717",
-    "label": "GitHub"
-   }
-  },
-  {
-   "code": "T-01",
-   "at": 13.1,
-   "dur": 1.1,
-   "place": "top",
-   "size": 1.0,
-   "z": 4,
-   "props": {
-    "text": "Karpathy."
-   }
-  },
-  {
-   "code": "FX-03",
-   "at": 14.5,
-   "dur": 1.2,
-   "z": 2
-  },
-  {
-   "code": "FX-10",
-   "at": 18.86,
-   "dur": 0.9,
-   "z": 2
-  },
-  {
-   "code": "FX-10",
-   "at": 20.4,
-   "dur": 0.9,
-   "z": 2
-  },
-  {
-   "code": "T-01",
-   "at": 22.2,
-   "dur": 1.2,
-   "place": "top",
-   "size": 1.0,
-   "z": 4,
-   "props": {
-    "text": "Kein Gelaber."
-   }
-  },
-  {
-   "code": "FX-03",
-   "at": 25.2,
-   "dur": 1.0,
-   "z": 2
-  },
-  {
-   "code": "T-01",
-   "at": 27.3,
-   "dur": 0.75,
-   "place": "top",
-   "size": 1.0,
-   "z": 4,
-   "props": {
-    "text": "Octopus."
-   }
-  },
-  {
-   "code": "FX-10",
-   "at": 29.5,
-   "dur": 0.9,
-   "z": 2
-  },
-  {
-   "code": "FX-21",
-   "at": 31.6,
-   "dur": 1.3,
-   "z": 2
-  },
-  {
-   "code": "FX-03",
-   "at": 34.0,
-   "dur": 1.4,
-   "z": 2
-  },
-  {
-   "code": "T-45",
+   "code": "KC-17",
    "at": 30.7,
-   "dur": 0.8,
-   "place": "top",
-   "size": 1.0,
-   "z": 4,
-   "props": {
-    "text": "Codex · Copilot · Grok"
-   }
+   "dur": 0.85,
+   "skip": 0.4,
+   "push": 0.16,
+   "words": [
+    "CODEX",
+    "COPILOT",
+    "GROK",
+    "GEMINI",
+    "12 ANBIETER",
+    "QWEN"
+   ],
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
   }
  ]
 }

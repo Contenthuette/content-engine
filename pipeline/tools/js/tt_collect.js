@@ -1,5 +1,5 @@
 // TikTok-Tag-Seiten rendern (headless Chromium) und Video-Links einsammeln.
-// node pipeline/tools/js/tt_collect.js <out.json> <tag> [<tag> …]   (Tag ohne #)
+// node pipeline/tools/js/tt_collect.js <out.json> <tag> [<tag> …]   (Tag ohne #; „d:slug“ = Discover-Seite)
 const {chromium} = require('playwright-core');
 const fs = require('fs');
 const EXE = process.env.CHROME_FULL || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
@@ -11,7 +11,7 @@ const EXE = process.env.CHROME_FULL || '/opt/pw-browsers/chromium-1194/chrome-li
   const p = await ctx.newPage();
   const res = {};
   for (const t of tags) {
-    const u = `https://www.tiktok.com/tag/${encodeURIComponent(t)}`;
+    const u = t.startsWith('d:') ? `https://www.tiktok.com/discover/${t.slice(2)}` : `https://www.tiktok.com/tag/${encodeURIComponent(t)}`;
     try {
       await p.goto(u, {waitUntil: 'domcontentloaded', timeout: 45000});
       await p.waitForTimeout(5000);

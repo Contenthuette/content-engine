@@ -1,5 +1,5 @@
 {
- "dur": 27.5,
+ "dur": 26.273,
  "bg": "BG-06",
  "vo": "fast_DeHUaCoPFTV_vo_n16.wav",
  "words": [
@@ -53,89 +53,184 @@
   ],
   "brand": "ULTRA",
   "kw": "PLUGIN",
-  "views": false
+  "views": false,
+  "emoji": [
+   "money_bag",
+   "megaphone",
+   "chart_increasing",
+   "memo",
+   "bar_chart",
+   "speech_balloon",
+   "package",
+   "handshake",
+   "pencil"
+  ]
  },
  "face": {
   "src": "face/fast_DeHUaCoPFTV.mp4",
   "segs": [
    [
-    0,
-    4.8,
+    0.0,
+    3.4,
     0
    ],
    [
-    24.4,
-    27.45,
-    24.4
+    23.261,
+    26.223,
+    24.488
    ]
   ]
  },
  "musics": [
   {
-   "src": "music/popfunk118.mp3",
-   "at": 0,
+   "src": "music/popfunk118_bed.mp3",
+   "at": 0.0,
    "from": 0.05,
-   "vol": 0.256
+   "vol": 0.29
   },
   {
-   "src": "music/electro126.mp3",
-   "at": 13.46,
+   "src": "music/electro126_bed.mp3",
+   "at": 12.942,
    "from": 8.0,
-   "vol": 0.254
+   "vol": 0.282
   }
  ],
+ "sfx": [
+  [
+   9.32,
+   "deep:boom",
+   0.8
+  ]
+ ],
  "punches": [
-  0,
+  0.0,
   0.38,
   0.82,
-  1.5,
-  2.56,
+  1.45,
+  1.88,
+  2.5,
   3.02,
-  3.76,
-  4.32,
-  5.04,
-  5.7,
-  6.34,
-  6.98,
-  7.44,
-  8.1,
-  8.52,
-  9.64,
-  10.56,
-  10.96,
-  11.54,
-  12.32,
-  13.46,
-  13.86,
-  14.42,
-  14.9,
-  15.48,
-  15.98,
-  16.42,
-  16.82,
-  17.22,
-  18.2,
-  18.7,
-  19.18,
-  19.66,
-  20.08,
-  21.2,
-  21.62,
-  22.08,
-  22.62,
-  23.26,
-  23.74,
-  24.5,
-  24.98,
-  25.44,
-  25.92,
-  26.6
+  3.7,
+  4.08,
+  4.686,
+  5.267,
+  5.907,
+  6.547,
+  7.21,
+  7.717,
+  8.15,
+  8.567,
+  9.317,
+  10.267,
+  10.73,
+  11.31,
+  12.09,
+  12.47,
+  12.88,
+  13.34,
+  13.9,
+  14.38,
+  14.882,
+  15.28,
+  15.9,
+  16.3,
+  16.7,
+  17.41,
+  17.96,
+  18.41,
+  18.92,
+  19.31,
+  20.237,
+  20.69,
+  21.15,
+  21.69,
+  22.33,
+  22.81,
+  23.261,
+  23.75,
+  24.21,
+  24.623,
+  25.37
  ],
  "layers": [
   {
+   "code": "KC-03",
+   "at": 0.0,
+   "dur": 0.86,
+   "skip": 0.6,
+   "push": 0.14,
+   "fp": [
+    0,
+    208,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "ME-03",
+   "at": 0.38,
+   "dur": 0.24,
+   "place": [
+    540,
+    1000
+   ],
+   "size": 0.55,
+   "z": 3,
+   "skip": 0,
+   "props": {
+    "src": "media/DeHUaCoPFTV/logo_anthropic.svg",
+    "color": "#FFFFFF",
+    "label": "Anthropic"
+   },
+   "fp": [
+    224,
+    580,
+    856,
+    1220
+   ]
+  },
+  {
+   "code": "AV-01",
+   "at": 0.0,
+   "dur": 2.55,
+   "place": [
+    540,
+    520
+   ],
+   "size": 0.5,
+   "z": 5,
+   "props": {
+    "live": false
+   },
+   "skip": 0.3,
+   "fp": [
+    100,
+    376,
+    980,
+    1484
+   ]
+  },
+  {
+   "code": "KC-14",
+   "at": 0.82,
+   "dur": 0.68,
+   "skip": 0.25,
+   "props": {
+    "n": 18,
+    "word": "OPEN SOURCE"
+   },
+   "push": 0.14,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
    "code": "3D-27",
-   "at": 0,
-   "dur": 2.7,
+   "at": 1.45,
+   "dur": 1.1,
    "skip": 0.35,
    "props": {
     "titles": [
@@ -159,8 +254,20 @@
      "Plugin",
      "Plugin",
      "Plugin"
+    ],
+    "icons": [
+     "money_bag",
+     "megaphone",
+     "chart_increasing",
+     "memo",
+     "bar_chart",
+     "speech_balloon",
+     "package",
+     "handshake",
+     "pencil"
     ]
    },
+   "push": 0.14,
    "fp": [
     0,
     600,
@@ -169,52 +276,30 @@
    ]
   },
   {
-   "code": "AV-01",
-   "at": 0,
-   "dur": 2.62,
-   "place": [
-    540,
-    560
-   ],
-   "size": 0.46,
-   "z": 4,
-   "props": {
-    "live": false
-   },
-   "skip": 0.3,
-   "fp": [
-    100,
-    376,
-    980,
-    1484
-   ]
-  },
-  {
    "code": "T-52",
-   "at": 0,
-   "dur": 2.55,
+   "at": 1.55,
+   "dur": 0.85,
    "place": [
     500,
     1420
    ],
    "size": 1.1,
-   "z": 5,
-   "skip": 0.2,
+   "z": 6,
    "props": {
-    "text": "Gratis-Plugins für deinen Job"
+    "text": "Plugins für deinen Job"
    },
    "fp": [
-    188,
-    944,
-    896,
-    1080
+    180,
+    936,
+    900,
+    1092
    ]
   },
   {
    "code": "ME-05",
    "at": 2.5,
-   "dur": 2.55,
-   "push": 0.08,
+   "dur": 1.25,
+   "push": 0.14,
    "props": {
     "src": "media/DeHUaCoPFTV/shot_gh_kwp.png",
     "url": "github.com/anthropics/knowledge-work-plugins",
@@ -222,22 +307,22 @@
     "label": "Offiziell von Anthropic"
    },
    "fp": [
-    64,
+    60,
     296,
-    1016,
-    1616
+    1020,
+    1620
    ]
   },
   {
    "code": "AV-01",
    "at": 2.52,
-   "dur": 2.28,
+   "dur": 0.88,
    "place": [
-    200,
-    1400
+    860,
+    560
    ],
    "size": 0.27,
-   "z": 4,
+   "z": 5,
    "props": {
     "live": false
    },
@@ -245,19 +330,19 @@
     100,
     376,
     980,
-    1484
+    1488
    ]
   },
   {
    "code": "ME-03",
    "at": 2.66,
-   "dur": 1.4,
+   "dur": 1.0,
    "place": [
-    540,
-    520
+    640,
+    1080
    ],
-   "size": 0.55,
-   "z": 3,
+   "size": 0.45,
+   "z": 4,
    "props": {
     "src": "media/DeHUaCoPFTV/logo_claude.svg",
     "color": "#D97757",
@@ -271,22 +356,14 @@
    ]
   },
   {
-   "code": "ME-01",
-   "at": 4.95,
-   "dur": 3.05,
-   "push": 0.08,
+   "code": "KC-35",
+   "at": 7.717,
+   "dur": 0.9,
+   "push": 0.14,
    "props": {
-    "src": "media/DeHUaCoPFTV/clip_table.mp4",
-    "crop": {
-     "x": 0,
-     "y": 60,
-     "w": 720,
-     "h": 420,
-     "W": 720,
-     "H": 1280
-    },
-    "label": "Ein Plugin pro Job"
+    "rows": 6
    },
+   "skip": 0.6,
    "fp": [
     0,
     0,
@@ -295,61 +372,43 @@
    ]
   },
   {
-   "code": "T-10",
-   "at": 5.04,
-   "dur": 2.95,
+   "code": "ME-02",
+   "at": 7.767,
+   "dur": 0.85,
    "place": "mid",
    "z": 3,
-   "card": true,
    "props": {
-    "lead": "Für",
-    "words": [
-     "Sales",
-     "Marketing",
-     "Finance",
-     "Legal"
-    ]
+    "src": "media/DeHUaCoPFTV/shot_gh_sales.png",
+    "label": "Jedes Plugin: eigene Skills"
    },
    "fp": [
-    196,
-    644,
-    796,
-    1036
+    84,
+    420,
+    1004,
+    1524
    ]
   },
   {
-   "code": "3D-10",
-   "at": 7.9,
-   "dur": 1.75,
+   "code": "KC-37",
+   "at": 9.317,
+   "dur": 1.0,
+   "props": {
+    "n": 18,
+    "word": "DAS BESTE?"
+   },
+   "skip": 0.15,
+   "push": 0.14,
    "fp": [
     0,
-    592,
+    0,
     1080,
-    1608
-   ]
-  },
-  {
-   "code": "T-03",
-   "at": 8.1,
-   "dur": 1.45,
-   "place": "top",
-   "size": 1.1,
-   "z": 3,
-   "props": {
-    "text": "Eigene Skills.",
-    "mode": "up"
-   },
-   "fp": [
-    220,
-    908,
-    864,
-    1028
+    1920
    ]
   },
   {
    "code": "ME-08",
-   "at": 9.5,
-   "dur": 2.0,
+   "at": 10.267,
+   "dur": 1.2,
    "props": {
     "a": "media/DeHUaCoPFTV/clip_graph.mp4",
     "b": "media/DeHUaCoPFTV/clip_flow.mp4",
@@ -372,23 +431,24 @@
     "la": "Anthropic-Team",
     "lb": "Workflow"
    },
+   "push": 0.14,
    "fp": [
     40,
-    440,
+    436,
     1040,
     1336
    ]
   },
   {
    "code": "ME-07",
-   "at": 11.35,
-   "dur": 2.05,
+   "at": 11.417,
+   "dur": 1.467,
    "props": {
     "srcs": [
      "media/DeHUaCoPFTV/clip_graph.mp4",
      "media/DeHUaCoPFTV/clip_flow.mp4",
      "media/DeHUaCoPFTV/clip_table.mp4",
-     "media/DeHUaCoPFTV/clip_sales.mp4",
+     "media/DeHUaCoPFTV/shot_gh_sales.png",
      "media/DeHUaCoPFTV/clip_sheet.mp4",
      "media/DeHUaCoPFTV/shot_gh_kwp.png"
     ],
@@ -417,14 +477,7 @@
       "W": 720,
       "H": 1280
      },
-     {
-      "x": 0,
-      "y": 120,
-      "w": 720,
-      "h": 360,
-      "W": 720,
-      "H": 1280
-     },
+     null,
      {
       "x": 0,
       "y": 130,
@@ -436,6 +489,7 @@
      null
     ]
    },
+   "push": 0.14,
    "fp": [
     0,
     0,
@@ -444,37 +498,14 @@
    ]
   },
   {
-   "code": "T-52",
-   "at": 11.5,
-   "dur": 1.75,
-   "place": "mid",
-   "size": 1.2,
-   "z": 3,
+   "code": "KC-35",
+   "at": 13.432,
+   "dur": 1.5,
+   "push": 0.14,
    "props": {
-    "text": "So arbeitet Anthropic selbst"
+    "rows": 6
    },
-   "fp": [
-    188,
-    944,
-    892,
-    1080
-   ]
-  },
-  {
-   "code": "3D-14",
-   "at": 13.3,
-   "dur": 2.3,
-   "push": 0.08,
-   "words": [
-    "SALES",
-    "LEADS",
-    "CALLS",
-    "OUTREACH",
-    "PIPELINE",
-    "CRM",
-    "DEALS",
-    "SALES"
-   ],
+   "skip": 0.6,
    "fp": [
     0,
     0,
@@ -483,41 +514,33 @@
    ]
   },
   {
-   "code": "ME-02",
-   "at": 13.45,
-   "dur": 2.05,
+   "code": "UI-09",
+   "at": 13.532,
+   "dur": 1.5,
    "place": "top",
-   "z": 3,
+   "z": 4,
    "props": {
-    "src": "media/DeHUaCoPFTV/clip_sales.mp4",
-    "crop": {
-     "x": 0,
-     "y": 120,
-     "w": 720,
-     "h": 360,
-     "W": 720,
-     "H": 1280
-    },
-    "label": "Sales-Plugin"
+    "title": "Sales-Plugin",
+    "body": "Leads recherchiert ✓"
    },
    "fp": [
-    76,
-    680,
-    1004,
-    1260
+    48,
+    248,
+    1032,
+    396
    ]
   },
   {
    "code": "UI-17",
-   "at": 15.3,
-   "dur": 2.85,
+   "at": 14.882,
+   "dur": 2.525,
    "place": "mid",
    "z": 3,
    "props": {
     "items": [
-     "Leads recherchiert",
-     "Call vorbereitet",
-     "Outreach-Mail geschrieben"
+     "Leads",
+     "Calls",
+     "Outreach-Mail"
     ]
    },
    "fp": [
@@ -528,157 +551,31 @@
    ]
   },
   {
-   "code": "3D-06",
-   "at": 15.45,
-   "dur": 2.7,
-   "push": 0.08,
-   "props": {
-    "titles": [
-     "Lead A",
-     "Lead B",
-     "Lead C",
-     "Lead D",
-     "Lead E",
-     "Lead F",
-     "Lead G"
-    ]
-   },
-   "fp": [
-    0,
-    600,
-    1080,
-    1248
-   ]
-  },
-  {
-   "code": "T-13",
-   "at": 15.5,
-   "dur": 2.5,
-   "place": "top",
-   "size": 1.2,
-   "z": 3,
-   "props": {
-    "text": "Sales"
-   },
-   "fp": [
-    396,
-    940,
-    684,
-    1088
-   ]
-  },
-  {
-   "code": "ME-07",
-   "at": 18.05,
-   "dur": 3.15,
-   "push": 0.08,
-   "props": {
-    "srcs": [
-     "media/DeHUaCoPFTV/clip_sales.mp4",
-     "media/DeHUaCoPFTV/clip_sheet.mp4",
-     "media/DeHUaCoPFTV/clip_flow.mp4",
-     "media/DeHUaCoPFTV/clip_table.mp4",
-     "media/DeHUaCoPFTV/clip_graph.mp4",
-     "media/DeHUaCoPFTV/shot_gh_sales.png"
-    ],
-    "crops": [
-     {
-      "x": 0,
-      "y": 120,
-      "w": 720,
-      "h": 360,
-      "W": 720,
-      "H": 1280
-     },
-     {
-      "x": 0,
-      "y": 130,
-      "w": 720,
-      "h": 340,
-      "W": 720,
-      "H": 1280
-     },
-     {
-      "x": 0,
-      "y": 150,
-      "w": 720,
-      "h": 520,
-      "W": 720,
-      "H": 1280
-     },
-     {
-      "x": 0,
-      "y": 60,
-      "w": 720,
-      "h": 420,
-      "W": 720,
-      "H": 1280
-     },
-     {
-      "x": 0,
-      "y": 100,
-      "w": 720,
-      "h": 660,
-      "W": 720,
-      "H": 1280
-     },
-     null
-    ]
-   },
-   "fp": [
-    0,
-    0,
-    1080,
-    1920
-   ]
-  },
-  {
-   "code": "UI-35",
-   "at": 18.25,
-   "dur": 2.85,
+   "code": "UI-09",
+   "at": 18.057,
+   "dur": 1.2,
    "place": "mid",
    "z": 3,
+   "props": {
+    "title": "Marketing-Plugin",
+    "body": "Kampagne geplant ✓"
+   },
    "fp": [
-    68,
-    480,
-    1012,
-    1304
+    48,
+    248,
+    1032,
+    396
    ]
   },
   {
-   "code": "T-14",
-   "at": 18.3,
-   "dur": 2.8,
-   "place": "top",
-   "size": 1.15,
-   "z": 3,
+   "code": "KC-35",
+   "at": 20.237,
+   "dur": 1.185,
+   "push": 0.16,
    "props": {
-    "text": "Kampagnen + E-Mail-Sequenzen"
+    "rows": 6
    },
-   "fp": [
-    128,
-    936,
-    956,
-    1092
-   ]
-  },
-  {
-   "code": "ME-01",
-   "at": 21.05,
-   "dur": 1.7,
-   "push": 0.1,
-   "props": {
-    "src": "media/DeHUaCoPFTV/clip_tools.mp4",
-    "crop": {
-     "x": 0,
-     "y": 180,
-     "w": 720,
-     "h": 450,
-     "W": 720,
-     "H": 1280
-    },
-    "label": "Direkt verbunden"
-   },
+   "skip": 0.6,
    "fp": [
     0,
     0,
@@ -687,31 +584,37 @@
    ]
   },
   {
-   "code": "3D-25",
-   "at": 22.6,
-   "dur": 1.95,
-   "push": 0.08,
+   "code": "KC-02",
+   "at": 21.372,
+   "dur": 1.05,
+   "push": 0.14,
+   "props": {
+    "rows": 6
+   },
+   "skip": 0.6,
    "fp": [
     0,
-    688,
+    0,
     1080,
-    1328
+    1920
    ]
   },
   {
    "code": "ME-04",
-   "at": 22.65,
-   "dur": 1.85,
+   "at": 20.3,
+   "dur": 2.0,
    "place": "mid",
    "z": 3,
+   "card": true,
    "props": {
     "srcs": [
      "media/DeHUaCoPFTV/logo_hubspot.svg",
      "media/DeHUaCoPFTV/logo_notion.svg",
-     "media/DeHUaCoPFTV/logo_claude.svg"
+     "media/DeHUaCoPFTV/logo_slack.svg"
     ],
     "label": "HubSpot · Notion · Slack"
    },
+   "skip": 0.2,
    "fp": [
     112,
     748,
@@ -720,27 +623,63 @@
    ]
   },
   {
-   "code": "3D-16",
-   "at": 24.3,
-   "dur": 3.2,
-   "push": 0.06,
+   "code": "3D-27",
+   "at": 23.261,
+   "dur": 1.36,
+   "skip": 0.6,
+   "props": {
+    "titles": [
+     "SALES",
+     "MARKETING",
+     "FINANCE",
+     "LEGAL",
+     "DATA",
+     "SUPPORT",
+     "PRODUKT",
+     "HR",
+     "DESIGN"
+    ],
+    "tags": [
+     "Plugin",
+     "Plugin",
+     "Plugin",
+     "Plugin",
+     "Plugin",
+     "Plugin",
+     "Plugin",
+     "Plugin",
+     "Plugin"
+    ],
+    "icons": [
+     "money_bag",
+     "megaphone",
+     "chart_increasing",
+     "memo",
+     "bar_chart",
+     "speech_balloon",
+     "package",
+     "handshake",
+     "pencil"
+    ]
+   },
+   "push": 0.14,
    "fp": [
-    108,
-    464,
-    976,
-    1340
+    0,
+    600,
+    1080,
+    1248
    ]
   },
   {
    "code": "AV-01",
-   "at": 24.4,
-   "dur": 3.1,
+   "at": 23.261,
+   "dur": 3.012,
    "place": [
     540,
-    600
+    470
    ],
-   "size": 0.46,
-   "z": 4,
+   "size": 0.4,
+   "z": 5,
    "props": {
     "live": false
    },
@@ -753,13 +692,17 @@
   },
   {
    "code": "UI-46",
-   "at": 24.55,
-   "dur": 2.95,
-   "place": "bottom",
-   "z": 3,
+   "at": 23.373,
+   "dur": 2.9,
+   "place": [
+    500,
+    1080
+   ],
+   "z": 4,
    "props": {
     "kw": "PLUGIN"
    },
+   "size": 0.95,
    "fp": [
     80,
     748,
@@ -768,157 +711,26 @@
    ]
   },
   {
-   "code": "FX-03",
-   "at": 25.0,
-   "dur": 1.6,
-   "z": 2,
-   "fp": [
-    244,
-    444,
-    892,
-    1368
-   ]
-  },
-  {
-   "code": "TR-14",
-   "at": 4.8,
-   "dur": 0.45,
-   "z": 9,
-   "fp": [
-    0,
-    0,
-    1080,
-    1920
-   ]
-  },
-  {
-   "code": "TR-15",
-   "at": 9.35,
-   "dur": 0.45,
-   "z": 9,
-   "fp": [
-    0,
-    0,
-    1080,
-    1920
-   ]
-  },
-  {
-   "code": "TR-10",
-   "at": 13.15,
-   "dur": 0.45,
-   "z": 9,
-   "fp": [
-    0,
-    0,
-    1080,
-    1920
-   ]
-  },
-  {
-   "code": "TR-06",
-   "at": 17.95,
-   "dur": 0.45,
-   "z": 9,
-   "fp": [
-    0,
-    0,
-    1080,
-    1920
-   ]
-  },
-  {
-   "code": "ME-03",
-   "at": 0.05,
-   "dur": 0.95,
-   "place": [
-    540,
-    1150
-   ],
-   "size": 0.4,
-   "z": 5,
-   "props": {
-    "src": "media/DeHUaCoPFTV/logo_anthropic.svg",
-    "color": "#191919",
-    "label": "Anthropic"
-   },
-   "fp": [
-    16,
-    348,
-    1064,
-    1412
-   ]
-  },
-  {
-   "code": "DA-09",
-   "at": 1.5,
-   "dur": 1.05,
-   "place": [
-    540,
-    1150
-   ],
-   "size": 0.4,
-   "z": 5,
-   "props": {
-    "text": "Kostenlos"
-   },
-   "fp": [
-    80,
-    780,
-    1004,
-    1076
-   ]
-  },
-  {
    "code": "FX-21",
-   "at": 1.45,
-   "dur": 1.1,
+   "at": 1.7,
+   "dur": 0.9,
    "z": 2,
    "fp": [
-    212,
-    452,
-    888,
+    208,
+    448,
+    972,
     1512
    ]
   },
   {
    "code": "FX-06",
-   "at": 5.0,
+   "at": 4.767,
    "dur": 1.2,
    "z": 2
   },
   {
    "code": "FX-03",
-   "at": 8.3,
-   "dur": 1.2,
-   "z": 2,
-   "fp": [
-    224,
-    448,
-    888,
-    1364
-   ]
-  },
-  {
-   "code": "T-13",
-   "at": 9.75,
-   "dur": 1.6,
-   "place": "top",
-   "size": 1.1,
-   "z": 3,
-   "props": {
-    "text": "Gebaut wie intern"
-   },
-   "fp": [
-    188,
-    932,
-    896,
-    1096
-   ]
-  },
-  {
-   "code": "FX-03",
-   "at": 11.9,
+   "at": 7.867,
    "dur": 1.2,
    "z": 2,
    "fp": [
@@ -930,57 +742,36 @@
   },
   {
    "code": "FX-03",
-   "at": 16.9,
-   "dur": 0.9,
+   "at": 21.472,
+   "dur": 1.4,
    "z": 2,
    "fp": [
-    216,
+    248,
     448,
     892,
-    1376
+    1364
    ]
   },
   {
-   "code": "FX-16",
-   "at": 18.2,
-   "dur": 1.4,
-   "z": 1,
+   "code": "KC-38",
+   "at": 14.882,
+   "dur": 1.35,
+   "props": {},
+   "push": 0.16,
+   "skip": 0.4,
    "fp": [
-    0,
-    348,
-    1080,
-    1516
+    204,
+    392,
+    1036,
+    1492
    ]
   },
   {
-   "code": "KX-06",
-   "at": 20.95,
-   "dur": 0.45,
-   "z": 9,
-   "fp": [
-    0,
-    136,
-    428,
-    1920
-   ]
-  },
-  {
-   "code": "FX-10",
-   "at": 22.6,
-   "dur": 1.0,
-   "z": 2,
-   "fp": [
-    40,
-    400,
-    1040,
-    1400
-   ]
-  },
-  {
-   "code": "FX-11",
-   "at": 24.4,
-   "dur": 2.8,
-   "z": 1,
+   "code": "KC-16",
+   "at": 16.182,
+   "dur": 1.275,
+   "push": 0.16,
+   "props": {},
    "fp": [
     0,
     0,
@@ -989,70 +780,405 @@
    ]
   },
   {
-   "code": "KX-15",
-   "at": 7.8,
-   "dur": 0.45,
-   "z": 9,
+   "code": "ME-05",
+   "at": 8.567,
+   "dur": 0.85,
+   "push": 0.14,
+   "props": {
+    "src": "media/DeHUaCoPFTV/shot_gh_sales.png",
+    "url": "github.com/anthropics/knowledge-work-plugins",
+    "scroll": 0.3,
+    "label": "Sales-Plugin · Skills"
+   },
    "fp": [
-    136,
-    560,
-    940,
-    1360
+    60,
+    296,
+    1020,
+    1620
    ]
   },
   {
-   "code": "ME-02",
-   "at": 8.0,
+   "code": "UI-09",
+   "at": 0.62,
+   "dur": 0.88,
+   "place": [
+    540,
+    1000
+   ],
+   "z": 6,
+   "props": {
+    "title": "Anthropic",
+    "body": "Neue Claude-Plugins"
+   },
+   "skip": 0.1,
+   "size": 0.85,
+   "fp": [
+    48,
+    248,
+    1032,
+    396
+   ]
+  },
+  {
+   "code": "3D-11",
+   "at": 3.7,
+   "dur": 0.986,
+   "props": {
+    "title": "CLAUDE",
+    "tag": "dein Job-Experte",
+    "icon": "brain",
+    "tint": 0,
+    "float": false
+   },
+   "push": 0.08,
+   "z": 3,
+   "place": [
+    540,
+    930
+   ],
+   "size": 0.95,
+   "fp": [
+    172,
+    424,
+    892,
+    1448
+   ]
+  },
+  {
+   "code": "3D-11",
+   "at": 4.686,
+   "dur": 0.581,
+   "props": {
+    "title": "SALES",
+    "tag": "Plugin",
+    "icon": "money_bag",
+    "tint": 0,
+    "float": false
+   },
+   "push": 0.08,
+   "z": 3,
+   "place": [
+    540,
+    930
+   ],
+   "size": 0.95,
+   "fp": [
+    172,
+    424,
+    892,
+    1444
+   ]
+  },
+  {
+   "code": "3D-11",
+   "at": 5.267,
+   "dur": 0.64,
+   "props": {
+    "title": "MARKETING",
+    "tag": "Plugin",
+    "icon": "megaphone",
+    "tint": 1,
+    "float": false
+   },
+   "push": 0.08,
+   "z": 3,
+   "place": [
+    540,
+    930
+   ],
+   "size": 0.95,
+   "fp": [
+    172,
+    420,
+    892,
+    1448
+   ]
+  },
+  {
+   "code": "3D-11",
+   "at": 5.907,
+   "dur": 0.64,
+   "props": {
+    "title": "FINANCE",
+    "tag": "Plugin",
+    "icon": "chart_increasing",
+    "tint": 2,
+    "float": false
+   },
+   "push": 0.08,
+   "z": 3,
+   "place": [
+    540,
+    930
+   ],
+   "size": 0.95,
+   "fp": [
+    172,
+    420,
+    892,
+    1448
+   ]
+  },
+  {
+   "code": "3D-11",
+   "at": 6.547,
+   "dur": 0.62,
+   "props": {
+    "title": "LEGAL",
+    "tag": "Plugin",
+    "icon": "memo",
+    "tint": 3,
+    "float": false
+   },
+   "push": 0.08,
+   "z": 3,
+   "place": [
+    540,
+    930
+   ],
+   "size": 0.95,
+   "fp": [
+    172,
+    424,
+    892,
+    1448
+   ]
+  },
+  {
+   "code": "3D-11",
+   "at": 12.884,
+   "dur": 0.578,
+   "props": {
+    "title": "SALES",
+    "tag": "recherchiert Leads",
+    "icon": "money_bag",
+    "tint": 0,
+    "float": false
+   },
+   "z": 3,
+   "place": [
+    540,
+    930
+   ],
+   "fp": [
+    172,
+    424,
+    892,
+    1444
+   ]
+  },
+  {
+   "code": "3D-11",
+   "at": 17.407,
+   "dur": 0.65,
+   "props": {
+    "title": "MARKETING",
+    "tag": "plant Kampagnen",
+    "icon": "megaphone",
+    "tint": 1,
+    "float": false
+   },
+   "z": 3,
+   "place": [
+    540,
+    930
+   ],
+   "fp": [
+    172,
+    424,
+    892,
+    1448
+   ]
+  },
+  {
+   "code": "KC-33",
+   "at": 22.372,
+   "dur": 0.889,
+   "push": 0.16,
+   "props": {},
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-01",
+   "at": 24.623,
+   "dur": 1.65,
+   "props": {},
+   "skip": 0.5,
+   "push": 0.14,
+   "fp": [
+    0,
+    140,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-03",
+   "at": 3.7,
    "dur": 1.6,
+   "skip": 0.6,
+   "push": 0.14,
+   "fp": [
+    0,
+    220,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-01",
+   "at": 5.27,
+   "dur": 2.45,
+   "skip": 0.6,
+   "push": 0.14,
+   "fp": [
+    0,
+    312,
+    1080,
+    1792
+   ]
+  },
+  {
+   "code": "KC-03",
+   "at": 12.88,
+   "dur": 0.55,
+   "skip": 0.6,
+   "push": 0.14,
+   "fp": [
+    0,
+    212,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-33",
+   "at": 17.41,
+   "dur": 1.0,
+   "skip": 0.4,
+   "push": 0.16,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-02",
+   "at": 18.41,
+   "dur": 0.9,
+   "skip": 0.4,
+   "push": 0.16,
+   "props": {
+    "rows": 6
+   },
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "KC-17",
+   "at": 19.31,
+   "dur": 0.93,
+   "skip": 0.4,
+   "push": 0.16,
+   "fp": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  {
+   "code": "UI-09",
+   "at": 19.3,
+   "dur": 0.94,
    "place": "mid",
    "z": 3,
    "props": {
-    "src": "media/DeHUaCoPFTV/shot_gh_sales.png",
-    "label": "Sales-Plugin: eigene Skills"
+    "title": "Marketing-Plugin",
+    "body": "E-Mail-Sequenz ✓"
    },
+   "card": true,
    "fp": [
-    84,
-    420,
-    1004,
-    1524
-   ]
-  },
-  {
-   "code": "FX-16",
-   "at": 13.4,
-   "dur": 1.6,
-   "z": 1,
-   "fp": [
-    0,
-    344,
-    1080,
-    1516
-   ]
-  },
-  {
-   "code": "FX-17",
-   "at": 15.5,
-   "dur": 1.6,
-   "z": 1,
-   "fp": [
-    0,
-    344,
-    1080,
-    1516
-   ]
-  },
-  {
-   "code": "FX-16",
-   "at": 22.7,
-   "dur": 1.6,
-   "z": 1,
-   "fp": [
-    0,
-    344,
-    1080,
-    1516
+    48,
+    248,
+    1032,
+    396
    ]
   }
  ],
- "voVol": 1
+ "voVol": 1,
+ "speech": [
+  [
+   0.0,
+   2.44
+  ],
+  [
+   2.56,
+   4.58
+  ],
+  [
+   4.81,
+   5.13
+  ],
+  [
+   5.47,
+   5.73
+  ],
+  [
+   6.11,
+   6.35
+  ],
+  [
+   6.75,
+   7.45
+  ],
+  [
+   7.87,
+   8.95
+  ],
+  [
+   9.41,
+   9.89
+  ],
+  [
+   10.33,
+   12.71
+  ],
+  [
+   12.94,
+   14.7
+  ],
+  [
+   14.96,
+   17.28
+  ],
+  [
+   17.46,
+   20.1
+  ],
+  [
+   20.27,
+   22.17
+  ],
+  [
+   22.33,
+   23.07
+  ],
+  [
+   23.27,
+   25.67
+  ]
+ ],
+ "sfxGain": 0.5
 }

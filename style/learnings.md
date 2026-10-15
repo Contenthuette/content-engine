@@ -25,3 +25,12 @@
 - TikTok-Tag-Seiten lassen sich headless rendern (ca. 110–150 Videos pro Tag-Seite), Statistik pro Video steht im eingebetteten JSON der Videoseite.
 - Tag-Seiten zeigen eine Mischung aus neu + alt; ≥ 1 Mio in 7 Tagen ist selten pro Tag → Sortierung nach **Views pro Stunde** zeigt, was gerade abhebt.
 - Instagram-Hashtags brauchen Login → Instagram über kuratierte Account-Listen pro Nische (wie scout.py).
+
+## 2026-10-15 03:10 – Instagram-Reels-Signale 2026 (Sekundärquelle posteverywhere.ai, nicht offiziell geprüft)
+- Watch-Time ist Signal Nr. 1: Entscheidung in ~1,7 s, Ziel ≥ 60 % bleiben nach 3 s → Frame 0 muss voll sein (Bug behoben), Hook ≥ 3 Ereignisse bis 1,5 s.
+- Sends pro Reichweite = Signal Nr. 2 (laut Quelle 3–5× so viel wert wie Likes für Nicht-Follower) → CTA-Keyword-DMs passen; „schick das deinem …“-Moment testen.
+- Originalität: ≥ 70 % visuelle Ähnlichkeit = Repost-Flag; 10+ Reposts in 30 Tagen → raus aus Empfehlungen. Fremde Wasserzeichen (TikTok) drücken Reichweite.
+  → Für die geplante Katana-/Seedance-Schiene (virale Edits mit Leif nachbauen): pro Account die Nachbau-Quote niedrig halten, eigene Elemente rein.
+- Länge 15–60 s Sweet Spot; Original-Audio wird bevorzugt.
+- Radar-Befund 15.10.: Viele TikTok-Edits mit 1–5 Mio Views kommen von Mini-Accounts (z. B. @conqr.edits: auf IG 29 Follower). Reichweite hängt am Video, nicht am Account →
+  gut für die 10-Account-Schiene. Dieselben Handles auf Instagram sind meist klein/privat → IG-Radar braucht eigene, kuratierte Seiten-Liste.

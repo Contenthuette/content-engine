@@ -11,7 +11,26 @@ export type Crop = {x: number; y: number; w: number; h: number; W: number; H: nu
 const isVid = (s: string) => /\.(mp4|webm|mov|m4v)$/i.test(s);
 
 // Füllt die Box (cover) mit Bild/Video, optional nur mit dem Ausschnitt `crop`; zoom = zusätzlicher Ken-Burns-Faktor
-export const MediaFill: React.FC<{src: string; start?: number; crop?: Crop; zoom?: number; rate?: number; pos?: string}> = ({src, start = 0, crop, zoom = 1, rate = 1, pos = '50% 50%'}) => {
+// aspect = Breite/Höhe der Box. Mit aspect wird ein Ausschnitt NIE verzerrt (QA 15.10.: Quer-Crops wurden hochkant gestaucht):
+//   mode 'cover' → Ausschnitt mittig auf das Box-Format beschnitten (bleibt innerhalb des Crops, also keine Gesichter/Captions)
+//   mode 'fit'   → Ausschnitt scharf und unverzerrt in voller Breite, darüber/darunter dieselbe Szene weichgezeichnet (Reel-Look)
+export const MediaFill: React.FC<{src: string; start?: number; crop?: Crop; zoom?: number; rate?: number; pos?: string; aspect?: number; mode?: 'cover' | 'fit'}> = ({src, start = 0, crop, zoom = 1, rate = 1, pos = '50% 50%', aspect, mode = 'cover'}) => {
+  if (crop && aspect) {
+    const ca = crop.w / crop.h, r = ca / aspect;
+    if (mode === 'fit' && (r > 1.25 || r < 0.8)) {
+      const fg: React.CSSProperties = r > 1 ? {left: 0, right: 0, top: `${(1 - 1 / r) * 50}%`, height: `${100 / r}%`} : {top: 0, bottom: 0, left: `${(1 - r) * 50}%`, width: `${100 * r}%`};
+      return (
+        <div style={{position: 'absolute', inset: 0, overflow: 'hidden'}}>
+          <div style={{position: 'absolute', inset: '-8%', filter: 'blur(38px) brightness(.62) saturate(1.2)'}}><MediaFill src={src} start={start} crop={crop} rate={rate} /></div>
+          <div style={{position: 'absolute', ...fg, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,.45)'}}><MediaFill src={src} start={start} crop={crop} rate={rate} zoom={zoom} /></div>
+        </div>
+      );
+    }
+    if (Math.abs(r - 1) > 0.02) {  // cover: Crop auf Box-Format verkleinern (mittig)
+      const c2 = r > 1 ? {...crop, x: crop.x + (crop.w - crop.h * aspect) / 2, w: crop.h * aspect} : {...crop, y: crop.y + (crop.h - crop.w / aspect) / 2, h: crop.w / aspect};
+      return <MediaFill src={src} start={start} crop={c2} zoom={zoom} rate={rate} pos={pos} />;
+    }
+  }
   const media = (style: React.CSSProperties) => isVid(src)
     ? <OffthreadVideo src={asset(src)} muted startFrom={Math.round(start * 30)} playbackRate={rate} style={style} />
     : <Img src={asset(src)} style={style} />;
@@ -39,9 +58,9 @@ export const FootageFull: React.FC<MP & {push?: number}> = ({src = DEF, start, c
   const t = useT();
   return (
     <AbsoluteFill style={{background: '#0B0B0F', opacity: fade(t, dur)}}>
-      <MediaFill src={src} start={start} crop={crop} rate={rate} zoom={1 + push * (t / Math.max(dur, 0.1)) + 0.04 * (1 - p(t, 0, 0.3))} />
+      <MediaFill src={src} start={start} crop={crop} rate={rate} aspect={1080 / 1920} mode="fit" zoom={1 + push * (t / Math.max(dur, 0.1)) + 0.04 * (1 - p(t, 0, 0.3))} />
       <AbsoluteFill style={{background: 'radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0,0,0,.35))'}} />
-      <Label t={t} text={label} y={1380} />
+      <Label t={t} text={label} y={1340} />
     </AbsoluteFill>
   );
 };
@@ -55,7 +74,7 @@ export const FootageCard: React.FC<MP & {w?: number; h?: number}> = ({src = DEF,
     <AbsoluteFill style={{opacity: fade(t, dur), perspective: 1600}}>
       <div style={{position: 'absolute', left: 540 - w / 2, top: 900 - hh / 2, width: w, height: hh, borderRadius: 44, overflow: 'hidden', background: '#111', boxShadow: '0 40px 100px rgba(10,15,40,.35), 0 0 0 2px rgba(255,255,255,.7)',
         transform: `rotateX(${lerp(k, 28, 0) + wob(t, 1, 1.5)}deg) rotateY(${wob(t, 2, 2.5)}deg) translateY(${lerp(k, 260, 0)}px) scale(${lerp(k, 0.85, 1)})`}}>
-        <MediaFill src={src} start={start} crop={crop} rate={rate} zoom={1 + 0.05 * t / Math.max(dur, 0.1)} />
+        <MediaFill src={src} start={start} crop={crop} rate={rate} aspect={w / hh} zoom={1 + 0.05 * t / Math.max(dur, 0.1)} />
       </div>
       <Label t={t} text={label} y={900 + hh / 2 + 40} />
     </AbsoluteFill>
@@ -110,7 +129,7 @@ export const ShotScroll: React.FC<Base & {src?: string; url?: string; scroll?: n
           <Img src={asset(src)} style={{width: W, transform: `translateY(${-lerp(p(t, 0.35, Math.max(0.4, dur - 0.5), (x) => x), 0, 1) * scroll * 100}%)`}} />
         </div>
       </div>
-      <Label t={t} text={label} y={1440} />
+      <Label t={t} text={label} y={1350} />
     </AbsoluteFill>
   );
 };
@@ -119,11 +138,26 @@ export const ShotScroll: React.FC<Base & {src?: string; url?: string; scroll?: n
 export const FootagePhone: React.FC<MP> = ({src = DEF, start, crop, label, rate, dur}) => {
   const t = useT();
   const k = p(t, 0, 0.5, EXPO);
+  // Quer-Ausschnitt (Desktop-Screen) → iPhone liegt quer, Screen füllt das Display (QA 15.10.: hochkant blieb ⅔ graue Fläche)
+  if (crop && crop.w / crop.h > 1.2) {
+    const PW = 940, PH = 510;
+    return (
+      <AbsoluteFill style={{opacity: fade(t, dur), perspective: 1800}}>
+        <div style={{position: 'absolute', left: 540 - PW / 2, top: 900 - PH / 2, width: PW, height: PH, borderRadius: 80, background: '#0B0B0F', padding: 18, boxSizing: 'border-box', boxShadow: '0 60px 140px rgba(10,15,40,.4)', transform: `rotateX(${lerp(k, 30, 6)}deg) rotateZ(${lerp(k, -8, -2)}deg) translateY(${lerp(k, 300, 0)}px) scale(${lerp(k, 0.8, 1) + 0.04 * t / Math.max(dur, 0.1)})`}}>
+          <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 64, overflow: 'hidden', background: '#111'}}>
+            <MediaFill src={src} start={start} crop={crop} rate={rate} aspect={(PW - 36) / (PH - 36)} />
+            <div style={{position: 'absolute', top: '50%', left: 20, width: 44, height: 150, marginTop: -75, borderRadius: 22, background: '#000'}} />
+          </div>
+        </div>
+        <Label t={t} text={label} y={1250} />
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill style={{opacity: fade(t, dur), perspective: 1800}}>
       <div style={{position: 'absolute', left: 540 - 300, top: 260, width: 600, height: 1240, borderRadius: 86, background: '#0B0B0F', padding: 18, boxSizing: 'border-box', boxShadow: '0 60px 140px rgba(10,15,40,.4)', transform: `rotateY(${lerp(k, -40, -10) + wob(t, 1, 3)}deg) rotateX(${lerp(k, 18, 4)}deg) translateY(${lerp(k, 200, 0)}px)`}}>
         <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 70, overflow: 'hidden', background: '#111'}}>
-          <MediaFill src={src} start={start} crop={crop} rate={rate} />
+          <MediaFill src={src} start={start} crop={crop} rate={rate} aspect={564 / 1204} mode="fit" />
           <div style={{position: 'absolute', left: '50%', top: 22, width: 170, height: 48, marginLeft: -85, borderRadius: 24, background: '#000'}} />
         </div>
       </div>
@@ -141,7 +175,7 @@ export const FootageWall: React.FC<Base & {srcs?: string[]; crops?: (Crop | unde
       <div style={{position: 'absolute', left: 540, top: 900, transformStyle: 'preserve-3d', transform: `rotateX(16deg) rotateZ(-10deg) translateY(${-t * 60}px) scale(${1.15 + 0.05 * t})`}}>
         {Array.from({length: cols * rows}, (_, i) => { const c = i % cols, r = Math.floor(i / cols); const j = i % srcs.length; const k = pop(t, (c + r) * 0.04, 0.3);
           return <div key={i} style={{position: 'absolute', left: (c - (cols - 1) / 2) * (W + 26) - W / 2, top: (r - (rows - 1) / 2) * (H + 26) - H / 2, width: W, height: H, borderRadius: 26, overflow: 'hidden', background: '#111', boxShadow: '0 20px 50px rgba(10,15,40,.25)', transform: `scale(${k})`}}>
-            <MediaFill src={srcs[j]} crop={crops[j]} start={(i * 0.37) % 2} /></div>; })}
+            <MediaFill src={srcs[j]} crop={crops[j]} start={(i * 0.37) % 2} aspect={W / H} /></div>; })}
       </div>
       <Label t={t} text={label} y={1400} />
     </AbsoluteFill>
@@ -154,7 +188,7 @@ export const FootageSplit: React.FC<Base & {a?: string; b?: string; cropA?: Crop
   const k = p(t, 0, 0.45, EXPO);
   const card = (src: string, crop: Crop | undefined, x: number, rot: number, lab: string, i: number) => (
     <div style={{position: 'absolute', left: x, top: 520, width: 440, height: 760, transform: `translateY(${lerp(k, i ? 500 : -500, 0)}px) rotate(${rot}deg)`}}>
-      <div style={{position: 'absolute', inset: 0, borderRadius: 36, overflow: 'hidden', background: '#111', boxShadow: '0 30px 80px rgba(10,15,40,.3)'}}><MediaFill src={src} crop={crop} /></div>
+      <div style={{position: 'absolute', inset: 0, borderRadius: 36, overflow: 'hidden', background: '#111', boxShadow: '0 30px 80px rgba(10,15,40,.3)'}}><MediaFill src={src} crop={crop} aspect={440 / 760} mode="fit" /></div>
       <div style={{position: 'absolute', left: 0, right: 0, top: -70, display: 'flex', justifyContent: 'center'}}><div style={{background: i ? C.GREEN : C.INK, color: '#fff', borderRadius: 24, padding: '8px 26px 12px', ...disp(800, 40, -0.01), transform: `scale(${pop(t, 0.3 + i * 0.12, 0.25)})`}}>{lab}</div></div>
     </div>
   );
@@ -185,6 +219,44 @@ export const StatCard: React.FC<Base & {from?: number; src?: string; to?: number
       </div>
       {Array.from({length: 9}, (_, i) => { const a = (i / 9) * Math.PI * 2 + t * 0.6; const r = 300 + (i % 3) * 25; const tw = 0.5 + 0.5 * Math.sin(t * 5 + i * 1.7);
         return <div key={i} style={{position: 'absolute', left: 540 + Math.cos(a) * r - 24, top: 920 + Math.sin(a) * r * 0.55 - 24, fontSize: 48, color, opacity: done * tw, transform: `scale(${0.6 + tw * 0.6})`}}>✦</div>; })}
+    </AbsoluteFill>
+  );
+};
+
+// ME-10 Steckdosenleiste (seit 15.10.): durchgehendes Leitobjekt für „X Tools/Plugins nacheinander“ – Leiste mit `total` Steckplätzen,
+// beim Einstieg steckt Stecker Nr. `n` ein (Pop + LED + Zähler „PLUGINS n/total“). In jedem Beat erneut setzen (n = 1, 2, 3 …), im CTA n = total.
+export const PowerStrip: React.FC<Base & {n?: number; total?: number; labels?: string[]; colors?: string[]; title?: string}> = ({n = 1, total = 4, labels = [], colors = [C.RED, C.BLUE, C.GREEN, C.SUN, '#AF52DE', '#FF9500'], title = 'PLUGINS', dur}) => {
+  const t = useT();
+  const W = 940, H = 230, x0 = 540 - W / 2, y0 = 360;
+  const gap = W / total;
+  const plugK = p(t, 0.05, 0.28, EXPO);          // neuer Stecker fährt rein
+  const hit = p(t, 0.3, 0.12);                     // Einrasten
+  const shake = Math.exp(-Math.max(0, t - 0.33) * 14) * (t > 0.33 ? 1 : 0);
+  const shown = (i: number) => i < n - 1 ? 1 : i === n - 1 ? plugK : 0;
+  const cnt = t < 0.33 ? n - 1 : n;
+  return (
+    <AbsoluteFill style={{opacity: fade(t, dur)}}>
+      <div style={{position: 'absolute', left: x0, top: y0, width: W, height: H, borderRadius: 48, background: 'linear-gradient(180deg,#FFFFFF,#E4E6EC)',
+        boxShadow: '0 30px 80px rgba(0,0,0,.55), inset 0 -6px 0 rgba(0,0,0,.08)', transform: `translateY(${shake * 10}px) rotate(${shake * 1.2}deg)`}}>
+        {Array.from({length: total}, (_, i) => { const cx = gap * (i + 0.5); const on = i < cnt; const k = shown(i); const col = colors[i % colors.length];
+          return <React.Fragment key={i}>
+            <div style={{position: 'absolute', left: cx - 62, top: 52, width: 124, height: 124, borderRadius: 62, background: '#D5D8E0', boxShadow: 'inset 0 6px 14px rgba(0,0,0,.25)'}}>
+              <div style={{position: 'absolute', left: 38, top: 50, width: 14, height: 26, borderRadius: 7, background: '#3A3D46'}} /><div style={{position: 'absolute', right: 38, top: 50, width: 14, height: 26, borderRadius: 7, background: '#3A3D46'}} />
+            </div>
+            <div style={{position: 'absolute', left: cx - 10, top: 196, width: 20, height: 10, borderRadius: 5, background: on ? '#34C759' : '#B8BCC6', boxShadow: on ? '0 0 18px #34C759' : 'none'}} />
+            {k > 0 ? <div style={{position: 'absolute', left: cx - 70, top: lerp(k, -420, 30) + (i === n - 1 ? -hit * 6 : 0), width: 140}}>
+              <div style={{position: 'absolute', left: 58, bottom: 150, width: 24, height: 700, background: col, borderRadius: 12, filter: 'brightness(.8)'}} />
+              <div style={{width: 140, height: 160, borderRadius: 34, background: col, boxShadow: `0 16px 40px ${col}88, inset 0 3px 0 rgba(255,255,255,.35)`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <div style={{...disp(900, 30, -0.02), color: col === C.SUN ? C.INK : '#fff', textAlign: 'center', padding: 8, lineHeight: 1.05}}>{(labels[i] || '').slice(0, 14)}</div>
+              </div>
+            </div> : null}
+          </React.Fragment>; })}
+      </div>
+      <div style={{position: 'absolute', left: 0, right: 0, top: y0 + H + 34, display: 'flex', justifyContent: 'center'}}>
+        <div style={{background: C.INK, color: '#fff', borderRadius: 30, padding: '10px 30px 14px', ...disp(800, 46, -0.01), transform: `scale(${1 + 0.18 * Math.exp(-Math.max(0, t - 0.33) * 8) * (t > 0.33 ? 1 : 0)})`}}>
+          {title} <span style={{color: cnt >= total ? '#34C759' : C.SUN, fontVariantNumeric: 'tabular-nums'}}>{cnt}/{total}</span>
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };

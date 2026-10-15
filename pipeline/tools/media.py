@@ -48,9 +48,13 @@ def shot(id_, url, name, mobile=False, full=False, dark=False):
       const ctx=await b.newContext(mobile==='1'?{viewport:{width:430,height:932},deviceScaleFactor:3,isMobile:true,colorScheme:dark==='1'?'dark':'light'}:{viewport:{width:1280,height:1600},deviceScaleFactor:2,colorScheme:dark==='1'?'dark':'light'});
       const p=await ctx.newPage();await p.goto(url,{waitUntil:'networkidle',timeout:45000}).catch(()=>{});await p.waitForTimeout(1200);
       await p.addStyleTag({content:'header.AppHeader,.js-cookie-consent-banner,#cookie-banner,[class*=cookie]{display:none!important}'}).catch(()=>{});
+      const txt=(await p.title()+' '+await p.evaluate(()=>document.body?document.body.innerText.slice(0,3000):'')).toLowerCase();
+      if(/been blocked|just a moment|attention required|verify you are human|access denied|captcha/.test(txt)){console.error('BLOCKIERT: Seite zeigt Bot-Schutz statt Inhalt');await b.close();process.exit(3);}
       await p.screenshot({path:out,fullPage:full==='1'});await b.close();})().catch(e=>{console.error(e.message);process.exit(1)});"""
     d = outdir(id_); f = os.path.join(d, f'shot_{name}.png')
-    subprocess.run(['node', '-e', js, url, f, '1' if mobile else '0', '1' if full else '0', '1' if dark else '0', CHROME], cwd=ROOT, check=True)
+    r = subprocess.run(['node', '-e', js, url, f, '1' if mobile else '0', '1' if full else '0', '1' if dark else '0', CHROME], cwd=ROOT)
+    if r.returncode == 3: sys.exit('✗ Bot-Schutz-Seite (Cloudflare o. ä.) statt Inhalt – andere URL/Quelle nehmen')
+    if r.returncode: sys.exit('✗ Screenshot fehlgeschlagen')
     print(f'✓ Screenshot: {rel(f)}'); return rel(f)
 
 

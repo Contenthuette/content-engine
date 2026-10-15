@@ -358,7 +358,7 @@ Code: `ultra-engine/src/lib/` (Register `registry.tsx`, Stufe 2 `registry_c2.tsx
 | AV-19 | Polaroid „Tag 1“ | Anfang der Reise | 2.0 s | 9:11 |
 | AV-20 | Polaroid „Damals.“ | Rückblick | 2.0 s | 9:13 |
 
-## Eigenes Material – Footage, Logos, Screenshots pro Video (ME-01 – ME-09) · seit 14.10.
+## Eigenes Material – Footage, Logos, Screenshots pro Video (ME-01 – ME-10) · seit 14.10.
 
 Material beschaffen: `python3 pipeline/tools/media.py logo|shot|clip|file …` → `public/media/<id>/…`, im Schnittplan als `src`/`srcs`/`crop` übergeben.
 
@@ -373,6 +373,7 @@ Material beschaffen: `python3 pipeline/tools/media.py logo|shot|clip|file …` �
 | ME-07 | Footage-Collage | Viele Bilder/Clips als dichte Wand, Bühne (srcs, crops) | 2.0 s | – |
 | ME-08 | Footage-Split | Original vs. Nachbau (a, b, cropA, cropB, la, lb) | 2.0 s | – |
 | ME-09 | Stat-Karte | Beweis-Zahl mit Logo (src, to, prefix, suffix, label, chip, icon, color) | 2.2 s | – |
+| ME-10 | Steckdosenleiste | Leitobjekt „x von n“: Stecker Nr. n steckt ein, Zähler PLUGINS n/total (n, total, labels, colors, title) – in jedem Beat neu setzen | 2.0 s | – |
 
 ## Kleinecke · Typo – Laut, schnell, Ebenen (KT-01 – KT-45) · ab 9:15
 

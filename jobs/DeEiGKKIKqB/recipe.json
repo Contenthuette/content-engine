@@ -4,7 +4,7 @@
  "format": "breaking",
  "concept": "4 Plugins wie eine Installations-Liste: jedes Plugin bekommt seinen Titel-Schlag, echten Repo-Screen und seinen Effekt",
  "structure": "hook-warnung / terminal 4x install / plugin 1-4 je titel+beweis+nutzen / cta-keyword",
- "hook": "KC-14+AV-01+T-52",
+ "hook": "KC-14+KC-03+AV-01+UI-21+3D-27",
  "palette": "breaking-rot-bunt",
  "beds": [
   "phonk130",
@@ -12,20 +12,22 @@
   "techno132"
  ],
  "materials": [
-  "3D-04",
-  "3D-09",
-  "3D-25",
+  "3D-10",
+  "3D-16",
+  "3D-27",
   "AV-01",
   "DA-07",
   "FX-03",
-  "FX-10",
   "FX-11",
-  "FX-16",
   "FX-21",
-  "FX-25",
-  "KC-06",
+  "KC-01",
+  "KC-03",
+  "KC-05",
+  "KC-11",
+  "KC-12",
   "KC-14",
-  "KC-19",
+  "KC-17",
+  "KC-21",
   "KC-26",
   "KC-36",
   "KD-17",
@@ -33,25 +35,24 @@
   "KT-02",
   "KT-03",
   "KT-04",
+  "ME-01",
   "ME-03",
   "ME-05",
+  "ME-07",
   "ME-09",
-  "T-01",
+  "ME-10",
   "T-14",
-  "T-20",
   "T-28",
   "T-45",
   "T-52",
   "UI-21",
-  "UI-22",
   "UI-46"
  ],
  "transitions": [
-  "KX-04",
-  "KX-16",
-  "TR-01",
-  "KX-23",
-  "KX-29"
+  "hard-cut",
+  "punch",
+  "push-in",
+  "stage-hold"
  ],
  "effects": [
   "punch",
@@ -59,5 +60,5 @@
   "card",
   "burst"
  ],
- "leitidee": "Installations-Liste: 4 Plugins werden nacheinander installiert, jedes mit Beweis"
+ "leitidee": "Steckdosenleiste: 4 Stecker, jedes Plugin steckt ein (PLUGINS 1/4 → 4/4) – Leitidee des Originals übernommen"
 }

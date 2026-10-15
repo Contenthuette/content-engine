@@ -4,6 +4,7 @@ import {AbsoluteFill} from 'remotion';
 import {Base, C, ACCENTS, disp, serif, useT, p, lerp, cl, rnd, EXPO, EIN, SPRING, INOUT, SOFT, outK, AppIcon, Glyph, Ring, useTheme, tpick} from './core';
 import {Blobs} from './bg';
 import {WidgetFace, WKind} from './widgets';
+import {Emoji} from './lk/kit';
 
 const fade = (t: number, dur: number) => 1 - outK(t, dur);
 // Schriftgröße so wählen, dass ein Wort in die Breite w passt (lange Themen-Wörter)
@@ -83,7 +84,7 @@ export const Carousel: React.FC<Base & {kinds?: WKind[]}> = ({kinds = WK, dur}) 
   );
 };
 // Cover-Flow: Karten in einer Reihe, mittlere frontal
-export const CoverFlow: React.FC<Base & {n?: number; titles?: string[]; tags?: string[]}> = ({n = 7, titles, tags, dur}) => {
+export const CoverFlow: React.FC<Base & {n?: number; titles?: string[]; tags?: string[]; icons?: string[]}> = ({n = 7, titles, tags, icons, dur}) => {
   const t = useT();
   const th = useTheme();
   const hasW = !!(th.words && th.words.length);
@@ -95,7 +96,7 @@ export const CoverFlow: React.FC<Base & {n?: number; titles?: string[]; tags?: s
         const tag = tags?.[i] ?? (hasW ? nn(i) : ['clean', 'bold', 'soft', 'loud', 'calm', 'pop', 'raw'][i % 7]);
         return <div key={i} style={{position: 'absolute', left: 540 - 220, top: 900 - 300, width: 440, height: 600, borderRadius: 40, overflow: 'hidden', transform: `translateX(${d * 260 + Math.sign(d) * 80 * Math.min(1, ad)}px) translateZ(${-ad * 220}px) rotateY(${-Math.sign(d) * Math.min(1, ad) * 55}deg)`, zIndex: 100 - Math.round(ad * 10), boxShadow: '0 40px 80px rgba(20,30,70,.25)',
           background: `linear-gradient(160deg, ${['#EAF2FF', '#FFECEC', '#E9FBF2'][i % 3]}, #fff)`}}>
-          <div style={{position: 'absolute', left: 40, top: 40}}><AppIcon i={i} size={110} /></div>
+          <div style={{position: 'absolute', left: 40, top: 40}}>{icons?.[i] ? <DeckIcon n={icons[i]} size={110} /> : <AppIcon i={i} size={110} />}</div>
           <div style={{position: 'absolute', left: 40, bottom: 50, ...disp(800, fit(ttl, 64, 360), -0.04), color: C.INK, whiteSpace: 'nowrap'}}>{ttl}</div>
           <div style={{position: 'absolute', left: 40, bottom: 120, ...serif(fit(tag, 48, 360, 0.45)), color: C.GREY, whiteSpace: 'nowrap'}}>{tag}</div>
         </div>; })}
@@ -171,16 +172,29 @@ export const IsoGrid: React.FC<Base> = ({dur}) => {
   );
 };
 // Karte kippt mit Parallax (Vorder-/Hintergrund-Ebenen)
-export const TiltCard: React.FC<Base & {title?: string}> = ({title: tp, dur}) => {
+// Deck-Icon: Emoji auf weißer Kachel (gleich in Cover-Flow und Tilt-Karte → durchgehendes Karten-Motiv)
+const DeckIcon: React.FC<{n: string; size: number}> = ({n, size}) => (
+  <div style={{width: size, height: size, borderRadius: size * 0.26, background: '#fff', boxShadow: '0 10px 24px rgba(20,30,70,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><Emoji n={n} s={size * 0.68} /></div>
+);
+export const TiltCard: React.FC<Base & {title?: string; tag?: string; icon?: string; tint?: number; float?: boolean}> = ({title: tp, tag, icon, tint = 0, float = true, dur}) => {
   const t = useT();
   const th = useTheme();
   const title = tp ?? tpick(th.words, ['Parallax'], 0);
-  const rx = Math.sin(t * 2.2) * 14, ry = Math.cos(t * 1.8) * 18;
+  const deck = !!(icon || tag);
+  // Deck-Variante: Karte peitscht seitlich rein, dreht sich durch, Hintergrund-Kacheln ziehen vorbei (mehr Bewegung, QA 15.10.)
+  const kin = p(t, 0, 0.22, EXPO), sweep = p(t, 0, dur, (x: number) => x);
+  const rx = deck ? lerp(kin, 25, 6) : Math.sin(t * 2.2) * 14, ry = deck ? lerp(kin, -70, 0) + lerp(sweep, -14, 18) : Math.cos(t * 1.8) * 18;
+  const tx = deck ? lerp(kin, 900 * (tint % 2 ? -1 : 1), 0) : 0;
+  const pool = th.emoji && th.emoji.length ? th.emoji : null;
   return (
     <Wall o={fade(t, dur)}>
-      <div style={{position: 'absolute', left: 540 - 330, top: 900 - 440, width: 660, height: 880, borderRadius: 60, transformStyle: 'preserve-3d', transform: `rotateX(${rx}deg) rotateY(${ry}deg) scale(${p(t, 0, 0.35, SPRING)})`, background: 'linear-gradient(160deg, #EAF2FF, #fff)', boxShadow: '0 60px 120px rgba(20,30,70,.25)'}}>
-        <div style={{position: 'absolute', left: 60, top: 60, transform: 'translateZ(60px)'}}><AppIcon i={0} size={160} /></div>
-        <div style={{position: 'absolute', right: 60, top: 300, width: 220, height: 220, borderRadius: 110, background: `radial-gradient(circle, ${C.RED}, #FF8A80)`, transform: 'translateZ(120px)', boxShadow: `0 30px 60px ${C.RED}55`}} />
+      {deck && pool && float ? <div style={{position: 'absolute', inset: 0, transform: 'translateZ(-600px) scale(1.45)', transformStyle: 'preserve-3d'}}>{Array.from({length: 14}, (_, i) => { const c = i % 4, r = Math.floor(i / 4); const y = 1920 - ((t * (520 + rnd(i) * 260) + r * 520 + rnd(i + 3) * 200) % 2400);
+        return <div key={i} style={{position: 'absolute', left: 40 + c * 270 + (r % 2) * 120, top: y, opacity: 0.55, transform: `rotate(${(rnd(i + 7) - 0.5) * 30}deg)`}}><DeckIcon n={pool[i % pool.length]} size={150} /></div>; })}</div> : null}
+      <div style={{position: 'absolute', left: 540 - 330, top: 900 - 440, width: 660, height: 880, borderRadius: 60, transformStyle: 'preserve-3d', transform: `translateX(${tx}px) rotateX(${rx}deg) rotateY(${ry}deg) scale(${deck ? lerp(sweep, 0.94, 1.06) : p(t, 0, 0.35, SPRING)})`, background: `linear-gradient(160deg, ${['#EAF2FF', '#FFECEC', '#E9FBF2'][tint % 3]}, #fff)`, boxShadow: '0 60px 120px rgba(20,30,70,.25)'}}>
+        {icon || tag ? null : <div style={{position: 'absolute', left: 60, top: 60, transform: 'translateZ(60px)'}}><AppIcon i={0} size={160} /></div>}
+        {icon || tag ? null : <div style={{position: 'absolute', right: 60, top: 300, width: 220, height: 220, borderRadius: 110, background: `radial-gradient(circle, ${C.RED}, #FF8A80)`, transform: 'translateZ(120px)', boxShadow: `0 30px 60px ${C.RED}55`}} />}
+        {icon ? <div style={{position: 'absolute', left: 60, top: 60, transform: 'translateZ(80px)'}}><DeckIcon n={icon} size={220} /></div> : null}
+        {tag ? <div style={{position: 'absolute', left: 60, bottom: 220, transform: 'translateZ(70px)', ...serif(fit(tag, 72, 540, 0.45)), color: C.GREY, whiteSpace: 'nowrap'}}>{tag}</div> : null}
         <div style={{position: 'absolute', left: 60, bottom: 80, transform: 'translateZ(90px)', ...disp(850, fit(title, 110, 540), -0.05), color: C.INK, whiteSpace: 'nowrap'}}>{title}</div>
       </div>
     </Wall>

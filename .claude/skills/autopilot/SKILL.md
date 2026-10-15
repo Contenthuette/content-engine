@@ -49,6 +49,9 @@ Läuft ohne Leif. Keine Fragen stellen: bei Unklarheit die vernünftigste Lesart
 - `skip` lässt einen Baustein bei `at` mitten in der Animation einsteigen (gegen leere/weiße Anfänge).
 - Look-Motive (Arcade, Comic …) höchstens als 1–2 Akzente. Keine Strahlen-/Kreis-/Zickzack-Wischer.
 - Text: nie den VO-Satz komplett mittippen; max. 5 Wörter gleichzeitig; keine erfundenen Zahlen.
+- Bühne (Stage-Baustein) wechselt ca. jede Sekunde (max. ~1,2 s); lange Overlays (Checkliste, Schritte) liegen darüber.
+- Ein durchgehendes Leitobjekt (z. B. dieselbe Karte 3D-11 `tag`/`icon` + 3D-27 `icons`) in Hook, jedem Beat und CTA. `theme.emoji` = Motiv-Icons.
+- `python3 pipeline/tools/tighten.py jobs/<id>/spec.json` (Pausen > 0,35 s → 0,2 s) und danach `python3 pipeline/tools/punches.py jobs/<id>/spec.json`.
 - `python3 pipeline/tools/variety.py check jobs/<id>/recipe.json` → GRÜN.
 - `python3 pipeline/tools/specprobe.py jobs/<id>/spec.json` + `python3 pipeline/tools/layout.py jobs/<id>/spec.json` → GRÜN.
 - Stills an jedem Beat (`COMP=DL-Reel node src/fast/tools/stills.mjs /tmp/st jobs/<id>/spec.json t1 t2 …`), Kontaktbogen ansehen:

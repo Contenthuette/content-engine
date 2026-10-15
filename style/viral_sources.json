@@ -1,13 +1,354 @@
 {
  "_info": "Viral-Radar (Leif 15.10.2026): Edits ≥ 1 Mio Views aus den letzten 7 Tagen, Zielgruppe junge Männer/Unternehmer. Tags ohne #. Instagram-Accounts pro Nische ergänzen, sobald bekannt (Hashtag-Seiten brauchen Login).",
  "niches": {
-  "sport":      {"label": "Sport",               "tiktok_tags": ["sportsedit", "footballedit", "ufcedit", "nbaedit", "f1edit", "boxingedit"], "ig_accounts": []},
-  "action":     {"label": "Action / Film",       "tiktok_tags": ["actionedit", "movieedit", "carsedit", "aftereffectsedit"], "ig_accounts": []},
-  "ai":         {"label": "KI",                  "tiktok_tags": ["aiedit", "ainews", "artificialintelligence", "chatgpt", "aitools"], "ig_accounts": ["nick_saraev", "albert.olgaard", "angus.sewell", "adilet.fndr", "speedy_devv"]},
-  "creator":    {"label": "Content Creation",    "tiktok_tags": ["contentcreator", "editingtips", "capcutedit", "videoediting"], "ig_accounts": []},
-  "self":       {"label": "Selbstverbesserung",  "tiktok_tags": ["selfimprovement", "discipline", "motivationedit", "gymedit", "mindset"], "ig_accounts": []},
-  "redpill":    {"label": "Red Pill / Sigma",    "tiktok_tags": ["redpill", "sigmaedit", "masculinity"], "ig_accounts": []},
-  "palantir":   {"label": "Palantir / Tech-Macht", "tiktok_tags": ["palantiredit", "palantir", "alexkarp", "peterthiel"], "ig_accounts": []},
-  "figures":    {"label": "Trump / Musk / Milliardäre", "tiktok_tags": ["trumpedit", "elonmuskedit", "elonmusk", "billionaireedit", "moneyedit"], "ig_accounts": []}
- }
+  "sport": {
+   "label": "Sport",
+   "tiktok_tags": [
+    "sportsedit",
+    "footballedit",
+    "ufcedit",
+    "nbaedit",
+    "f1edit",
+    "boxingedit"
+   ],
+   "ig_accounts": [],
+   "keywords": [
+    "football",
+    "footballedit",
+    "soccer",
+    "nba",
+    "ufc",
+    "mma",
+    "formula 1",
+    "boxing",
+    "basketball",
+    "ronaldo",
+    "messi",
+    "yamal",
+    "neymar",
+    "mbappe",
+    "nfl",
+    "sportsedit",
+    "ballon",
+    "premier league",
+    "champions league",
+    "tennis",
+    "f1edit",
+    "f1 ",
+    "formula1",
+    "formel 1",
+    "verstappen",
+    "hamilton",
+    "lebron",
+    "curry",
+    "goggins"
+   ],
+   "tiktok_discover": [
+    "football-edit",
+    "ronaldo-edit",
+    "messi-edit",
+    "ufc-edit",
+    "f1-edit",
+    "nba-edit",
+    "lamine-yamal-edit"
+   ]
+  },
+  "action": {
+   "label": "Action / Film",
+   "tiktok_tags": [
+    "actionedit",
+    "carsedit",
+    "hypercar",
+    "fightscene",
+    "jdmedit",
+    "militaryedit"
+   ],
+   "ig_accounts": [],
+   "keywords": [
+    "hypercar",
+    "supercar",
+    "carsedit",
+    "cars edit",
+    "jdm",
+    "military",
+    "militaryedit",
+    "army",
+    "navy seal",
+    "special forces",
+    "fighter jet",
+    "sniper",
+    "john wick",
+    "fightscene",
+    "fight scene",
+    "pagani",
+    "bugatti",
+    "ferrari",
+    "lamborghini",
+    "porsche",
+    "mclaren",
+    "koenigsegg",
+    "action scene",
+    "actionedit",
+    "war edit"
+   ],
+   "tiktok_discover": [
+    "car-edit",
+    "hypercar-edit",
+    "military-edit",
+    "john-wick-edit",
+    "fighter-jet-edit"
+   ]
+  },
+  "ai": {
+   "label": "KI",
+   "tiktok_tags": [
+    "aiedit",
+    "ainews",
+    "aitools",
+    "artificialintelligence",
+    "chatgpt",
+    "claudeai"
+   ],
+   "ig_accounts": [
+    "nick_saraev",
+    "albert.olgaard",
+    "angus.sewell",
+    "adilet.fndr",
+    "speedy_devv"
+   ],
+   "keywords": [
+    "aiedit",
+    "ai edit",
+    "aitools",
+    "ai tool",
+    "ainews",
+    "ai news",
+    "claude",
+    "openai",
+    "sam altman",
+    "agent",
+    "automation",
+    "artificialintelligence",
+    "artificial intelligence",
+    "sora",
+    "veo",
+    "midjourney",
+    "nvidia",
+    "gemini",
+    "grok",
+    "ai generated",
+    "ki ",
+    "künstliche intelligenz",
+    "chatgpt agent",
+    "ai agent"
+   ],
+   "tiktok_discover": [
+    "ai-edit",
+    "ai-video",
+    "openai",
+    "claude-ai",
+    "ai-tools"
+   ]
+  },
+  "creator": {
+   "label": "Content Creation",
+   "tiktok_tags": [
+    "contentcreator",
+    "editingtips",
+    "capcutedit",
+    "videoediting"
+   ],
+   "ig_accounts": [],
+   "keywords": [
+    "contentcreator",
+    "content creator",
+    "editingtips",
+    "editing tips",
+    "videoediting",
+    "video editing",
+    "capcut",
+    "aftereffects",
+    "after effects",
+    "premiere pro",
+    "davinci",
+    "viraltips",
+    "creator"
+   ],
+   "tiktok_discover": [
+    "video-editing",
+    "after-effects-edit",
+    "capcut-edit",
+    "content-creator-tips"
+   ]
+  },
+  "self": {
+   "label": "Selbstverbesserung",
+   "tiktok_tags": [
+    "selfimprovement",
+    "discipline",
+    "motivationedit",
+    "gymedit",
+    "mindset",
+    "stoicism"
+   ],
+   "ig_accounts": [],
+   "keywords": [
+    "selfimprovement",
+    "self improvement",
+    "discipline",
+    "motivation",
+    "mindset",
+    "stoic",
+    "gymedit",
+    "gym edit",
+    "grind",
+    "hustle",
+    "monk mode",
+    "lockin",
+    "lock in",
+    "gymtok",
+    "glow up",
+    "glowup"
+   ],
+   "tiktok_discover": [
+    "motivation-edit",
+    "gym-edit",
+    "discipline-edit",
+    "self-improvement",
+    "stoic-edit"
+   ]
+  },
+  "redpill": {
+   "label": "Red Pill / Sigma",
+   "tiktok_tags": [
+    "redpill",
+    "sigmaedit",
+    "masculinity"
+   ],
+   "ig_accounts": [],
+   "keywords": [
+    "redpill",
+    "red pill",
+    "sigma",
+    "masculin",
+    "tate",
+    "high value man",
+    "bateman",
+    "alpha male",
+    "sigmaedit"
+   ],
+   "tiktok_discover": [
+    "sigma-edit",
+    "andrew-tate-edit",
+    "patrick-bateman-edit",
+    "sigma-male"
+   ]
+  },
+  "palantir": {
+   "label": "Palantir / Tech-Macht",
+   "tiktok_tags": [
+    "palantiredit",
+    "palantir",
+    "alexkarp",
+    "peterthiel"
+   ],
+   "ig_accounts": [],
+   "keywords": [
+    "palantir",
+    "alex karp",
+    "alexkarp",
+    "peter thiel",
+    "peterthiel",
+    "anduril",
+    "palmer luckey",
+    "palmerluckey"
+   ],
+   "tiktok_discover": [
+    "palantir",
+    "alex-karp",
+    "peter-thiel"
+   ]
+  },
+  "figures": {
+   "label": "Trump / Musk / Milliardäre",
+   "tiktok_tags": [
+    "trumpedit",
+    "elonmuskedit",
+    "elonmusk",
+    "billionaireedit",
+    "moneyedit",
+    "entrepreneuredit"
+   ],
+   "ig_accounts": [],
+   "keywords": [
+    "trump",
+    "elon",
+    "musk",
+    "tesla",
+    "spacex",
+    "bezos",
+    "zuckerberg",
+    "billionaire",
+    "milliard",
+    "jensen huang",
+    "warren buffett",
+    "mrbeast",
+    "moneyedit",
+    "entrepreneur",
+    "donaldtrump",
+    "elonmusk",
+    "jeffbezos",
+    "markzuckerberg"
+   ],
+   "tiktok_discover": [
+    "elon-musk-edit",
+    "trump-edit",
+    "donald-trump-edit",
+    "billionaire-edit",
+    "money-edit",
+    "jeff-bezos"
+   ]
+  }
+ },
+ "_hinweis": "Tag-Seiten mischen neu + alt; Radar sortiert nach Views/Stunde. Romcom-/Film-Clips landen trotzdem mal drin – im Report von Hand/LLM aussortieren.",
+ "priority": [
+  "palantir",
+  "figures",
+  "redpill",
+  "ai",
+  "sport",
+  "action",
+  "self",
+  "creator"
+ ],
+ "block": [
+  "romcom",
+  "rom com",
+  "rom-com",
+  "modern family",
+  "mean girls",
+  "madea",
+  "chihuahua",
+  "conjuring",
+  "kdrama",
+  "k-drama",
+  "anime",
+  "taylor swift",
+  "kpop",
+  "k-pop",
+  "bts ",
+  "barbie",
+  "disney",
+  "twilight",
+  "harry potter",
+  "gilmore",
+  "friends tv",
+  "sitcom",
+  "love story",
+  "couple",
+  "girlfriend",
+  "boyfriend",
+  "prank"
+ ],
+ "_relevanz": "Ein Video zählt nur, wenn Beschreibung/Hashtags ein Stichwort einer Nische enthalten (Reihenfolge priority) und nichts aus block. Nische wird danach neu zugeordnet."
 }

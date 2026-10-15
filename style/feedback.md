@@ -92,3 +92,40 @@ Stil-Richtung: Fusion aus lucas.kleinecke × creatoroly.
 ## 2026-10-14 17:00 – Leif zu Test-Reel Dd_rD8eu6U4: „zu viel Arcade, man hört mich manchmal nicht, Musik lauter als ich“
 - Ein Look-Motiv (Arcade/Retro/Game) höchstens als 1–2 Akzente pro Reel, nie als Dauer-Kulisse. Leitidee über Inhalt tragen (z. B. Ebenen), nicht über Kostüm.
 - Mix ist jetzt automatisch (engine.py mixprep): Stimme auf −16 LUFS normalisiert, jedes Musikbett gemessen und 16 dB unter die Stimme gesetzt; feste musicVol/vol im Schnittplan werden ignoriert. Mastering zwei-pass −14 LUFS, True Peak ≤ −2 dBTP, Ton = Bildlänge.
+
+## 2026-10-15 03:00 – QA-Runde Nacht (R1/R2/R3, qa-critic)
+- **Frame 0 war in jedem DL-Reel leer** (Startframe-Rundung `max(1, …)`) → behoben in Catalog.tsx (`f0`). Frame 0 = Thumbnail, muss voll sein.
+- **FX-16/FX-17 (Lichtstreifen) verboten** – wirken wie billige Laser-Wischer (layout.py BANNED).
+- **Kachel-Emojis:** keine Meme-Emojis (Totenkopf, 100, Krone, Clown) auf Wänden/Thumbs. Standard-Pool ist jetzt sachlich (EMO_TILE);
+  pro Reel `theme.emoji` mit Motiv-Icons setzen (z. B. Jobs: money_bag, megaphone, chart_increasing, memo).
+- **Keine erfundenen Zähler:** KC-29 „Stapel wächst“ zählt nur, wenn `total` oder `theme.numbers` gesetzt ist; sonst nur das Wort.
+- **Sprechpausen > 0,35 s** kürzen: `python3 pipeline/tools/tighten.py jobs/<id>/spec.json` (verschiebt Stimme, Wortzeiten, Layer, Lipsync-Fenster mit),
+  danach `pipeline/tools/punches.py`. Macht das Reel ~1,5 s kürzer und dichter.
+- **Zustandswechsel ca. jede Sekunde:** Bühnen (Stage-Bausteine) max. ~1,2 s, Overlays dürfen länger stehen (Checkliste, Schritte) – darunter wechselt die Bühne.
+  R2/R3 hatten 2–7 s lange Bühnen → Bewegung 6–9 statt ≥ 14.
+- **Leitidee braucht ein durchgehendes Objekt:** gleiche Karte im Hook, in jedem Beat und im CTA (3D-11 `tag`/`icon`/`tint` = gleicher Look wie 3D-27 `icons`).
+- Hook: bis 1,5 s mind. 3 echte Ereignisse (Logo-Slam, Benachrichtigung, Explosion, Karussell) – nicht ein Bild mit Drift.
+- Avatar-Anteil ≤ 25 %: Hook-Fenster ~3,4 s, CTA-Fenster ~3 s.
+
+## 2026-10-15 04:10 – Ton: „man hört mich manchmal nicht“ – eigentliche Ursache waren die SFX (QA R1/R3)
+- Musik lag nach mixprep schon 13–15 dB unter der Stimme; die Baustein-SFX (Pops/Whooshes/Slams) lagen auf Schlüsselwörtern 4–6 dB ÜBER der Stimme.
+- Fix für alle Reels (Catalog.tsx + engine.py mixprep): SFX-Bus −6 dB (`sfxGain` 0,5) und während Sprache weitere −9 dB (`spec.speech` aus den Wortzeiten).
+- Musik: Lautheit wird jetzt über den GENUTZTEN Ausschnitt gemessen (ab `from`), lauteste 3-s-Stelle ≥ 10 dB unter der Stimme, Abstand 18 dB (statt 16),
+  und jedes Bett bekommt eine Stimmen-Tasche (EQ −5 dB @ 2,5 kHz, −3 dB @ 1,1 kHz, Low-Shelf −4 dB @ 90 Hz → `*_bed.mp3`).
+- Bühnenwechsel ohne Weiß-Loch: folgt eine Bühne direkt auf die nächste, bleibt die alte automatisch 0,25 s darunter stehen.
+- `push` ist jetzt eine echte Kamerafahrt (Zoom + leichter Schwenk + Neigung) – Standard für Bühnen 0,14–0,16.
+- 04:30 Nachtrag (QA R1 Runde 4, Whisper-Gegenprobe: „deine“→„seine“ im Mix): SFX unter Sprache jetzt −16,5 dB (Faktor 0,15) statt −9 dB.
+  Musik ist gemessen 21,6 dB (Median) unter der Stimme → Musikproblem gelöst. KX-04 verboten (Schwarzbild/Glitch-Streifen).
+  Bühne direkt nach Bühne ohne `skip` startet automatisch 0,3 s in der Animation (sonst leere Fläche = Weiß-Loch); alte Bühne bleibt 0,3 s darunter.
+- 04:50 (QA R2): **Quer-Crops wurden in jeder ME-Bühne hochkant verzerrt** (MediaFill streckte den Crop auf die Box). Jetzt mit `aspect`:
+  ME-01/ME-06/ME-08 zeigen den Ausschnitt scharf in voller Breite über derselben Szene weichgezeichnet; ME-07-Kacheln beschneiden mittig. Nie wieder verzerrt.
+- KX-Whips (06–09) erzeugen Einzelbilder in Weiß/Schwarz in der Whip-Mitte → in allen drei Nacht-Reels raus; harter Schnitt + Punch reicht.
+- Stimmen-Tasche der Musikbetten tiefer: −8 dB @ 2,5 kHz, −6 dB @ 1,2 kHz, −4 dB @ 3,8 kHz (Synthwave lag im Sprachband nur ~7 dB unter der Stimme).
+- 05:35 (QA R3): **Leitidee des Originals wieder nicht übernommen** (Steckdosenleiste „0 of 4 installed“ → Terminal-Liste). Neuer Baustein **ME-10 Steckdosenleiste**
+  (Stecker Nr. n steckt ein, Zähler PLUGINS n/total) – bei „X Tools/Plugins nacheinander“ IMMER als durchgehendes Objekt in jedem Beat.
+  Vor dem Bau: Original-Kontaktbogen (`source_sheet.png`) auf das Leitobjekt prüfen und im Brief benennen.
+- Füll-Wände bekommen pro Abschnitt eigene Wörter (`words` am Layer), nie das CTA-Keyword mitten im Reel.
+- ME-01/ME-05-Labels sitzen jetzt höher (Safe Zone bis y 1480).
+- 06:00 (QA R2 Runde 3): Sprach-Ducking war zu breit – `speech` wurde ein einziger Block → alle SFX dauerhaft −16,5 dB, Sounddesign unhörbar (0,4 Treffer/s).
+  Jetzt: Wortketten nur bei Lücken < 80 ms zusammengefasst, Renderer polstert −0,12/+0,08 s, unter Wörtern −10,5 dB (Faktor 0,3), in Lücken volle SFX.
+- ME-06 mit Quer-Ausschnitt: iPhone liegt automatisch quer, Screen füllt das Display (statt ⅔ graue Blur-Fläche).

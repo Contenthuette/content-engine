@@ -238,8 +238,10 @@ export const KPile: React.FC<Base & {label?: string; total?: number}> = ({label:
   const label = lp ?? tpick(th.words, ['Videos'], 0);
   const total = tp ?? tpick(th.numbers, [96], 0); // Zähler-Endwert (Default 12 Karten × 8)
   const n = Math.min(12, Math.floor(t / 0.09) + 1);
-  const txt = `${total === 96 ? n * 8 : de((total * n) / 12)} ${label}`;
-  const fs = fit(`${de(total)} ${label}`, 120, 1000, 0.6); // Größe am Endwert festmachen → kein Zucken beim Zählen
+  // Keine echte Zahl (Prop/Thema) → nur das Wort, nie erfundene Zähler (QA 15.10.)
+  const real = tp != null || !!(th.numbers && th.numbers.length);
+  const txt = real ? `${de((total * n) / 12)} ${label}` : label;
+  const fs = fit(real ? `${de(total)} ${label}` : label, 120, 1000, 0.6); // Größe am Endwert festmachen → kein Zucken beim Zählen
   return (
     <AbsoluteFill className="dl-root" style={{background: '#F4F4F5', opacity: fade(t, dur)}}>
       {Array.from({length: n}, (_, i) => { const k = p(t, i * 0.09, 0.12, EIN); return <div key={i} style={{position: 'absolute', left: 300 + (rnd(i) - 0.5) * 80, top: 640 + (rnd(i + 1) - 0.5) * 60, transform: `scale(${lerp(k, 1.8, 1)}) rotate(${(rnd(i + 2) - 0.5) * 30}deg)`, opacity: cl(k * 4)}}><Thumb seed={i + 280} w={480} h={600} /></div>; })}

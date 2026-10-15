@@ -15,6 +15,20 @@ export type WKind = 'weather' | 'music' | 'calendar' | 'rings' | 'chart' | 'note
 export const WidgetFace: React.FC<{kind: WKind; t: number; size?: number; txt?: WText}> = ({kind, t, size = 360, txt = {}}) => {
   const s = size / 360;
   const th = useTheme();
+  // Im Reel (Thema gesetzt, aber keine echten Zahlen/Orte): keine Fantasie-Widgets (Wetter „Palma“, Kurse, Schritte …) –
+  // stattdessen Themen-Kachel mit Wort + Symbol (QA 15.10.: erfundene Zahlen/Platzhalter)
+  if ((th.topic || (th.words && th.words.length)) && !(th.numbers && th.numbers.length) && !th.place && !txt.num && !txt.place) {
+    const ix = Math.abs([...kind].reduce((a, c) => a + c.charCodeAt(0), 0));
+    const word = tpick(th.words, ['ULTRA'], ix);
+    const col = [C.BLUE, C.RED, C.GREEN, '#111318'][ix % 4];
+    const gl = ['bolt', 'star', 'check', 'grid', 'chat', 'play'][ix % 6];
+    return (
+      <div style={{width: 360, height: 360, borderRadius: 64, background: col, boxShadow: '0 30px 70px rgba(20,30,70,.18)', position: 'relative', overflow: 'hidden', transform: `scale(${s})`, transformOrigin: '0 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 34, boxSizing: 'border-box'}}>
+        <div style={{width: 74, height: 74, borderRadius: 22, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><Glyph g={gl} c="#fff" s={44} /></div>
+        <div style={{color: '#fff', ...disp(800, Math.min(64, 560 / Math.max(4, word.length)), -0.02), lineHeight: 1, overflowWrap: 'anywhere'}}>{word}</div>
+      </div>
+    );
+  }
   const w0 = (fb: string, i = 0) => tpick(th.words, [fb], i);
   const n0 = (fb: number) => txt.num ?? tpick(th.numbers, [fb], 0);
   const place = txt.place ?? th.place ?? 'Palma';

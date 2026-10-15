@@ -24,10 +24,10 @@
    "3D-18"
   ],
   "uebergaenge": [
-   "TR-14",
-   "TR-15",
-   "TR-10",
-   "TR-06"
+   "KX-06",
+   "KX-07",
+   "TR-06",
+   "KX-22"
   ],
   "avatar": [
    "AV-03",
@@ -173,9 +173,9 @@
   "uebergaenge": [
    "KX-04",
    "KX-05",
-   "TR-01",
-   "TR-08",
-   "TR-13"
+   "KX-06",
+   "KX-08",
+   "KX-10"
   ],
   "avatar": [
    "KA-26",
@@ -214,5 +214,6 @@
   "KC-35",
   "KC-36",
   "M-08"
- ]
+ ],
+ "_regeln_uebergaenge": "15.10.: Keine Flächen-Wischer mit Kreisen/Formen/Strahlen/Streifen (layout.py sperrt sie). Bevorzugt harter Schnitt auf den Ton, Whip, Schmier-Streifen, Glas."
 }

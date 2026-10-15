@@ -19,7 +19,7 @@ Secrets: aus der Umgebung oder aus <root>/secrets.env bzw. ../engine/secrets.env
 PEXELS_KEY, PIXABAY_KEY, FREESOUND_KEY) – Fallback Cloud: /root/.fal_key, /root/.secrets/cf_token.
 Render-Flags: --draft (halbe Auflösung, schnell, nur zum Prüfen) · RENDER_CONCURRENCY=n
 """
-import json, urllib.parse, os, subprocess, sys, time, urllib.request, glob, math
+import json, re, urllib.parse, os, subprocess, sys, time, urllib.request, glob, math
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUB = os.path.join(ROOT, 'public')
@@ -317,12 +317,21 @@ FORBIDDEN_FACE = ['leif_cut.png', 'leif_studio', 'rea/face.mp4', 'rea/fseq', 'au
 
 # ---------------------------------------------------------------- Mix (Leif 14.10.: „man hört mich nicht, Musik zu laut“)
 VO_LUFS = -16.0      # Stimme wird auf diesen Wert normalisiert
-MUSIC_GAP_DB = 16.0  # Musik sitzt so viele dB unter der Stimme (Catalog duckt zusätzlich ×0,55 nur bei vorhandenem VO – hier schon eingerechnet)
+MUSIC_GAP_DB = 18  # 15.10.: 16 → 18 (QA maß lokal nur 2–6 dB Abstand bei Phonk-808)
 
 
-def lufs(path):
-    out = subprocess.run(['ffmpeg', '-hide_banner', '-i', path, '-af', 'loudnorm=print_format=json', '-f', 'null', '-'], capture_output=True, text=True).stderr
+def lufs(path, ss=0.0, t=None):
+    cut = (['-ss', str(ss)] if ss else []) + (['-t', str(t)] if t else [])
+    out = subprocess.run(['ffmpeg', '-hide_banner', *cut, '-i', path, '-af', 'loudnorm=print_format=json', '-f', 'null', '-'], capture_output=True, text=True).stderr
     j = json.loads(out[out.rindex('{'):out.rindex('}') + 1]); return float(j['input_i'])
+
+
+def loud_st_max(path, ss=0.0, t=None):
+    """Lauteste Kurzzeit-Lautheit (3-s-Fenster, LUFS) im genutzten Ausschnitt – fängt 808-Bässe/Drops, die das Integral glättet."""
+    cut = (['-ss', str(ss)] if ss else []) + (['-t', str(t)] if t else [])
+    out = subprocess.run(['ffmpeg', '-hide_banner', *cut, '-i', path, '-af', 'ebur128', '-f', 'null', '-'], capture_output=True, text=True).stderr
+    v = [float(m) for m in re.findall(r'S:\s*(-?[\d.]+)', out) if float(m) > -70]
+    return max(v) if v else -70.0
 
 
 def mixprep(spec_path):
@@ -335,8 +344,33 @@ def mixprep(spec_path):
             sh(['ffmpeg', '-loglevel', 'error', '-y', '-i', src, '-af', f'loudnorm=I={VO_LUFS}:TP=-1.5:LRA=7', '-ar', '48000', os.path.join(PUB, nv)])
         s['vo'] = nv; s['voVol'] = 1
     duck = 0.55 if s.get('vo') else 1.0
-    def vol(f): return round(min(1.0, 10 ** ((VO_LUFS - MUSIC_GAP_DB - lufs(os.path.join(PUB, f))) / 20) / duck), 3)
-    for m in s.get('musics') or []: m['vol'] = vol(m['src'])
+    def vol(f, ss=0.0, t=None):
+        # Integral des GENUTZTEN Ausschnitts 16 dB unter die Stimme UND lauteste 3-s-Stelle mind. 10 dB darunter (QA 15.10.: Phonk-808 kam auf 2–6 dB ran)
+        pth = os.path.join(PUB, f); i = lufs(pth, ss, t); st = loud_st_max(pth, ss, t)
+        g = min(VO_LUFS - MUSIC_GAP_DB - i, VO_LUFS - 10 - st)
+        return round(min(1.0, 10 ** (g / 20) / duck), 3)
+    ms = s.get('musics') or []
+    if s.get('vo'):  # Stimmen-Tasche: Musik bei 1–3 kHz absenken, 808-Sub zähmen (gecacht als *_bed.mp3)
+        for m in ms:
+            if m['src'].endswith('_bed.mp3'): continue
+            b = m['src'][:-4] + '_bed.mp3'; bp = os.path.join(PUB, b)
+            if not os.path.exists(bp):
+                sh(['ffmpeg', '-loglevel', 'error', '-y', '-i', os.path.join(PUB, m['src']), '-af',
+                    'equalizer=f=2500:t=q:w=1.4:g=-8,equalizer=f=1200:t=q:w=1:g=-6,equalizer=f=3800:t=q:w=1:g=-4,lowshelf=f=90:g=-4', '-b:a', '256k', bp])
+            m['src'] = b
+    for k, m in enumerate(ms):
+        end = ms[k + 1]['at'] if k + 1 < len(ms) else s.get('dur', 60)
+        m['vol'] = round(vol(m['src'], m.get('from', 0) or 0, max(3.0, end - m['at'])) * 10 ** ((m.get('trim', 0) or 0) / 20), 3)  # trim = dB-Korrektur pro Bett
+    # SFX: Bus −6 dB und während Sprache weitere −9 dB (Renderer duckt per spec.speech) – Stimme bleibt vorne
+    if s.get('vo'):
+        wp = os.path.join(PUB, s['vo'].replace('_vo_n16.wav', '_words.json').replace('_vo.wav', '_words.json'))
+        if os.path.exists(wp):
+            sp = []
+            for w in json.load(open(wp)):
+                if sp and w['s'] - sp[-1][1] < 0.08: sp[-1][1] = w['e']  # nur echte Wortketten zusammenfassen – Lücken bleiben frei für SFX (Renderer polstert ±0,1 s)
+                else: sp.append([w['s'], w['e']])
+            s['speech'] = [[round(a, 2), round(b, 2)] for a, b in sp]
+    s.setdefault('sfxGain', 0.5)
     if s.get('music'): s['musicVol'] = vol(s['music'])
     out = spec_path.replace('.json', '.mix.json'); json.dump(s, open(out, 'w'), ensure_ascii=False, indent=1)
     print('Mix:', 'VO', VO_LUFS, 'LUFS · Musik', [m.get('vol') for m in s.get('musics') or []] or s.get('musicVol'))

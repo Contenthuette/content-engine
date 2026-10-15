@@ -10,7 +10,7 @@ export const C = {INK: '#0B0B0F', PAPER: '#F4F4F5', WHITE: '#FFFFFF', GREY: '#6E
 export const ACCENTS = [C.BLUE, C.RED, C.GREEN];
 // ---------- Thema des Reels (seit 14.10.): Inhalte kommen aus dem Schnittplan (spec.theme), nie feste Demo-Texte.
 // Bausteine holen Listen-Inhalte (Wörter, Namen, Handles, Zahlen, Logos …) über useTheme()/tw() und fallen nur ohne Thema auf ihre Defaults zurück.
-export type Theme = {topic?: string; words?: string[]; names?: string[]; handles?: string[]; comments?: string[]; numbers?: number[]; logos?: string[]; apps?: string[]; place?: string; brand?: string; kw?: string; views?: boolean};
+export type Theme = {topic?: string; words?: string[]; names?: string[]; handles?: string[]; comments?: string[]; numbers?: number[]; logos?: string[]; apps?: string[]; place?: string; brand?: string; kw?: string; views?: boolean; emoji?: string[]};
 export const ThemeCtx = React.createContext<Theme>({});
 export const useTheme = () => React.useContext(ThemeCtx);
 // i-tes Element aus Themen-Liste, sonst Fallback-Liste

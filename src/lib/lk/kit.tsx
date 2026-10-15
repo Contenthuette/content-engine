@@ -7,6 +7,8 @@ export const fade = (t: number, dur: number) => 1 - outK(t, dur);
 export const PAL = [C.BLUE, C.RED, C.GREEN, C.SUN, C.INK];
 export const WORDS = ['WER LÜGT?', '10X MEHR', 'KI-AGENT', "SO GEHT'S", '1 MIO VIEWS', 'KEIN TEAM', 'WARUM?', 'DAS SYSTEM', 'STOPP!', 'NEU', 'AUTOPILOT', '24/7', 'GEHEIM', 'FEHLER', 'ERFOLG', 'GAME OVER', 'LEVEL UP', 'DER TRICK', 'MALLORCA', 'ALLES AI'];
 export const EMO = ['rocket', 'fire', 'money_bag', 'brain', 'robot', 'crown', 'trophy', 'light_bulb', 'gem_stone', 'exploding_head', 'eyes', 'high_voltage', 'bullseye', 'party_popper', 'hundred_points', 'video_camera', 'studio_microphone', 'laptop', 'chart_increasing', 'magic_wand', 'skull', 'alarm_clock', 'speech_balloon', 'red_heart'];
+// Kachel-Füller: keine Meme-Emojis (Totenkopf, 100, Krone …) – QA 15.10. Thema kann eigene setzen (theme.emoji)
+export const EMO_TILE = ['rocket', 'light_bulb', 'laptop', 'chart_increasing', 'bullseye', 'high_voltage', 'magic_wand', 'speech_balloon', 'calendar', 'gear', 'envelope', 'clipboard', 'bar_chart', 'link', 'memo', 'trophy'];
 export const emo = (n: string) => asset(`lib/emoji/${n}.webp`);
 export const Emoji: React.FC<{n: string; s: number; style?: React.CSSProperties}> = ({n, s, style}) => <Img src={emo(n)} style={{width: s, height: s, objectFit: 'contain', ...style}} />;
 // Pro Reel austauschbar (DL-Reel: spec.words / spec.face):
@@ -55,7 +57,8 @@ export const Thumb: React.FC<{seed: number; w: number; h: number; views?: boolea
   const col = PAL[Math.floor(rnd(seed + 2) * 4)];
   const ws = React.useContext(WordsCtx) || WORDS;
   const word = ws[Math.floor(rnd(seed + 3) * ws.length)];
-  const e = EMO[Math.floor(rnd(seed + 4) * EMO.length)];
+  const ep = useTheme().emoji; const pool = ep && ep.length ? ep : EMO_TILE;
+  const e = pool[Math.floor(rnd(seed + 4) * pool.length)];
   const fs = Math.min(w * 0.2, h * 0.16);
   const inner = kind === 0
     ? <><Img src={asset(FACE)} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover'}} /><div style={{position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', background: 'linear-gradient(transparent, rgba(0,0,0,.75))'}} /><div style={{position: 'absolute', left: w * 0.07, bottom: h * 0.1, right: w * 0.07, color: '#fff', ...disp(900, fs, -0.03)}}><span style={{background: col === C.SUN ? C.SUN : col, color: col === C.SUN ? C.INK : '#fff', padding: '0 6px'}}>{word}</span></div></>
