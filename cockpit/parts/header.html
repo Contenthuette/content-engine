@@ -1,0 +1,17 @@
+  <header>
+    <div class="brand"><span class="wm">CONTENTHÜTTE</span><span class="sub">Cockpit</span></div>
+    <nav class="pnav" aria-label="Bereiche">
+      <button data-tab="cockpit" class="on" aria-pressed="true">Cockpit<span class="n" id="nb_cockpit"></span></button>
+      <button data-tab="accounts" aria-pressed="false">Accounts</button>
+      <button data-tab="analytics" aria-pressed="false">Analytics</button>
+      <button data-tab="setup" aria-pressed="false">Setup<span class="n" id="nb_setup"></span></button>
+      <button data-tab="flows" aria-pressed="false">Flows</button>
+      <button data-tab="plan" aria-pressed="false">Plan</button>
+    </nav>
+    <div class="subnav" id="flowNav" hidden><button data-flow="main" class="on">Higgsfield-Flow</button><button data-flow="clipping">Clipping-Flow</button></div>
+    <div class="stats" id="stats" hidden></div>
+    <div class="tools" id="flowTools" hidden>
+      <button class="btn on" id="flowBtn" aria-pressed="true">Fluss animiert</button>
+      <div class="save" id="save" data-s="idle"><i></i><span>Verbinde…</span></div>
+    </div>
+  </header>
