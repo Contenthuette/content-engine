@@ -185,6 +185,11 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
 .phase ol li .who{margin-right:6px}
 .phase .gate{font-size:13px;line-height:1.45;border-radius:8px;padding:8px 10px;background:var(--panel3);border:1px dashed var(--line)}
 .phase .gate b{font-weight:700}
+.eng .ph{display:flex;align-items:center;gap:8px}.eng b{font-size:16px}
+.eng p{margin:0;font-size:14px;line-height:1.5}
+.eflow{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.eflow .estep{font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--panel3);border:1px solid var(--line)}
+.eflow .arr{color:var(--muted);font-size:12px}
 .rout{display:grid;gap:8px}
 .ri{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;font-size:14px;line-height:1.4}
 .ri .when{font-family:var(--f-mono);font-size:11px;color:var(--muted);min-width:62px}
@@ -594,6 +599,14 @@ function renderPlan(){
       if(p.goal)bx.appendChild(elx('p','goal',p.goal));const ol=elx('ol');for(const st of p.steps||[]){const li=elx('li');if(st.who)li.appendChild(elx('span',`who ${st.who.toLowerCase()}`,st.who));li.appendChild(document.createTextNode(st.text||''));ol.appendChild(li)}bx.appendChild(ol);
       if(p.gate){const g=elx('div','gate');g.append(elx('b',null,'Weiter, wenn: '),document.createTextNode(p.gate));bx.appendChild(g)}row.appendChild(bx);ph.appendChild(row)});
     s0.appendChild(ph);pw.appendChild(s0)}
+  // Angebot & Engines
+  if((plan.engines||[]).length||(plan.offers||[]).length){const s5=elx('section','sec');const h6=elx('div');h6.append(elx('h2',null,'Angebot & Engines'),elx('p','lead',plan.offerNote||''));s5.appendChild(h6);
+    if((plan.engines||[]).length){const ce=elx('div','cols');for(const e of plan.engines){const bx=elx('div','box eng');const hd=elx('div','ph');hd.append(elx('span','prio '+(e.ready?'mittel':'später'),e.status||''),elx('b',null,e.name));bx.appendChild(hd);
+      if(e.flow){const fl=elx('div','eflow');e.flow.forEach((st,i)=>{if(i)fl.appendChild(elx('span','arr','→'));fl.appendChild(elx('span','estep',st))});bx.appendChild(fl)}
+      if(e.note)bx.appendChild(elx('p',null,e.note));ce.appendChild(bx)}s5.appendChild(ce)}
+    if((plan.offers||[]).length){const tw2=elx('div','tblw');const tb2=elx('table','tbl');const th2=elx('thead');const tr2=elx('tr');tr2.append(elx('th',null,'Stufe'),elx('th','num','Preis/Monat'),elx('th',null,'Was drin ist'),elx('th','num','Für 100k/Monat'),elx('th',null,'Ab wann'));th2.appendChild(tr2);tb2.appendChild(th2);
+      const bd2=elx('tbody');for(const o of plan.offers){const tr=elx('tr',o.sum?'sum':'');tr.append(elx('td',null,o.name),elx('td','num',o.price||''),elx('td','note',o.what||''),elx('td','num',o.need||''),elx('td',null,o.when||''));bd2.appendChild(tr)}tb2.appendChild(bd2);tw2.appendChild(tb2);s5.appendChild(tw2)}
+    pw.appendChild(s5)}
   // To-dos
   const s1=elx('section','sec');const h=elx('div');h.append(elx('h2',null,'To-dos'),elx('p','lead',`${done} von ${todos.length} erledigt. Abhaken speichert sofort.`));
   const pr=elx('div','prog');const bar=elx('i');bar.style.width=(todos.length?done/todos.length*100:0)+'%';pr.appendChild(bar);s1.append(h,pr);
