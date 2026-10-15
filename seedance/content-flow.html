@@ -165,6 +165,26 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
 .addrow{display:flex;gap:8px;flex-wrap:wrap}
 .addrow input{flex:1;min-width:160px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:14px}
 .addrow select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px;font-size:13px}
+.phases{display:grid;gap:0;counter-reset:ph}
+.phase{display:grid;grid-template-columns:36px 1fr;gap:14px;position:relative;padding-bottom:22px}
+.phase:last-child{padding-bottom:0}
+.phase::before{content:"";position:absolute;left:17px;top:36px;bottom:0;width:2px;background:var(--line)}
+.phase:last-child::before{display:none}
+.phase .num{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;background:var(--panel3);border:1px solid var(--line);color:var(--muted);font-variant-numeric:tabular-nums}
+.phase.now .num{background:var(--brand);border-color:var(--brand);color:#fff}
+.phase.done .num{background:var(--ok);border-color:var(--ok);color:#fff}
+.phase .pbox{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:14px 16px;display:grid;gap:10px;min-width:0}
+.phase.now .pbox{border-color:color-mix(in srgb,var(--brand) 45%,var(--line))}
+.phase .phd{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.phase .phd b{font-size:16px}
+.phase .phd .when{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.phase .phd .st{font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--brand);color:#fff;margin-left:auto}
+.phase .goal{margin:0;font-size:14px;line-height:1.5;color:var(--muted)}
+.phase ol{margin:0;padding-left:20px;display:grid;gap:7px;font-size:14px;line-height:1.45}
+.phase ol li{padding-left:2px;overflow-wrap:anywhere}
+.phase ol li .who{margin-right:6px}
+.phase .gate{font-size:13px;line-height:1.45;border-radius:8px;padding:8px 10px;background:var(--panel3);border:1px dashed var(--line)}
+.phase .gate b{font-weight:700}
 .rout{display:grid;gap:8px}
 .ri{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;font-size:14px;line-height:1.4}
 .ri .when{font-family:var(--f-mono);font-size:11px;color:var(--muted);min-width:62px}
@@ -567,8 +587,15 @@ function renderPlan(){
   pw.innerHTML='';
   if(!plan){pw.appendChild(elx('div','pempty','Noch kein Plan hinterlegt. Claude trägt ihn hier ein.'));return}
   const todos=plan.todos||[];const done=todos.filter(x=>x.done).length;
-  // Vorbereitung
-  const s1=elx('section','sec');const h=elx('div');h.append(elx('h2',null,'Vorbereitung'),elx('p','lead',`${done} von ${todos.length} erledigt. Abhaken speichert sofort.`));
+  // Step-by-Step
+  if((plan.phases||[]).length){const s0=elx('section','sec');const h0=elx('div');h0.append(elx('h2',null,'Step by Step'),elx('p','lead',plan.phasesNote||'Der Fahrplan. Erst testen, dann vervielfachen.'));s0.appendChild(h0);
+    const ph=elx('div','phases');plan.phases.forEach((p,i)=>{const row=elx('div','phase'+(p.status==='now'?' now':p.status==='done'?' done':''));
+      row.appendChild(elx('div','num',p.status==='done'?'✓':String(i+1)));const bx=elx('div','pbox');const hd=elx('div','phd');hd.append(elx('b',null,p.title||''),elx('span','when',p.when||''));if(p.status==='now')hd.appendChild(elx('span','st','JETZT'));bx.appendChild(hd);
+      if(p.goal)bx.appendChild(elx('p','goal',p.goal));const ol=elx('ol');for(const st of p.steps||[]){const li=elx('li');if(st.who)li.appendChild(elx('span',`who ${st.who.toLowerCase()}`,st.who));li.appendChild(document.createTextNode(st.text||''));ol.appendChild(li)}bx.appendChild(ol);
+      if(p.gate){const g=elx('div','gate');g.append(elx('b',null,'Weiter, wenn: '),document.createTextNode(p.gate));bx.appendChild(g)}row.appendChild(bx);ph.appendChild(row)});
+    s0.appendChild(ph);pw.appendChild(s0)}
+  // To-dos
+  const s1=elx('section','sec');const h=elx('div');h.append(elx('h2',null,'To-dos'),elx('p','lead',`${done} von ${todos.length} erledigt. Abhaken speichert sofort.`));
   const pr=elx('div','prog');const bar=elx('i');bar.style.width=(todos.length?done/todos.length*100:0)+'%';pr.appendChild(bar);s1.append(h,pr);
   const cols=elx('div','cols');
   for(const owner of ['Leif','Claude']){
@@ -590,7 +617,7 @@ function renderPlan(){
   s2.appendChild(c2);pw.appendChild(s2);
   // Budget
   const s3=elx('section','sec');const h3=elx('div');h3.append(elx('h2',null,'Budget pro Monat'),elx('p','lead',plan.budgetNote||''));s3.appendChild(h3);
-  const tw=elx('div','tblw');const tb=elx('table','tbl');const th=elx('thead');const trh=elx('tr');trh.append(elx('th',null,'Posten'),elx('th','num','Start (Unlimited)'),elx('th','num','Skalierung (Enterprise)'),elx('th',null,'Hinweis'));th.appendChild(trh);tb.appendChild(th);
+  const tw=elx('div','tblw');const tb=elx('table','tbl');const th=elx('thead');const trh=elx('tr');trh.append(elx('th',null,'Posten'),elx('th','num','Start (Testphase)'),elx('th','num','Skalierung (Enterprise)'),elx('th',null,'Hinweis'));th.appendChild(trh);tb.appendChild(th);
   const tbody=elx('tbody');for(const b of plan.budget||[]){const tr=elx('tr',b.sum?'sum':'');tr.append(elx('td',null,b.item),elx('td','num',b.start||'–'),elx('td','num',b.scale||'–'),elx('td','note',b.note||''));tbody.appendChild(tr)}
   tb.appendChild(tbody);tw.appendChild(tb);s3.appendChild(tw);pw.appendChild(s3);
   // Optimierungen
