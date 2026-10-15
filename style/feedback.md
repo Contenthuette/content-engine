@@ -129,3 +129,6 @@ Stil-Richtung: Fusion aus lucas.kleinecke × creatoroly.
 - 06:00 (QA R2 Runde 3): Sprach-Ducking war zu breit – `speech` wurde ein einziger Block → alle SFX dauerhaft −16,5 dB, Sounddesign unhörbar (0,4 Treffer/s).
   Jetzt: Wortketten nur bei Lücken < 80 ms zusammengefasst, Renderer polstert −0,12/+0,08 s, unter Wörtern −10,5 dB (Faktor 0,3), in Lücken volle SFX.
 - ME-06 mit Quer-Ausschnitt: iPhone liegt automatisch quer, Screen füllt das Display (statt ⅔ graue Blur-Fläche).
+
+## 2026-10-15 09:18 – Leif: „finde die Videos jetzt schon sehr gut“ (3 Nacht-Reels R1/R2/R3)
+- Das ist der aktuelle Maßstab: Bühnenwechsel ~1 s, durchgehendes Leitobjekt, echte Screens unverzerrt, Stimme klar vorne (SFX-Ducking + Stimmen-Tasche), kein Arcade.
