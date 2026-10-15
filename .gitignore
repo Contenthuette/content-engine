@@ -49,3 +49,4 @@ jobs/*/*.jpg
 jobs/*/*.m4a
 jobs/*/*.wav
 jobs/*/tmp_*
+jobs/*/*.mov
