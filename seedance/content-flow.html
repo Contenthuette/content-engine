@@ -4,12 +4,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: n8n-artiger Node-Editor – Kopfzeile mit Kennzahlen, links Baustein-Palette, Mitte unendliche Arbeitsfläche, rechts Eigenschaften. Bewusst nur dunkel. */
+/* Layout: n8n-artiger Node-Editor – Kopfzeile mit Kennzahlen, links Baustein-Palette, Mitte unendliche Arbeitsfläche (Fluss von oben nach unten), rechts Eigenschaften. Bewusst nur hell, weißer Grund. */
 :root{
-  color-scheme:dark;
-  --bg:#0e1014; --dots:#2b303b; --panel:#15181e; --panel2:#1b1f27; --panel3:#222733;
-  --line:#2a2f39; --fg:#e8eaf0; --muted:#8a91a1; --brand:#ff4757;
-  --ok:#3ecf8e; --warn:#f5b84a; --bad:#ff5d6c; --idle:#6b7385;
+  color-scheme:light;
+  --bg:#ffffff; --dots:#d5dae3; --panel:#f7f8fa; --panel2:#ffffff; --panel3:#f1f3f6;
+  --line:#e1e5ec; --fg:#151a23; --muted:#667085; --brand:#ef3b4a;
+  --ok:#16a36a; --warn:#d98b0b; --bad:#e5394b; --idle:#98a1b2;
   --f-ui:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
   --f-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
 }
@@ -33,7 +33,7 @@ header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-block:10p
 .tools{display:flex;gap:6px;align-items:center}
 .btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;font-weight:600}
 .btn:hover{background:var(--panel3)} .btn:focus-visible,.pal button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-.btn.on{border-color:var(--brand);color:#fff;background:color-mix(in srgb,var(--brand) 22%,var(--panel2))}
+.btn.on{border-color:var(--brand);color:var(--brand);background:color-mix(in srgb,var(--brand) 9%,var(--panel2))}
 .save{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .save i{width:7px;height:7px;border-radius:50%;background:var(--idle)}
 .save[data-s="saved"] i{background:var(--ok)} .save[data-s="dirty"] i{background:var(--warn)}
@@ -55,7 +55,7 @@ header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-block:10p
 .world{position:absolute;left:0;top:0;transform-origin:0 0}
 svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:20000px;overflow:visible;pointer-events:none}
 .edge-hit{pointer-events:stroke}
-.edge{fill:none;stroke:#3a4150;stroke-width:2.5}
+.edge{fill:none;stroke:#cdd2db;stroke-width:2.5}
 .edge.sel{stroke:var(--brand)}
 .flow{fill:none;stroke:var(--ec,#8a91a1);stroke-width:2.5;stroke-dasharray:5 11;opacity:.9;animation:dash .9s linear infinite}
 .edge-hit{fill:none;stroke:transparent;stroke-width:16;cursor:pointer}
@@ -66,9 +66,9 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
 @keyframes dash{to{stroke-dashoffset:-16}}
 
 .node{position:absolute;left:0;top:0;width:240px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
-  box-shadow:0 8px 24px rgba(0,0,0,.35);cursor:move;user-select:none;-webkit-user-select:none}
+  box-shadow:0 4px 14px rgba(16,24,40,.08);cursor:move;user-select:none;-webkit-user-select:none}
 .node::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:12px 0 0 12px;background:var(--c)}
-.node.sel{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent),0 10px 28px rgba(0,0,0,.45)}
+.node.sel{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 45%,transparent),0 8px 22px rgba(16,24,40,.12)}
 .node.st-blockiert{border-style:dashed;border-color:var(--bad)}
 .node.st-idee{opacity:.72}
 .nhead{display:flex;align-items:center;gap:7px;padding:9px 12px 0 14px}
@@ -81,10 +81,10 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
 .nsub{padding:2px 12px 0 14px;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
 .nfoot{display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px 11px 14px}
 .tag{font-family:var(--f-mono);font-size:11px;background:var(--panel3);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-variant-numeric:tabular-nums}
-.tag.hot{border-color:color-mix(in srgb,var(--c) 60%,transparent);color:#fff}
+.tag.hot{border-color:color-mix(in srgb,var(--c) 70%,transparent);background:color-mix(in srgb,var(--c) 14%,var(--panel2));color:var(--fg)}
 .nfoot:empty{padding-bottom:4px}
-.port{position:absolute;top:26px;width:14px;height:14px;border-radius:50%;background:var(--panel);border:2px solid var(--c);cursor:crosshair}
-.port.in{left:-8px} .port.out{right:-8px}
+.port{position:absolute;left:50%;margin-left:-8px;width:14px;height:14px;border-radius:50%;background:var(--panel2);border:2px solid var(--c);cursor:crosshair}
+.port.in{top:-8px} .port.out{bottom:-8px}
 .port.out:hover{background:var(--c)}
 .node.note{background:color-mix(in srgb,var(--warn) 9%,var(--panel2));border-style:dashed}
 
@@ -116,7 +116,7 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
     padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
   .pal h3{display:none}
   .insp{position:fixed;left:0;right:0;bottom:0;max-height:58%;border-left:0;border-top:1px solid var(--line);z-index:5;
-    box-shadow:0 -12px 30px rgba(0,0,0,.5);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+    box-shadow:0 -12px 30px rgba(16,24,40,.14);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
     padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}
   .insp.idle{display:none}
   .insp .close{display:inline-block;align-self:flex-end}
@@ -141,7 +141,7 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
         <svg class="edges" id="edges"></svg>
         <div id="nodes"></div>
       </div>
-      <div class="empty" id="empty" hidden><div><b>Noch kein Prozess angelegt</b>Füge links Bausteine hinzu und zieh vom rechten Punkt eines Bausteins zu einem anderen, um sie zu verbinden. Claude kann den Plan auch direkt hier eintragen.</div></div>
+      <div class="empty" id="empty" hidden><div><b>Noch kein Prozess angelegt</b>Füge links Bausteine hinzu und zieh vom unteren Punkt eines Bausteins zu einem anderen, um sie zu verbinden. Claude kann den Plan auch direkt hier eintragen.</div></div>
       <div class="zoom">
         <button class="btn" id="zOut" aria-label="Herauszoomen">−</button>
         <button class="btn" id="zFit">Einpassen</button>
@@ -187,7 +187,7 @@ const uid=p=>p+Math.random().toString(36).slice(2,8);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 
-try{const v=JSON.parse(localStorage.getItem('cf_view')||'null');if(v&&v.k)view=v}catch(e){}
+try{const v=JSON.parse(localStorage.getItem('cf_view2')||'null');if(v&&v.k)view=v}catch(e){}
 
 /* ---------- Palette ---------- */
 const pal=$('#pal');
@@ -202,7 +202,7 @@ function applyView(){
   world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.k})`;
   canvas.style.backgroundSize=`${20*view.k}px ${20*view.k}px`;
   canvas.style.backgroundPosition=`${view.x}px ${view.y}px`;
-  try{localStorage.setItem('cf_view',JSON.stringify(view))}catch(e){}
+  try{localStorage.setItem('cf_view2',JSON.stringify(view))}catch(e){}
 }
 function nodeEl(n){
   const t=TYPES[n.type]||TYPES.note, st=n.status||'geplant';
@@ -228,8 +228,8 @@ function renderNodes(){
   $('#empty').hidden=state.nodes.length>0;
 }
 const byId=id=>state.nodes.find(n=>n.id===id);
-function pPos(n,side){const s=sizes[n.id]||{w:240,h:90};return side==='out'?{x:n.x+s.w,y:n.y+PORT_Y}:{x:n.x,y:n.y+PORT_Y}}
-function curve(a,b){const dx=Math.max(60,Math.abs(b.x-a.x)*.5);return {d:`M${a.x},${a.y} C${a.x+dx},${a.y} ${b.x-dx},${b.y} ${b.x},${b.y}`,mx:(a.x+3*(a.x+dx)+3*(b.x-dx)+b.x)/8,my:(a.y+b.y)/2}}
+function pPos(n,side){const s=sizes[n.id]||{w:240,h:90};return side==='out'?{x:n.x+s.w/2,y:n.y+s.h}:{x:n.x+s.w/2,y:n.y}}
+function curve(a,b){const dy=Math.max(50,Math.abs(b.y-a.y)*.5);return {d:`M${a.x},${a.y} C${a.x},${a.y+dy} ${b.x},${b.y-dy} ${b.x},${b.y}`,mx:(a.x+b.x)/2,my:(a.y+3*(a.y+dy)+3*(b.y-dy)+b.y)/8}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function renderEdges(temp){
   let h='';const live=flowOn&&!mode;
@@ -265,7 +265,7 @@ function field(label,html){return `<div class="field"><label>${label}</label>${h
 function renderInsp(){
   insp.classList.toggle('idle',!sel);
   if(!sel){
-    insp.innerHTML=`<h3>So funktioniert's</h3><div class="help">Baustein links anklicken, um ihn hinzuzufügen. Baustein ziehen zum Verschieben. Vom <b>rechten Punkt</b> auf einen anderen Baustein ziehen, um zu verbinden. Leere Fläche ziehen zum Bewegen, Mausrad zum Zoomen. <kbd>Entf</kbd> löscht die Auswahl.</div>
+    insp.innerHTML=`<h3>So funktioniert's</h3><div class="help">Baustein links anklicken, um ihn hinzuzufügen. Baustein ziehen zum Verschieben. Vom <b>unteren Punkt</b> auf einen anderen Baustein ziehen, um zu verbinden. Leere Fläche ziehen zum Bewegen, Mausrad zum Zoomen. <kbd>Entf</kbd> löscht die Auswahl.</div>
     <h3>Status</h3><div class="legend"><span><i style="background:var(--idle)"></i>Idee</span><span><i style="background:var(--warn)"></i>Geplant</span><span><i style="background:var(--ok)"></i>Läuft</span><span><i style="background:var(--bad)"></i>Blockiert (Fluss stoppt)</span></div>
     <h3>Rechnung</h3><div class="help">Accounts × Videos pro Account und Tag ergibt den Bedarf. KI-Bausteine mit der Einheit „Videos/Tag“ zählen als Kapazität. Fehlt Kapazität, wird die Zahl oben gelb.</div>`;
     return;
@@ -418,7 +418,7 @@ async function boot(){
     if(first){first=false;if(!readOnly)setStatus('saved');requestAnimationFrame(()=>{if(!safeHasView())fit()})}
   },err=>{setStatus('error')});
 }
-function safeHasView(){try{return !!localStorage.getItem('cf_view')}catch(e){return false}}
+function safeHasView(){try{return !!localStorage.getItem('cf_view2')}catch(e){return false}}
 function loadLocal(){try{const j=localStorage.getItem('cf_flow');if(j){state=JSON.parse(j);renderAll()}}catch(e){}setStatus('local')}
 window.addEventListener('resize',()=>renderEdges());
 boot();
