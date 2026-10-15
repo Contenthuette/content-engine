@@ -44,3 +44,8 @@ jobs/*/*.mp4
 jobs/*/*.wav
 jobs/*/*.mp3
 public/assets/leif_polo_front.png
+jobs/*/*.mp4
+jobs/*/*.jpg
+jobs/*/*.m4a
+jobs/*/*.wav
+jobs/*/tmp_*
