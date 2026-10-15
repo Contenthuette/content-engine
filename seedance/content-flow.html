@@ -237,7 +237,7 @@ const TYPES={
   offer:{label:'Einnahme',short:'€',color:'#10b981',title:'Angebot',sub:''},
   analytics:{label:'Auswertung',short:'DATA',color:'#facc15',title:'Auswertung',sub:'Views & Follower'},
   note:{label:'Notiz',short:'NOTIZ',color:'#6b7385',title:'Notiz',sub:'',noPorts:true},
-  clipper:{label:'Clipper',short:'CLIP',color:'#ff8a3d',title:'Clipper',sub:'',accounts:3,perDay:3},
+  clipper:{label:'Account-Set',short:'SET',color:'#ff8a3d',title:'Sub-Set',sub:'',accounts:3,perDay:2},
   lane:{label:'Bereich',short:'BEREICH',color:'#94a3b8',title:'Neuer Bereich',sub:'',noPorts:true,w:700,h:320}
 };
 const STATUS={idee:'Idee',geplant:'Geplant',aktiv:'Läuft',blockiert:'Blockiert'};
@@ -259,7 +259,7 @@ const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 
 let flowId='main', unsubFlow=null;
 try{const t=localStorage.getItem('cf_tab');if(t==='clipping')flowId='clipping'}catch(e){}
-function loadView(){try{const v=JSON.parse(localStorage.getItem('cf_view4_'+flowId)||'null');if(v&&v.k){view=v;return true}}catch(e){}return false}
+function loadView(){try{const v=JSON.parse(localStorage.getItem('cf_view5_'+flowId)||'null');if(v&&v.k){view=v;return true}}catch(e){}return false}
 loadView();
 
 /* ---------- Palette ---------- */
@@ -275,7 +275,7 @@ function applyView(){
   world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.k})`;
   canvas.style.backgroundSize=`${20*view.k}px ${20*view.k}px`;
   canvas.style.backgroundPosition=`${view.x}px ${view.y}px`;
-  try{localStorage.setItem('cf_view4_'+flowId,JSON.stringify(view))}catch(e){}
+  try{localStorage.setItem('cf_view5_'+flowId,JSON.stringify(view))}catch(e){}
 }
 const PLATS={ig:'Instagram',tt:'TikTok',yt:'YouTube'};
 function platsOf(n){return Array.isArray(n.platforms)?n.platforms.filter(p=>PLATS[p]):['ig','tt','yt']}
@@ -371,13 +371,13 @@ function renderInsp(){
   const n=byId(sel.id);if(!n){sel=null;return renderInsp()}
   if(n.type==='clipper'){
     const pl=platsOf(n);
-    insp.innerHTML=`<button class="btn close" data-act="close">Schließen</button><h3>Clipper</h3>
+    insp.innerHTML=`<button class="btn close" data-act="close">Schließen</button><h3>Account-Set</h3>
     <div class="row2">${field('Name',`<input id="f_title" maxlength="30"${dis}>`)}${field('Kürzel',`<input id="f_badge" maxlength="3"${dis}>`)}</div>
     ${field('Account / Handle',`<input id="f_sub" maxlength="60" placeholder="@seitenname"${dis}>`)}
     ${field('Videos pro Tag',`<input id="f_perDay" type="number" min="0" step="1"${dis}>`)}
     <div class="field"><label>Plattformen (jedes Video auf allen)</label><div class="row2" style="grid-template-columns:repeat(3,1fr)">${Object.entries(PLATS).map(([k,v])=>`<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="pf_${k}" ${pl.includes(k)?'checked':''}${dis}>${v}</label>`).join('')}</div></div>
     <div class="calc" id="ccalc"></div>
-    <div class="row2">${field('Status',`<select id="f_status"${dis}>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>`)}${field('Preis',`<input id="f_cost" maxlength="30" placeholder="0,50 €/Post"${dis}>`)}</div>
+    <div class="row2">${field('Status',`<select id="f_status"${dis}>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select>`)}${field('Kosten',`<input id="f_cost" maxlength="30" placeholder="z. B. 0 €"${dis}>`)}</div>
     ${field('Notizen',`<textarea id="f_notes" maxlength="1500"${dis}></textarea>`)}
     <div class="row2"><button class="btn" data-act="dup"${dis}>Duplizieren</button><button class="btn danger" data-act="del"${dis}>Löschen</button></div>`;
     const cc=()=>{const p2=platsOf(n);$('#ccalc').textContent=`${num(n.perDay)} Videos × ${p2.length} Plattformen = ${num(n.perDay)*p2.length} Posts/Tag`};
@@ -446,7 +446,7 @@ function addNode(type){
   const n={id:uid('n_'),type,x,y,title:t.title,sub:t.sub,status:'geplant'};
   if(ACC(type)){n.accounts=t.accounts;n.perDay=t.perDay}
   if(type==='lane'){n.w=t.w;n.h=t.h;n.tone=TONES.Grau;delete n.status}
-  if(type==='clipper'){const k=state.nodes.filter(x=>x.type==='clipper').length+1;n.title='Clipper '+k;n.badge='C'+k;n.perDay=t.perDay;n.platforms=['ig','tt','yt'];n.sub=''}
+  if(type==='clipper'){const k=state.nodes.filter(x=>x.type==='clipper').length+1;n.title='Sub-Set '+k;n.badge='S'+k;n.perDay=t.perDay;n.platforms=['ig','tt','yt'];n.sub=''}
   state.nodes.push(n);sel={kind:'node',id:n.id};renderAll();scheduleSave();
 }
 function deleteSel(){
@@ -606,7 +606,7 @@ function startPlan(){planRef=db.doc('plan/main');planRef.onSnapshot(snap=>{if(sn
 try{const t0=location.hash==='#plan'?'plan':location.hash==='#clipping'?'clipping':(localStorage.getItem('cf_tab')||'main');if(t0==='clipping'){flowId='clipping';loadView()}showTab(t0==='flow'?'main':t0)}catch(e){}
 renderPlan();
 
-function safeHasView(){try{return !!localStorage.getItem('cf_view4_'+flowId)}catch(e){return false}}
+function safeHasView(){try{return !!localStorage.getItem('cf_view5_'+flowId)}catch(e){return false}}
 function loadLocal(){try{const j=localStorage.getItem('cf_flow_'+flowId);if(j){state=JSON.parse(j);renderAll()}}catch(e){}setStatus('local')}
 window.addEventListener('resize',()=>renderEdges());
 boot();
