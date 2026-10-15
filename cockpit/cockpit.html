@@ -1,0 +1,305 @@
+<title>Content-Cockpit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: Leitstand – Kopf mit Engine-Tabs und Kennzahlen, darunter links „Neuer Auftrag“, rechts die Strecke als Spalten (Neu → In Arbeit → Freigabe → Geplant → Gepostet). Hell/Dunkel über Tokens. */
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --panel2:#eef0f4; --line:#dde1e8; --fg:#12151b; --muted:#5e6675;
+  --accent:#e0323f; --accent-ink:#ffffff; --accent-soft:#fde8ea;
+  --ok:#15834f; --ok-soft:#e3f4ea; --warn:#a86300; --warn-soft:#fdf0dc; --bad:#c42b37; --bad-soft:#fde6e8; --info:#2457c5; --info-soft:#e6edfc;
+  --f-display:'Archivo','Arial Narrow',Arial,sans-serif; --f-ui:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif; --f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#171a20; --panel2:#1f232b; --line:#2b3039; --fg:#eef0f3; --muted:#9aa2b1;
+  --accent:#f0505c; --accent-ink:#14060a; --accent-soft:#3a1519;
+  --ok:#4cc58a; --ok-soft:#12291d; --warn:#f0b357; --warn-soft:#2e2312; --bad:#ff6b76; --bad-soft:#331519; --info:#7ea4ff; --info-soft:#18223a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#171a20; --panel2:#1f232b; --line:#2b3039; --fg:#eef0f3; --muted:#9aa2b1;
+  --accent:#f0505c; --accent-ink:#14060a; --accent-soft:#3a1519;
+  --ok:#4cc58a; --ok-soft:#12291d; --warn:#f0b357; --warn-soft:#2e2312; --bad:#ff6b76; --bad-soft:#331519; --info:#7ea4ff; --info-soft:#18223a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1440px;margin:0 auto;padding-block:18px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{margin:0;font-family:var(--f-display);font-stretch:80%;font-weight:800;font-size:26px;letter-spacing:.01em;text-transform:uppercase}
+.brand h1 b{color:var(--accent)}
+.brand span{font-size:13px;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;overflow-x:auto;max-width:100%}
+nav.tabs button{border:0;background:none;border-radius:7px;padding:7px 13px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap;display:flex;gap:7px;align-items:center}
+nav.tabs button.on{background:var(--panel);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+nav.tabs button .n{font-family:var(--f-mono);font-size:11px;background:var(--accent);color:var(--accent-ink);border-radius:9px;padding:0 6px;min-width:18px;text-align:center}
+nav.tabs button .n:empty{display:none}
+.conn{margin-left:auto;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.conn i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.conn[data-s="live"] i{background:var(--ok)} .conn[data-s="err"] i{background:var(--bad)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:grid;gap:2px;min-width:0}
+.kpi b{font-family:var(--f-display);font-stretch:85%;font-size:28px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12.5px;color:var(--muted)}
+.kpi.hot b{color:var(--accent)}
+.worker{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:9px 14px}
+.worker b{color:var(--fg);font-weight:600}
+
+.view{display:grid;grid-template-columns:340px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:980px){.view{grid-template-columns:minmax(0,1fr)}}
+.wrap>*,.view>*{min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
+.card h2{margin:0;font-family:var(--f-display);font-stretch:85%;font-size:19px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;text-wrap:balance}
+.card p.hint{margin:0;font-size:13.5px;color:var(--muted)}
+.flowline{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.flowline span{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--fg);font-weight:600}
+label.f{display:grid;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+input[type=text],input[type=url],input[type=number],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:14.5px;font-weight:400;color:var(--fg)}
+textarea{min-height:88px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:5px 11px;font-size:13px;font-weight:600;cursor:pointer;user-select:none}
+.chip input{display:none}
+.chip:has(input:checked){background:var(--accent-soft);border-color:var(--accent);color:var(--fg)}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px 13px;font-weight:700;font-size:14px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.ghost{background:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.msg{font-size:13px;color:var(--muted)} .msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
+
+.board{display:grid;grid-template-columns:repeat(5,minmax(176px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
+@media (max-width:980px){.board{grid-template-columns:repeat(5,minmax(250px,82vw));scroll-snap-type:x mandatory}.col{scroll-snap-align:start}}
+.col{display:grid;gap:10px;align-content:start;min-width:0}
+.colh{display:flex;align-items:center;gap:8px;padding:2px 2px 6px;border-bottom:2px solid var(--line)}
+.colh b{font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.colh .c{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:auto}
+.col[data-s="freigabe"] .colh{border-color:var(--accent)}
+.empty{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:14px;text-align:center}
+.job{min-width:0;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:11px 12px;display:grid;gap:8px;min-width:0}
+.job[data-s="in_arbeit"]{border-left-color:var(--info)} .job[data-s="freigabe"]{border-left-color:var(--accent)}
+.job[data-s="geplant"]{border-left-color:var(--warn)} .job[data-s="gepostet"]{border-left-color:var(--ok)}
+.job[data-s="fehler"],.job[data-s="abgelehnt"]{border-left-color:var(--bad)}
+.job .t{font-weight:700;font-size:14.5px;line-height:1.3;overflow-wrap:anywhere}
+.job a{color:var(--info);overflow-wrap:anywhere;font-size:13px}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{font-family:var(--f-mono);font-size:11px;border-radius:5px;padding:1px 6px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap}
+.tag.m{background:var(--info-soft);border-color:transparent;color:var(--info)}
+.tag.err{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.tag.st{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.meta{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.job video{width:100%;max-height:360px;border-radius:8px;background:#000;aspect-ratio:9/16;object-fit:contain}
+.job textarea{min-height:70px;font-size:13.5px}
+.job .log{font-size:12px;color:var(--muted);display:grid;gap:2px}
+.job details summary{cursor:pointer;font-size:12px;color:var(--muted)}
+.job .acts{display:flex;gap:6px;flex-wrap:wrap}
+.job .acts .btn{padding:6px 10px;font-size:13px}
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--info);margin-right:5px;animation:p 1.4s ease-in-out infinite}
+@keyframes p{50%{opacity:.3}}
+.more{font-size:13px;display:flex;gap:10px;align-items:center;color:var(--muted)}
+.more button{background:none;border:0;color:var(--info);cursor:pointer;font-weight:600;padding:0}
+
+.acc{display:grid;gap:10px}
+.acctbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-top:1px solid var(--line);vertical-align:middle}
+thead th{border-top:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--panel2)}
+td input[type=text],td select{padding:6px 8px;font-size:13.5px}
+.role{font-size:12px;font-weight:700;border-radius:5px;padding:2px 7px}
+.role.haupt{background:var(--accent-soft);color:var(--accent)} .role.test{background:var(--info-soft);color:var(--info)}
+.role.aufwaermen{background:var(--warn-soft);color:var(--warn)} .role.reserve,.role.offen{background:var(--panel2);color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Content-<b>Cockpit</b></h1><span>ULTRA · Leif Dunkelmann</span></div>
+    <nav class="tabs" aria-label="Engines">
+      <button data-tab="higgsfield" class="on" id="tab_higgsfield">Higgsfield-Flow <span class="n"></span></button>
+      <button data-tab="clipping" id="tab_clipping">Clipping <span class="n"></span></button>
+      <button data-tab="avatar" id="tab_avatar">Avatar <span class="n"></span></button>
+      <button data-tab="accounts" id="tab_accounts">Accounts</button>
+    </nav>
+    <div class="conn" id="conn" data-s="idle"><i></i><span>Verbinde…</span></div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Kennzahlen"></section>
+  <div class="worker" id="worker"><span>Claude arbeitet die Warteschlange ab, sobald du im Chat „los“ sagst – später automatisch mehrmals am Tag.</span></div>
+
+  <main id="main"></main>
+</div>
+
+<script>
+const ENG={
+  higgsfield:{name:'Higgsfield-Flow',flow:['Reel-Link','Genjutsu / Seedance / Katana','Freigabe','Metricool'],
+    hint:'Wirf Reels rein, die du gut findest. Claude baut sie mit deinem Gesicht nach und plant sie nach deiner Freigabe ein.',
+    models:[['genjutsu','Genjutsu'],['seedance','Seedance 2.5'],['katana','Katana']]},
+  clipping:{name:'Clipping',flow:['Stream / VOD','Clips finden','Schnitt in Stilen','Freigabe','Metricool'],
+    hint:'Link zum Stream-Video (Kick-VOD, Drive, YouTube). Claude sucht die besten Momente und schneidet Hochformat-Clips.',
+    styles:[['clean','Clean'],['hype','Hype'],['podcast','Podcast']]},
+  avatar:{name:'Avatar',flow:['Thema / Skript','Stimme','Avatar','Schnitt','Freigabe'],
+    hint:'Thema oder fertiges Skript. Claude schreibt, vertont und schneidet ein Reel mit deinem Avatar.'}
+};
+const COLS=[['neu','Neu'],['in_arbeit','In Arbeit'],['freigabe','Zur Freigabe'],['geplant','Geplant'],['gepostet','Gepostet']];
+const ST_LABEL={neu:'Neu',in_arbeit:'In Arbeit',freigabe:'Zur Freigabe',freigegeben:'Freigegeben',geplant:'Geplant',gepostet:'Gepostet',abgelehnt:'Abgelehnt',fehler:'Fehler'};
+const ROLES={haupt:'Hauptaccount',test:'Test',aufwaermen:'Aufwärmen',reserve:'Reserve',offen:'Offen'};
+
+let db=null, jobs=[], config=null, tab='higgsfield', showDone={}, busy=new Set();
+try{const t=localStorage.getItem('cc_tab');if(t&&(ENG[t]||t==='accounts'))tab=t}catch(e){}
+const $=s=>document.querySelector(s);
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+const nowIso=()=>new Date().toISOString();
+const fmt=iso=>{if(!iso)return'';const d=new Date(iso);if(isNaN(d))return'';return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})};
+function setConn(s,t){const c=$('#conn');c.dataset.s=s;c.querySelector('span').textContent=t}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;try{localStorage.setItem('cc_tab',tab)}catch(e){}render()});
+
+/* ---------- Kennzahlen ---------- */
+function renderKpis(){
+  const k=$('#kpis');k.innerHTML='';
+  const today=new Date().toDateString();
+  const n=s=>jobs.filter(j=>j.status===s).length;
+  const postedToday=jobs.filter(j=>j.status==='gepostet'&&j.postedAt&&new Date(j.postedAt).toDateString()===today).length;
+  const credits=jobs.reduce((s,j)=>s+(Number(j.result&&j.result.credits)||0),0);
+  const items=[[n('neu')+n('in_arbeit'),'in der Warteschlange'],[n('freigabe'),'warten auf dich',true],[n('geplant'),'eingeplant'],[postedToday,'heute gepostet'],[Math.round(credits*10)/10,'Credits verbraucht']];
+  if(config&&config.worker&&config.worker.credits!=null)items.push([config.worker.credits,'Credits übrig']);
+  for(const [v,l,hot] of items){const d=el('div','kpi'+(hot&&v?' hot':''));d.append(el('b',null,String(v)),el('span',null,l));k.appendChild(d)}
+  for(const e of Object.keys(ENG)){const c=jobs.filter(j=>j.engine===e&&j.status==='freigabe').length;const s=$('#tab_'+e+' .n');if(s)s.textContent=c||''}
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  const w=$('#worker');w.innerHTML='';
+  if(config&&config.worker&&config.worker.lastRun){w.append(el('span',null,'Claude zuletzt aktiv: '));w.append(el('b',null,fmt(config.worker.lastRun)));if(config.worker.note)w.append(el('span',null,'· '+config.worker.note))}
+  else w.append(el('span',null,'Claude arbeitet die Warteschlange ab, sobald du im Chat „los“ sagst – später automatisch mehrmals am Tag.'));
+}
+
+/* ---------- Ansicht ---------- */
+function render(){renderKpis();const m=$('#main');m.innerHTML='';if(tab==='accounts')m.appendChild(accountsView());else m.appendChild(engineView(tab))}
+
+function accountsList(){return (config&&config.accounts)||[]}
+function engineView(e){
+  const E=ENG[e];const v=el('div','view');
+  // Formular
+  const f=el('form','card');f.id='form_'+e;f.append(el('h2',null,'Neuer Auftrag'));
+  const fl=el('div','flowline');E.flow.forEach((s,i)=>{if(i)fl.append(document.createTextNode('→'));fl.append(el('span',null,s))});f.append(fl,el('p','hint',E.hint));
+  const lab=(t,inp)=>{const l=el('label','f');l.append(document.createTextNode(t),inp);return l};
+  let src,model,styles,count,script,note;
+  if(e==='higgsfield'){src=el('textarea');src.id='src_'+e;src.placeholder='https://www.instagram.com/reel/…\nEin Link pro Zeile';f.append(lab('Reel-Links',src));
+    model=el('select');model.id='model_'+e;for(const [k,t] of E.models){const o=el('option',null,t);o.value=k;model.appendChild(o)}f.append(lab('Modell',model))}
+  if(e==='clipping'){src=el('input');src.type='url';src.id='src_'+e;src.placeholder='https://kick.com/… oder Drive-Link';f.append(lab('Stream-Video',src));
+    const ch=el('div','chips');for(const [k,t] of E.styles){const c=el('label','chip');const i=el('input');i.type='checkbox';i.value=k;i.id='sty_'+k;if(k==='clean')i.checked=true;c.append(i,document.createTextNode(t));ch.appendChild(c)}styles=ch;f.append(lab('Schnitt-Stile',ch));
+    count=el('input');count.type='number';count.min='1';count.max='30';count.value='8';count.id='cnt_'+e;f.append(lab('Anzahl Clips',count))}
+  if(e==='avatar'){script=el('textarea');script.id='scr_'+e;script.placeholder='Thema in einem Satz – oder das fertige Skript';f.append(lab('Thema / Skript',script))}
+  // Ziel-Accounts
+  const accs=accountsList().filter(a=>a.role!=='offen'&&a.role!=='reserve');const tg=el('div','chips');
+  if(!accs.length)tg.append(el('span','msg','Noch keine aktiven Accounts – im Tab „Accounts“ eintragen.'));
+  for(const a of accs){const c=el('label','chip');const i=el('input');i.type='checkbox';i.value=a.id;i.id='tg_'+e+'_'+a.id;if(a.role==='test'||a.role==='haupt')i.checked=a.role==='test';c.append(i,document.createTextNode(a.name||a.id));tg.appendChild(c)}
+  f.append(lab('Posten auf',tg));
+  note=el('textarea');note.id='note_'+e;note.style.minHeight='60px';note.placeholder='Optional: was soll anders sein, Pointe, Text…';f.append(lab('Notiz an Claude',note));
+  const r=el('div','row');const b=el('button','btn primary','In die Warteschlange');b.type='submit';const msg=el('span','msg');r.append(b,msg);f.append(r);
+  f.onsubmit=async ev=>{ev.preventDefault();if(!db){msg.className='msg err';msg.textContent='Keine Verbindung zur Datenbank – Seite neu laden.';return}
+    const targets=[...tg.querySelectorAll('input:checked')].map(i=>i.value);
+    const base={engine:e,status:'neu',note:note.value.trim(),targets,createdAt:nowIso(),updatedAt:nowIso(),log:[{t:nowIso(),msg:'Auftrag angelegt'}]};
+    let docs=[];
+    if(e==='higgsfield'){const links=src.value.split(/\s+/).map(s=>s.trim()).filter(s=>/^https?:\/\//i.test(s));if(!links.length){msg.className='msg err';msg.textContent='Mindestens einen Link einfügen (beginnt mit https://).';return}
+      docs=links.map(l=>({...base,src:l,model:model.value,title:shortLink(l)}))}
+    if(e==='clipping'){const l=src.value.trim();if(!/^https?:\/\//i.test(l)){msg.className='msg err';msg.textContent='Bitte einen Link zum Stream-Video einfügen.';return}
+      docs=[{...base,src:l,title:'Stream '+new Date().toLocaleDateString('de-DE'),styles:[...styles.querySelectorAll('input:checked')].map(i=>i.value),count:Math.max(1,Math.min(30,Number(count.value)||8))}]}
+    if(e==='avatar'){const s=script.value.trim();if(!s){msg.className='msg err';msg.textContent='Thema oder Skript fehlt.';return}docs=[{...base,script:s,title:s.slice(0,70)}]}
+    b.disabled=true;msg.className='msg';msg.textContent='Speichert…';
+    try{for(const d of docs)await db.collection('jobs').add(d);msg.className='msg ok';msg.textContent=docs.length+(docs.length===1?' Auftrag':' Aufträge')+' in der Warteschlange.';if(src)src.value='';if(script)script.value='';note.value=''}
+    catch(err){msg.className='msg err';msg.textContent=dbErr(err)}
+    b.disabled=false};
+  v.appendChild(f);
+  // Board
+  const right=el('div','card');right.append(el('h2',null,E.name+' – Strecke'));
+  const list=jobs.filter(j=>j.engine===e);
+  const board=el('div','board');
+  for(const [s,t] of COLS){const col=el('div','col');col.dataset.s=s;const inCol=list.filter(j=>s==='geplant'?(j.status==='geplant'||j.status==='freigegeben'):j.status===s);
+    const h=el('div','colh');h.append(el('b',null,t),el('span','c',String(inCol.length)));col.appendChild(h);
+    const lim=s==='gepostet'&&!showDone[e]?8:999;
+    if(!inCol.length)col.appendChild(el('div','empty',emptyText(s)));
+    for(const j of inCol.slice(0,lim))col.appendChild(jobCard(j));
+    if(inCol.length>lim){const mo=el('div','more');const bb=el('button',null,`Alle ${inCol.length} zeigen`);bb.onclick=()=>{showDone[e]=true;render()};mo.appendChild(bb);col.appendChild(mo)}
+    board.appendChild(col)}
+  right.appendChild(board);
+  const off=list.filter(j=>j.status==='abgelehnt'||j.status==='fehler');
+  if(off.length){const d=el('details');d.append(el('summary',null,`Abgelehnt / Fehler (${off.length})`));const g=el('div','board');g.style.gridTemplateColumns='repeat(auto-fill,minmax(240px,1fr))';for(const j of off)g.appendChild(jobCard(j));d.appendChild(g);right.appendChild(d)}
+  v.appendChild(right);return v;
+}
+function emptyText(s){return{neu:'Nichts in der Warteschlange.',in_arbeit:'Claude arbeitet gerade an nichts.',freigabe:'Nichts zum Freigeben.',geplant:'Nichts eingeplant.',gepostet:'Noch nichts gepostet.'}[s]||''}
+function shortLink(u){try{const x=new URL(u);return x.hostname.replace('www.','')+x.pathname.replace(/\/$/,'').slice(0,40)}catch(e){return u.slice(0,50)}}
+function accName(id){const a=accountsList().find(x=>x.id===id);return a?(a.name||id):id}
+
+function jobCard(j){
+  const c=el('article','job');c.dataset.s=j.status;
+  c.appendChild(el('div','t',j.title||'Auftrag'));
+  const tags=el('div','tags');
+  if(j.model)tags.appendChild(el('span','tag m',({genjutsu:'Genjutsu',seedance:'Seedance 2.5',katana:'Katana'})[j.model]||j.model));
+  if(j.styles&&j.styles.length)tags.appendChild(el('span','tag m',j.styles.join(' · ')));
+  if(j.count)tags.appendChild(el('span','tag',j.count+' Clips'));
+  for(const t of j.targets||[])tags.appendChild(el('span','tag',accName(t)));
+  if(j.status==='fehler')tags.appendChild(el('span','tag err','Fehler'));
+  if(j.status==='abgelehnt')tags.appendChild(el('span','tag err','Abgelehnt'));
+  if(j.status==='freigegeben')tags.appendChild(el('span','tag st','Freigegeben – wird eingeplant'));
+  if(j.result&&j.result.credits)tags.appendChild(el('span','tag',j.result.credits+' Cr'));
+  if(tags.children.length)c.appendChild(tags);
+  if(j.src){const a=el('a',null,'Quelle öffnen ↗');a.href=j.src;a.target='_blank';a.rel='noopener';c.appendChild(a)}
+  if(j.status==='in_arbeit'){const p=el('div','meta');p.innerHTML='';p.append(el('span','pulse'),document.createTextNode(j.step||'läuft…'));c.appendChild(p)}
+  if(j.error)c.appendChild(el('div','msg err',j.error));
+  const vidId=j.result&&j.result.assetId;
+  if(vidId&&['freigabe','freigegeben','geplant','gepostet','abgelehnt'].includes(j.status)){const v=el('video');v.src='/_blob/'+vidId;v.controls=true;v.preload='metadata';v.playsInline=true;c.appendChild(v)}
+  else if(j.result&&j.result.url){const a=el('a',null,'Video öffnen ↗');a.href=j.result.url;a.target='_blank';a.rel='noopener';c.appendChild(a)}
+  if(j.status==='freigabe'){
+    const ta=el('textarea');ta.id='cap_'+j.id;ta.value=j.caption||'';ta.placeholder='Caption';c.appendChild(ta);
+    const acts=el('div','acts');const ok=el('button','btn ok','Freigeben');const no=el('button','btn','Ablehnen');const re=el('button','btn ghost','Neu machen');
+    ok.onclick=()=>act(j,{status:'freigegeben',caption:ta.value,approvedAt:nowIso()},'Freigegeben');
+    no.onclick=()=>act(j,{status:'abgelehnt',caption:ta.value},'Abgelehnt');
+    re.onclick=()=>{const why=c.querySelector('.why');if(why){why.focus();return}const w=el('textarea','why');w.id='why_'+j.id;w.placeholder='Was soll anders werden?';w.style.minHeight='56px';c.insertBefore(w,acts);const send=el('button','btn primary','Mit Notiz neu machen');send.onclick=()=>act(j,{status:'neu',note:((j.note?j.note+'\n':'')+'Neu machen: '+w.value.trim()).trim(),result:null},'Zurück in die Warteschlange');acts.appendChild(send);w.focus()};
+    acts.append(ok,no,re);c.appendChild(acts)}
+  if(j.status==='neu'||j.status==='fehler'||j.status==='abgelehnt'){const acts=el('div','acts');
+    if(j.status!=='neu'){const rq=el('button','btn','Nochmal versuchen');rq.onclick=()=>act(j,{status:'neu',error:null},'Zurück in die Warteschlange');acts.appendChild(rq)}
+    const del=el('button','btn ghost','Entfernen');del.onclick=()=>{if(del.dataset.arm){remove(j)}else{del.dataset.arm='1';del.textContent='Wirklich entfernen?'}};acts.appendChild(del);c.appendChild(acts)}
+  const meta=el('div','meta');const parts=['angelegt '+fmt(j.createdAt)];if(j.scheduledAt)parts.push('geplant '+fmt(j.scheduledAt));if(j.postedAt)parts.push('gepostet '+fmt(j.postedAt));meta.textContent=parts.join(' · ');c.appendChild(meta);
+  if(j.log&&j.log.length>1){const d=el('details');d.append(el('summary',null,'Verlauf'));const lg=el('div','log');for(const l of j.log.slice(-8))lg.appendChild(el('div',null,fmt(l.t)+' – '+l.msg));d.appendChild(lg);c.appendChild(d)}
+  return c;
+}
+async function act(j,patch,logMsg){if(busy.has(j.id))return;busy.add(j.id);
+  try{await db.doc('jobs/'+j.id).update({...patch,updatedAt:nowIso(),log:[...(j.log||[]),{t:nowIso(),msg:logMsg}].slice(-30)})}
+  catch(e){alert0(dbErr(e))}finally{busy.delete(j.id)}}
+async function remove(j){try{await db.doc('jobs/'+j.id).delete()}catch(e){alert0(dbErr(e))}}
+function alert0(t){const w=$('#worker');w.innerHTML='';w.appendChild(el('span','msg err',t))}
+function dbErr(e){const c=e&&e.code;if(c==='permission_denied'||c==='not_granted')return'Du hast hier nur Leserechte.';if(c==='quota_exceeded')return'Datenbank voll – alte, gepostete Aufträge entfernen.';if(c==='unavailable')return'Verbindung kurz weg – nochmal versuchen.';return'Konnte nicht speichern ('+(c||'Fehler')+').'}
+
+/* ---------- Accounts ---------- */
+function accountsView(){
+  const wrap=el('div','acc');const c=el('div','card');c.append(el('h2',null,'Accounts'),el('p','hint','Hauptaccount und Sub-Account-Sets. Jedes Set postet auf Instagram, TikTok und YouTube. „Test“ bekommt in der Testphase Videos, „Aufwärmen“ wird nur gepflegt.'));
+  const tw=el('div','acctbl');const t=el('table');const th=el('thead');const hr=el('tr');for(const h of ['Set','Rolle','Instagram','TikTok','YouTube','Metricool'])hr.appendChild(el('th',null,h));th.appendChild(hr);t.appendChild(th);
+  const tb=el('tbody');const accs=accountsList();
+  if(!accs.length){const tr=el('tr');const td=el('td',null,'Noch keine Accounts hinterlegt.');td.colSpan=6;tr.appendChild(td);tb.appendChild(tr)}
+  accs.forEach((a,i)=>{const tr=el('tr');
+    const nm=el('input');nm.type='text';nm.value=a.name||'';nm.id='an_'+a.id;nm.onchange=()=>saveAcc(i,{name:nm.value.trim()});tr.appendChild(wrapTd(nm));
+    const rs=el('select');rs.id='ar_'+a.id;for(const [k,v] of Object.entries(ROLES)){const o=el('option',null,v);o.value=k;rs.appendChild(o)}rs.value=a.role||'offen';rs.onchange=()=>saveAcc(i,{role:rs.value});tr.appendChild(wrapTd(rs));
+    for(const p of ['ig','tt','yt']){const inp=el('input');inp.type='text';inp.placeholder='@handle';inp.value=(a.handles&&a.handles[p])||'';inp.id='ah_'+a.id+'_'+p;inp.onchange=()=>saveAcc(i,{handles:{...(a.handles||{}),[p]:inp.value.trim()}});tr.appendChild(wrapTd(inp))}
+    const mc=el('td');mc.appendChild(el('span','role '+(a.metricool?'test':'offen'),a.metricool?'verbunden':'offen'));tr.appendChild(mc);
+    tb.appendChild(tr)});
+  t.appendChild(tb);tw.appendChild(t);c.appendChild(tw);
+  c.appendChild(el('p','hint','Metricool verbindest du selbst in Metricool (eine Marke pro Set). Sag Claude danach Bescheid, dann wird es hier auf „verbunden“ gesetzt.'));
+  wrap.appendChild(c);return wrap;
+}
+function wrapTd(x){const td=el('td');td.appendChild(x);return td}
+async function saveAcc(i,patch){if(!config)return;const accs=accountsList().map((a,k)=>k===i?{...a,...patch}:a);try{await db.doc('config/main').update({accounts:accs})}catch(e){alert0(dbErr(e))}}
+
+/* ---------- Start ---------- */
+render();
+(async()=>{
+  const api=window.claude;if(!api||!api.use){setConn('err','Nur im Claude-Viewer nutzbar');return}
+  try{db=await api.use('db')}catch(e){db=null}
+  if(!db){setConn('err','Keine Datenbank-Verbindung');return}
+  setConn('live','Live');
+  db.collection('jobs').orderBy('createdAt','desc').limit(500).onSnapshot(s=>{jobs=s.docs.map(d=>({id:d.id,...d.data()}));if(!document.activeElement||!document.activeElement.closest('.job,form'))render();else renderKpis()},e=>setConn('err','Verbindung verloren – neu laden'));
+  db.doc('config/main').onSnapshot(s=>{config=s.exists?s.data():null;if(!document.activeElement||!document.activeElement.closest('form,td'))render();else renderKpis()},()=>{});
+})();
+</script>
