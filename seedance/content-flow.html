@@ -86,6 +86,13 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
 .port{position:absolute;left:50%;margin-left:-8px;width:14px;height:14px;border-radius:50%;background:var(--panel2);border:2px solid var(--c);cursor:crosshair}
 .port.in{top:-8px} .port.out{bottom:-8px}
 .port.out:hover{background:var(--c)}
+/* Bereiche (Spuren) liegen hinter Verbindungen und Bausteinen */
+.node.lane{background:color-mix(in srgb,var(--c) 7%,transparent);border:1.5px dashed color-mix(in srgb,var(--c) 50%,transparent);box-shadow:none;cursor:default;border-radius:18px}
+.node.lane::before{display:none}
+.node.lane.sel{box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 40%,transparent)}
+.lhead{position:absolute;top:12px;left:16px;display:flex;align-items:baseline;gap:10px;cursor:move;max-width:calc(100% - 32px)}
+.lhead b{font-size:13px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:color-mix(in srgb,var(--c) 70%,var(--fg))}
+.lhead span{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .node.note{background:color-mix(in srgb,var(--warn) 9%,var(--panel2));border-style:dashed}
 
 .empty{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;padding:24px}
@@ -186,6 +193,7 @@ svg.edges{position:absolute;left:-10000px;top:-10000px;width:20000px;height:2000
     <nav class="pal" id="pal" aria-label="Bausteine"><h3>Baustein hinzufügen</h3></nav>
     <div class="canvas" id="canvas">
       <div class="world" id="world">
+        <div id="lanes"></div>
         <svg class="edges" id="edges"></svg>
         <div id="nodes"></div>
       </div>
@@ -218,7 +226,8 @@ const TYPES={
   bofu:{label:'Bottom of Funnel',short:'BOFU',color:'#a3e635',title:'Verkaufs-Content',sub:'Kommentar → DM'},
   offer:{label:'Einnahme',short:'€',color:'#10b981',title:'Angebot',sub:''},
   analytics:{label:'Auswertung',short:'DATA',color:'#facc15',title:'Auswertung',sub:'Views & Follower'},
-  note:{label:'Notiz',short:'NOTIZ',color:'#6b7385',title:'Notiz',sub:'',noPorts:true}
+  note:{label:'Notiz',short:'NOTIZ',color:'#6b7385',title:'Notiz',sub:'',noPorts:true},
+  lane:{label:'Bereich',short:'BEREICH',color:'#94a3b8',title:'Neuer Bereich',sub:'',noPorts:true,w:700,h:320}
 };
 const STATUS={idee:'Idee',geplant:'Geplant',aktiv:'Läuft',blockiert:'Blockiert'};
 const OWNERS=['Leif','Claude','Team','Automatisch'];
@@ -231,12 +240,13 @@ let sel=null, sizes={}, flowOn=true, readOnly=false;
 let db=null, docRef=null, lastSaved='', saveTimer=null, saving=false, saveQueued=false, pendingRemote=null, mode=null;
 
 const $=s=>document.querySelector(s);
-const canvas=$('#canvas'), world=$('#world'), svg=$('#edges'), layer=$('#nodes'), insp=$('#insp');
+const canvas=$('#canvas'), world=$('#world'), svg=$('#edges'), layer=$('#nodes'), lanesLayer=$('#lanes'), insp=$('#insp');
+const TONES={Grau:'#94a3b8',Orange:'#ff8a3d',Magenta:'#e879f9',Grün:'#10b981',Blau:'#60a5fa',Rot:'#ef3b4a'};
 const uid=p=>p+Math.random().toString(36).slice(2,8);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 
-try{const v=JSON.parse(localStorage.getItem('cf_view2')||'null');if(v&&v.k)view=v}catch(e){}
+try{const v=JSON.parse(localStorage.getItem('cf_view3')||'null');if(v&&v.k)view=v}catch(e){}
 
 /* ---------- Palette ---------- */
 const pal=$('#pal');
@@ -251,11 +261,14 @@ function applyView(){
   world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.k})`;
   canvas.style.backgroundSize=`${20*view.k}px ${20*view.k}px`;
   canvas.style.backgroundPosition=`${view.x}px ${view.y}px`;
-  try{localStorage.setItem('cf_view2',JSON.stringify(view))}catch(e){}
+  try{localStorage.setItem('cf_view3',JSON.stringify(view))}catch(e){}
 }
 function nodeEl(n){
   const t=TYPES[n.type]||TYPES.note, st=n.status||'geplant';
   const el=document.createElement('div');
+  if(n.type==='lane'){el.className='node lane'+(sel&&sel.kind==='node'&&sel.id===n.id?' sel':'');el.dataset.id=n.id;el.style.setProperty('--c',n.tone||t.color);
+    el.style.transform=`translate(${n.x}px,${n.y}px)`;el.style.width=(n.w||t.w)+'px';el.style.height=(n.h||t.h)+'px';
+    el.innerHTML='<div class="lhead"><b></b><span></span></div>';el.querySelector('b').textContent=n.title||t.title;el.querySelector('span').textContent=n.sub||'';return el}
   el.className=`node st-${st}${n.type==='note'?' note':''}${sel&&sel.kind==='node'&&sel.id===n.id?' sel':''}`;
   el.dataset.id=n.id;el.style.setProperty('--c',t.color);el.style.transform=`translate(${n.x}px,${n.y}px)`;
   el.innerHTML=`<div class="nhead"><span class="chip"></span><span class="ntype"></span><span class="sdot"></span></div><div class="ntitle"></div><div class="nsub"></div><div class="nfoot"></div>`+(t.noPorts?'':'<div class="port in" data-port="in"></div><div class="port out" data-port="out"></div>');
@@ -271,9 +284,9 @@ function nodeEl(n){
   return el;
 }
 function renderNodes(){
-  layer.innerHTML='';
-  for(const n of state.nodes)layer.appendChild(nodeEl(n));
-  sizes={};layer.querySelectorAll('.node').forEach(el=>sizes[el.dataset.id]={w:el.offsetWidth,h:el.offsetHeight});
+  layer.innerHTML='';lanesLayer.innerHTML='';
+  for(const n of state.nodes)(n.type==='lane'?lanesLayer:layer).appendChild(nodeEl(n));
+  sizes={};world.querySelectorAll('.node').forEach(el=>sizes[el.dataset.id]={w:el.offsetWidth,h:el.offsetHeight});
   $('#empty').hidden=state.nodes.length>0;
 }
 const byId=id=>state.nodes.find(n=>n.id===id);
@@ -331,6 +344,18 @@ function renderInsp(){
     return;
   }
   const n=byId(sel.id);if(!n){sel=null;return renderInsp()}
+  if(n.type==='lane'){
+    insp.innerHTML=`<button class="btn close" data-act="close">Schließen</button><h3>Bereich</h3>
+    ${field('Titel',`<input id="f_title" maxlength="40"${dis}>`)}${field('Beschreibung',`<input id="f_sub" maxlength="80"${dis}>`)}
+    <div class="row2">${field('Breite',`<input id="f_w" type="number" min="200" step="20"${dis}>`)}${field('Höhe',`<input id="f_h" type="number" min="120" step="20"${dis}>`)}</div>
+    ${field('Farbe',`<select id="f_tone"${dis}>${Object.entries(TONES).map(([k,v])=>`<option value="${v}">${k}</option>`).join('')}</select>`)}
+    <div class="help">Bereiche liegen hinter den Bausteinen. Zum Verschieben am Titel ziehen.</div>
+    <div class="row2"><button class="btn" data-act="dup"${dis}>Duplizieren</button><button class="btn danger" data-act="del"${dis}>Löschen</button></div>`;
+    const b2=(id,key,isNum)=>{const el=$('#f_'+id);el.value=n[key]??'';el.oninput=ev=>{n[key]=isNum?Math.max(100,num(ev.target.value)):ev.target.value;refreshNode(n);scheduleSave()}};
+    b2('title','title');b2('sub','sub');b2('w','w',true);b2('h','h',true);
+    const tn=$('#f_tone');tn.value=n.tone||TONES.Grau;tn.onchange=ev=>{n.tone=ev.target.value;refreshNode(n);scheduleSave()};
+    return;
+  }
   const t=TYPES[n.type]||TYPES.note;
   let h=`<button class="btn close" data-act="close">Schließen</button><h3>${esc(t.label)}</h3>
   ${field('Titel',`<input id="f_title" maxlength="60"${dis}>`)}
@@ -355,8 +380,8 @@ function renderInsp(){
 }
 function updCalc(n){const c=$('#calc');if(c)c.textContent=`${num(n.accounts)} × ${num(n.perDay)} = ${num(n.accounts)*num(n.perDay)} Videos/Tag · ${num(n.accounts)*num(n.perDay)*30}/Monat`}
 function refreshNode(n){
-  const old=layer.querySelector(`.node[data-id="${CSS.escape(n.id)}"]`),el=nodeEl(n);
-  old?old.replaceWith(el):layer.appendChild(el);sizes[n.id]={w:el.offsetWidth,h:el.offsetHeight};
+  const old=world.querySelector(`.node[data-id="${CSS.escape(n.id)}"]`),el=nodeEl(n);
+  old?old.replaceWith(el):(n.type==='lane'?lanesLayer:layer).appendChild(el);sizes[n.id]={w:el.offsetWidth,h:el.offsetHeight};
   renderEdges();renderStats();updCalc(n);
 }
 insp.addEventListener('click',e=>{
@@ -369,7 +394,7 @@ insp.addEventListener('click',e=>{
 });
 
 /* ---------- Bearbeiten ---------- */
-function select(s){sel=s;layer.querySelectorAll('.node').forEach(el=>el.classList.toggle('sel',!!(s&&s.kind==='node'&&el.dataset.id===s.id)));renderEdges();renderInsp()}
+function select(s){sel=s;world.querySelectorAll('.node').forEach(el=>el.classList.toggle('sel',!!(s&&s.kind==='node'&&el.dataset.id===s.id)));renderEdges();renderInsp()}
 function addNode(type){
   if(readOnly)return;
   const t=TYPES[type],r=canvas.getBoundingClientRect();
@@ -377,6 +402,7 @@ function addNode(type){
   const y=Math.round(((r.height/2-50)-view.y)/view.k/GRID)*GRID+Math.round(Math.random()*4)*GRID;
   const n={id:uid('n_'),type,x,y,title:t.title,sub:t.sub,status:'geplant'};
   if(ACC(type)){n.accounts=t.accounts;n.perDay=t.perDay}
+  if(type==='lane'){n.w=t.w;n.h=t.h;n.tone=TONES.Grau;delete n.status}
   state.nodes.push(n);sel={kind:'node',id:n.id};renderAll();scheduleSave();
 }
 function deleteSel(){
@@ -395,7 +421,8 @@ document.addEventListener('keydown',e=>{
 const toWorld=(cx,cy)=>{const r=canvas.getBoundingClientRect();return{x:(cx-r.left-view.x)/view.k,y:(cy-r.top-view.y)/view.k}};
 canvas.addEventListener('pointerdown',e=>{
   if(e.button!==0||e.target.closest('.zoom'))return;
-  const port=e.target.closest('.port'),nEl=e.target.closest('.node'),edge=e.target.closest('[data-edge]');
+  const port=e.target.closest('.port'),edge=e.target.closest('[data-edge]');let nEl=e.target.closest('.node');
+  if(nEl&&nEl.classList.contains('lane')&&!e.target.closest('.lhead'))nEl=null;
   if(port&&port.dataset.port==='out'&&!readOnly){mode={t:'link',from:nEl.dataset.id}}
   else if(nEl){const n=byId(nEl.dataset.id);select({kind:'node',id:n.id});if(readOnly)return;mode={t:'drag',n,el:nEl,sx:e.clientX,sy:e.clientY,ox:n.x,oy:n.y,moved:false}}
   else if(edge){select({kind:'edge',id:edge.dataset.edge});return}
@@ -522,7 +549,7 @@ function startPlan(){planRef=db.doc('plan/main');planRef.onSnapshot(snap=>{if(sn
 try{if(localStorage.getItem('cf_tab')==='plan'||location.hash==='#plan')showTab('plan')}catch(e){}
 renderPlan();
 
-function safeHasView(){try{return !!localStorage.getItem('cf_view2')}catch(e){return false}}
+function safeHasView(){try{return !!localStorage.getItem('cf_view3')}catch(e){return false}}
 function loadLocal(){try{const j=localStorage.getItem('cf_flow');if(j){state=JSON.parse(j);renderAll()}}catch(e){}setStatus('local')}
 window.addEventListener('resize',()=>renderEdges());
 boot();
