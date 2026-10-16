@@ -252,8 +252,8 @@ td .up{color:var(--ok);font-weight:600}
       <div class="mhero" id="mhero"></div>
       <div class="box" id="refbox"></div>
       <div class="box">
-        <div class="ptop"><span class="lbl">Prompt</span><button type="button" class="ai" id="aibtn">{{I_SPARK}}Write with AI</button></div>
-        <textarea id="prompt" aria-label="Prompt" placeholder="Describe the video. Or type an idea and let AI write the full prompt."></textarea>
+        <div class="ptop"><span class="lbl">Prompt</span><button type="button" class="ai" id="aibtn">{{I_SPARK}}Enhance prompt</button></div>
+        <textarea id="prompt" aria-label="Prompt" placeholder="Type your idea in a few words. Enhance turns it into a full prompt."></textarea>
       </div>
       <div class="settings" id="settings"></div>
       <div class="unl"><div>Unlimited mode<small>Higgsfield API · no credits per video</small></div><button type="button" class="tog" aria-label="Unlimited mode on"></button></div>
@@ -369,15 +369,18 @@ function renderComposer(){
   $("#mhero").innerHTML=`<b>${esc(M.hero)}</b><span>${esc(M.sub)}</span>${IC.hf.replace('<svg','<svg aria-hidden="true"')}`;
   const reel=`<div class="drop">${I.vidup.replace('<svg','<svg width="22" height="22"')}<b>Add a reference video</b>Paste a reel link or upload the edit you want to recreate<input type="text" id="reflink" placeholder="instagram.com/reel/…" aria-label="Reference reel link"></div>`;
   const faces=`<span class="lbl">Your characters · face references</span><div class="faces"><button type="button" class="addf" aria-label="Add photo">+</button><img src="${FACE1}" alt="Face front"><img src="${FACE2}" alt="Face three-quarter"></div>`;
-  $("#refbox").innerHTML=M.ref==="faces"?`<span class="lbl">Idea</span><div class="drop" style="padding:10px"><input type="text" id="idea" value="Me in my white BMW, two hens on the passenger seat, then at a shooting range" aria-label="Idea"></div>${faces}`:M.ref==="reel"?reel+faces:reel+faces;
+  $("#refbox").innerHTML=M.ref==="faces"?faces:reel+faces;
   const S=st.settings;
   $("#settings").innerHTML=[["dur",I.clock,S.dur,"Duration"],["ratio",I.ratio,S.ratio,"Format"],["res",I.hd,S.res,"Quality"],["audio",I.sound,S.audio,"Audio"]].map(([k,ic,v,l])=>`<button type="button" class="set" data-s="${k}">${v}<small>${l}</small></button>`).join("");
 }
-$("#mtabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;st.model=b.dataset.m;$("#prompt").value="";renderComposer()};
+const SHORT={seedance:"Me in my white BMW, two hens buckled in on the passenger seat, then suddenly at a shooting range. Deadpan, 3 sentences in German.",genjutsu:"Me instead of the guy in the reel. Same walk, same timing.",katana:"Recreate this edit with me as the lead, in a modern office."};
+let idea="";
+const setShort=()=>{$("#prompt").value=SHORT[st.model];idea="";$("#aibtn").innerHTML=I_SPARK+"Enhance prompt"};
+$("#mtabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;st.model=b.dataset.m;renderComposer();setShort()};
 $("#settings").onclick=e=>{const b=e.target.closest(".set");if(!b)return;const k=b.dataset.s,cyc={dur:["5s","10s","15s"],ratio:["9:16","1:1","16:9"],res:["720p","1080p"],audio:["On","Off"]}[k];st.settings[k]=cyc[(cyc.indexOf(st.settings[k])+1)%cyc.length];renderComposer()};
-$("#aibtn").onclick=()=>{$("#prompt").value={seedance:PROMPT_SD,genjutsu:PROMPT_GJ,katana:PROMPT_KT}[st.model];toast("AI wrote the prompt from your idea")};
+$("#aibtn").onclick=()=>{if(idea){$("#prompt").value=idea;idea="";$("#aibtn").innerHTML=I_SPARK+"Enhance prompt";return}idea=$("#prompt").value.trim()||SHORT[st.model];$("#prompt").value={seedance:PROMPT_SD,genjutsu:PROMPT_GJ,katana:PROMPT_KT}[st.model];$("#aibtn").innerHTML="Undo";toast("Prompt enhanced · shots, camera, light, dialogue")};
 $("#comp").onsubmit=e=>{e.preventDefault();if(!$("#prompt").value.trim())$("#prompt").value={seedance:PROMPT_SD,genjutsu:PROMPT_GJ,katana:PROMPT_KT}[st.model];
-  const title=($("#idea")?.value||$("#reflink")?.value||"New video").slice(0,60)||"New video";
+  const title=(idea||$("#prompt").value).split(/[.,]/)[0].slice(0,60)||"New video";idea="";$("#aibtn").innerHTML=I_SPARK+"Enhance prompt";
   const g={id:nid++,model:st.model,title,prompt:$("#prompt").value,state:"run",p:4,date:"October 16, 2026",settings:{...st.settings}};
   gens.unshift(g);st.hf="all";renderHistory();toast("Sent to Higgsfield · "+MODELS[st.model].name);window.scrollTo({top:0,behavior:"smooth"});run(g)};
 function run(g){const t=setInterval(()=>{g.p=Math.min(100,g.p+9);if(g.p>=100){clearInterval(t);g.state="ready";toast("Ready for review · "+g.title)}renderHistory()},700)}
@@ -515,5 +518,5 @@ $("#aacc").onchange=e=>{st.aacc=e.target.value;renderAnalytics()};
 $("#arange").onchange=e=>{st.arange=+e.target.value;renderAnalytics()};
 
 function renderAll(){renderComposer();renderHistory();renderPosting();renderAnalytics()}
-renderMe();renderAll();run(gens[0]);
+renderMe();renderAll();setShort();run(gens[0]);
 </script>
