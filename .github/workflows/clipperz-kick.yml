@@ -1,0 +1,28 @@
+# CLIPPERZ stream clipping worker.
+# Triggered by CLIPPERZ (repository_dispatch "clipperz-kick"): downloads a Kick VOD,
+# splits it into parts of max. 110 minutes and hands each part to Submagic Magic Clips.
+name: clipperz-kick
+on:
+  repository_dispatch:
+    types: [clipperz-kick]
+concurrency:
+  group: clipperz-${{ github.event.client_payload.stream }}
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: worker
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q -U yt-dlp requests requests-toolbelt
+      - name: Clip
+        env:
+          PAYLOAD: ${{ toJson(github.event.client_payload) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 worker/clipperz_kick.py
