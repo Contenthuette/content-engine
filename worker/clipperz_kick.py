@@ -13,9 +13,9 @@ from urllib.parse import quote
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-SUBMAGIC = "https://api.submagic.co/v1/projects/magic-clips/upload"
-PART_SECONDS = 110 * 60
-MIN_TAIL_SECONDS = 90  # a last part shorter than this is dropped
+SUBMAGIC = os.environ.get("CLIPPERZ_SUBMAGIC_URL", "https://api.submagic.co/v1/projects/magic-clips/upload")  # override for local tests
+PART_SECONDS = int(os.environ.get("CLIPPERZ_PART_SECONDS", 110 * 60))
+MIN_TAIL_SECONDS = int(os.environ.get("CLIPPERZ_MIN_TAIL", 90))  # a last part shorter than this is dropped
 
 with open(os.environ["GITHUB_EVENT_PATH"]) as _f:
     p = json.load(_f)["client_payload"]
@@ -48,7 +48,9 @@ def main():
 
     os.makedirs("w", exist_ok=True)
     dl = subprocess.run(
-        ["yt-dlp", "--no-progress", "-f", "best[height<=1080]/best", "-o", "w/src.%(ext)s", p["url"]],
+        ["yt-dlp", "--no-progress", "-f", "best[height<=1080]/best", "-o", "w/src.%(ext)s"]
+        + (["--enable-file-urls"] if p["url"].startswith("file://") else [])
+        + [p["url"]],
         capture_output=True,
         text=True,
     )
