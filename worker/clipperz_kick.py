@@ -17,7 +17,9 @@ SUBMAGIC = "https://api.submagic.co/v1/projects/magic-clips/upload"
 PART_SECONDS = 110 * 60
 MIN_TAIL_SECONDS = 90  # a last part shorter than this is dropped
 
-p = json.loads(os.environ["PAYLOAD"])
+with open(os.environ["GITHUB_EVENT_PATH"]) as _f:
+    p = json.load(_f)["client_payload"]
+RUN_URL = f"{os.environ.get('GITHUB_SERVER_URL', 'https://github.com')}/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}"
 api = p["api"].rstrip("/")
 auth = f"stream={quote(str(p['stream']))}&k={quote(str(p['token']))}"
 
@@ -37,7 +39,7 @@ def probe_duration(path):
 
 
 def main():
-    report(status="downloading", note="Stream wird von Kick geladen…", runUrl=os.environ.get("RUN_URL"))
+    report(status="downloading", note="Stream wird von Kick geladen…", runUrl=RUN_URL)
     cfg = requests.get(f"{api}/worker-config?{auth}", timeout=30)
     if cfg.status_code != 200:
         raise RuntimeError(f"CLIPPERZ-Konfiguration nicht abrufbar ({cfg.status_code})")
@@ -52,6 +54,7 @@ def main():
     )
     if dl.returncode != 0:
         tail = (dl.stderr or dl.stdout or "")[-400:]
+        print(tail)
         if "subscriber" in tail.lower() or "403" in tail:
             raise RuntimeError("Kick blockiert den Download (Sub-only-VOD oder gesperrt). VOD öffentlich machen und nochmal versuchen.")
         raise RuntimeError("Download fehlgeschlagen: " + tail)

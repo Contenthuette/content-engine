@@ -22,7 +22,6 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
           pip install -q -U yt-dlp requests requests-toolbelt
       - name: Clip
-        env:
-          PAYLOAD: ${{ toJson(github.event.client_payload) }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        # The payload (stream token, callback URL) is read from the event file inside the script,
+        # never passed through env – this repo is public and step env values appear in the logs.
         run: python3 worker/clipperz_kick.py
