@@ -157,3 +157,4 @@ nav.pnav .n:empty{display:none}
 header #stats{order:6;flex-basis:100%}
 header #flowTools{margin-left:auto}
 @media (max-width:520px){.fline span{font-size:11px;padding:4px 7px}.fline{gap:3px}.fline em{font-size:11px}}
+a.btn{color:var(--fg);text-decoration:none;display:inline-flex;align-items:center}

@@ -1,6 +1,6 @@
 /* ================= COCKPIT: Aufträge, Accounts, Analytics, Setup ================= */
 const ENG={
-  higgsfield:{name:'Higgsfield',flow:['Reel','Gesicht','Higgsfield','Freigabe','Metricool'],hf:2,
+  higgsfield:{name:'Higgsfield',flow:['Reel','Gesicht','Higgsfield','Freigabe','Metricool + Clipper-Pool'],hf:2,
     hint:'Reels rein, die du gut findest. Claude baut sie mit deinem Gesicht nach.',
     models:[['genjutsu','Genjutsu'],['seedance','Seedance 2.5'],['katana','Katana']]},
   clipping:{name:'Clipping',flow:['Stream','Clips','Schnitt','Freigabe','Metricool'],hf:-1,
@@ -82,6 +82,7 @@ function orderForm(e){
   const tg=elx('div','chips');
   for(const s of slots()){if(s.role==='reserve')continue;const c=elx('label','tchip');const i=elx('input');i.type='checkbox';i.value=s.id;i.id='tg_'+e+'_'+s.id;i.disabled=!slotLinked(s);if(slotLinked(s)&&s.role==='haupt')i.checked=false;c.append(i,document.createTextNode(s.name));if(!slotLinked(s))c.appendChild(elx('small',null,'nicht verbunden'));c.title=slotLinked(s)?'':'Erst unter „Accounts“ mit einer Metricool-Marke verbinden';tg.appendChild(c)}
   if(!slots().length)tg.appendChild(elx('span','msg','Noch keine Accounts angelegt.'));
+  if(cfg&&cfg.clipperPool){const c=elx('label','tchip');const i=elx('input');i.type='checkbox';i.value='pool';i.id='tg_'+e+'_pool';i.checked=true;c.append(i,document.createTextNode('Clipper-Pool'));c.appendChild(elx('small',null,'Drive'));c.title='Video landet im Drive-Ordner, aus dem sich die Clipper bedienen';tg.appendChild(c)}
   f.appendChild(stepBox(n++,'Posten auf',slots().filter(slotLinked).length+' verbunden',tg));
   // Freigabe-Modus
   let mode=(cfg&&cfg.postMode)||'check';const pm=elx('div','seg');
@@ -121,7 +122,7 @@ function facesBox(){
   return box;
 }
 function shortLink(u){try{const x=new URL(u);const h=x.hostname.replace('www.','');const parts=x.pathname.split('/').filter(Boolean);if(/instagram/.test(h)&&parts.length>1)return(parts[0]==='p'?'Post ':'Reel ')+parts[1];if(/tiktok/.test(h))return'TikTok '+(parts[parts.length-1]||'').slice(0,14);if(/youtu/.test(h))return'YouTube '+(x.searchParams.get('v')||parts[parts.length-1]||'').slice(0,14);return h+'/'+parts.join('/').slice(0,24)}catch(e){return u.slice(0,40)}}
-function slotName(id){const s=slots().find(x=>x.id===id);return s?s.name:id}
+function slotName(id){if(id==='pool')return'Clipper-Pool';const s=slots().find(x=>x.id===id);return s?s.name:id}
 function boardCard(e){
   const c=elx('div','cardx');const h=elx('div','sech');h.appendChild(elx('h3',null,'Strecke.'));c.appendChild(h);
   const list=jobs.filter(j=>j.engine===e);const board=elx('div','board');
@@ -194,6 +195,11 @@ function renderAccounts(){
     sel.value=s.brandId?String(s.brandId):'';sel.disabled=!brands||readOnly;
     sel.onchange=()=>{const v=sel.value;cfgUpdate({slots:slots().map((x,k)=>k===i?{...x,brandId:v?Number(v)||v:null}:x)})};card.appendChild(sel);grid.appendChild(card)});
   s1.appendChild(grid);pgEl.appendChild(s1);
+  // Clipper-Pool
+  if(cfg&&cfg.clipperPool){const cp=cfg.clipperPool;const s4=elx('div','cardx');const hh=elx('div','sech');const hl=elx('div');hl.append(elx('h3',null,'Clipper-Pool.'),elx('p','hint','Jedes freigegebene Video landet zusätzlich in diesem Drive-Ordner. Clipper mit eigenen Accounts posten es und bekommen '+(cp.rate||'1 € pro 1.000 Views')+'.'));hh.appendChild(hl);
+    const a=elx('a','btn sm','Ordner öffnen ↗');a.href=cp.url;a.target='_blank';a.rel='noopener';hh.appendChild(a);s4.appendChild(hh);
+    const st=elx('div','nets');st.append(elx('span','pill '+(cp.shared?'ok':'warn'),cp.shared?'für Clipper freigegeben':'noch nicht geteilt'),elx('span','pill no',(cp.clippers||0)+' Clipper aktiv'),elx('span','pill no',jobs.filter(j=>(j.targets||[]).includes('pool')&&['geplant','gepostet'].includes(j.status)).length+' Videos im Pool'));s4.appendChild(st);
+    s4.appendChild(elx('p','hint','Pflicht für Clipper: @leifdunkelmann in Caption oder angepinntem Kommentar. Bezahlt werden nur geprüfte Views.'));pgEl.appendChild(s4)}
   // Alle Marken
   const s2=elx('div');s2.style.display='grid';s2.style.gap='14px';const h2=elx('div','sech');const h2l=elx('div');h2l.append(elx('h2',null,'In Metricool.'),elx('p',null,'Alle Marken in deinem Metricool-Konto. Kundenmarken bleiben unberührt.'));h2.appendChild(h2l);s2.appendChild(h2);
   if(!brands){s2.appendChild(elx('div','emptyx',null)).append(elx('b',null,mcpApi?'Lädt Metricool …':'Metricool nicht erreichbar'),elx('span',null,mcpApi?'Beim ersten Mal fragt Claude nach deiner Freigabe für Metricool.':'Diese Ansicht braucht den Metricool-Connector in claude.ai.'))}
@@ -266,7 +272,7 @@ function renderSetup(){
   if(mcpApi){const b=elx('button','btn sm','Jetzt prüfen');b.type='button';b.onclick=()=>{checkConnectors(true)};c1.appendChild(b)}
   const c2=elx('div','cardx');c2.appendChild(elx('h3',null,'Accounts & Gesicht.'));c2.appendChild(checklist(auto));
   g.append(c1,c2);
-  for(const [grp,title] of [['deal','Deal & Budget.'],['kanal','Kanäle & Links.'],['technik','Technik & Automatik.']]){const it=manual.filter(x=>x.group===grp);if(!it.length)continue;const c=elx('div','cardx');c.appendChild(elx('h3',null,title));c.appendChild(checklist(it));g.appendChild(c)}
+  for(const [grp,title] of [['deal','Deal & Budget.'],['kanal','Kanäle & Links.'],['clipper','Clipper.'],['technik','Technik & Automatik.']]){const it=manual.filter(x=>x.group===grp);if(!it.length)continue;const c=elx('div','cardx');c.appendChild(elx('h3',null,title));c.appendChild(checklist(it));g.appendChild(c)}
   pgEl.appendChild(g);
 }
 async function checkConnectors(probe){
