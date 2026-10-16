@@ -51,3 +51,6 @@ jobs/*/*.wav
 jobs/*/tmp_*
 jobs/*/*.mov
 jobs/*/*.png
+clipperz/index.html
+clipperz/sample.mp4
+clipperz/*.jpg
