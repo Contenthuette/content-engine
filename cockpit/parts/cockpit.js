@@ -174,7 +174,7 @@ async function act(j,patch,logMsg){if(busyJ.has(j.id))return;busyJ.add(j.id);
   try{await db.doc('jobs/'+j.id).update({...patch,updatedAt:nowIso(),log:[...(j.log||[]),{t:nowIso(),msg:logMsg}].slice(-30)})}catch(e){toast(dbErr(e),true)}finally{busyJ.delete(j.id)}}
 
 /* ---------- ACCOUNTS ---------- */
-function netsOf(b){const n=(b&&b.networksData)||{};const out=[];if(n.instagramData)out.push(['ig','@'+n.instagramData]);if(n.tiktokData)out.push(['tt','@'+n.tiktokData]);if(n.youtubeData)out.push(['yt',typeof n.youtubeData==='string'?n.youtubeData:'YouTube']);return out}
+function netsOf(b){const n=(b&&b.networksData)||{};const out=[];if(n.instagramData)out.push(['ig','@'+n.instagramData]);if(n.tiktokData)out.push(['tt','@'+n.tiktokData]);if(n.youtubeData)out.push(['yt',typeof n.youtubeData==='string'&&!/^UC[\w-]{20,}$/.test(n.youtubeData)?n.youtubeData:'YouTube']);return out}
 function avatarFor(name,brand){const a=elx('div','av');const logo=brand&&cfg&&cfg.brandLogos&&cfg.brandLogos[String(brand.id)];if(logo){const im=elx('img');im.src='/_blob/'+logo;im.alt='';a.appendChild(im)}else a.textContent=initials(brand?brand.label:name);return a}
 function renderAccounts(){
   const linked=slots().filter(slotLinked).length;
