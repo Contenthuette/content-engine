@@ -426,30 +426,39 @@ def main():
     os.makedirs(W, exist_ok=True)
 
     raw = drive_file(cfg["videoUrl"], os.path.join(W, "raw"))
-    lut = drive_file(cfg["lutUrl"], os.path.join(W, "lut"))
-    if lut.lower().endswith((".png", ".tif", ".tiff")):
-        lut = hald_to_cube(lut, os.path.join(W, "lut", "look.cube"))
-    with open(lut, "rb") as fh:
-        if b"LUT_3D_SIZE" not in fh.read(20000):
-            raise EditError("Die LUT-Datei ist keine .cube-Datei")
 
     report(note="B-Roll wird geladen und mit dem LUT bearbeitet…")
     files = []
-    if cfg.get("brollUrl"):
-        files += drive_folder(cfg["brollUrl"], os.path.join(W, "broll_video"))
-    lib = []
-    if cfg.get("libraryUrl"):
-        lib = drive_folder(cfg["libraryUrl"], os.path.join(W, "broll_lib"))
-    uploaded = list(cfg.get("libraryFiles") or [])
-    random.shuffle(uploaded)
-    for k, f in enumerate(uploaded[:MAX_BROLL_FILES]):
+    for k, f in enumerate((cfg.get("brollFiles") or [])[:MAX_BROLL_FILES]):  # uploaded with this video
         try:
-            lib.append(drive_file(f["url"], os.path.join(W, "broll_up", str(k))))
+            files.append(drive_file(f["url"], os.path.join(W, "broll_video", str(k))))
         except EditError as e:
-            print("skip library file:", e)
-    random.shuffle(lib)
-    files = [f for f in files + lib if f.lower().endswith(IMG_EXT + VID_EXT)][:MAX_BROLL_FILES]
-    items = grade_broll(files, lut, os.path.join(W, "broll"))
+            print("skip b-roll:", e)
+    if cfg.get("brollUrl"):
+        files += drive_folder(cfg["brollUrl"], os.path.join(W, "broll_folder"))
+    if not files:  # fallback: shared library (older setup)
+        lib = []
+        if cfg.get("libraryUrl"):
+            lib = drive_folder(cfg["libraryUrl"], os.path.join(W, "broll_lib"))
+        for k, f in enumerate(list(cfg.get("libraryFiles") or [])[:MAX_BROLL_FILES]):
+            try:
+                lib.append(drive_file(f["url"], os.path.join(W, "broll_up", str(k))))
+            except EditError as e:
+                print("skip library file:", e)
+        random.shuffle(lib)
+        files = lib
+    files = [f for f in files if f.lower().endswith(IMG_EXT + VID_EXT)][:MAX_BROLL_FILES]
+    items = []
+    if files:
+        if not cfg.get("lutUrl"):
+            raise EditError("LUT fehlt (TEAM → LUT hochladen)")
+        lut = drive_file(cfg["lutUrl"], os.path.join(W, "lut"))
+        if lut.lower().endswith((".png", ".tif", ".tiff")):
+            lut = hald_to_cube(lut, os.path.join(W, "lut", "look.cube"))
+        with open(lut, "rb") as fh:
+            if b"LUT_3D_SIZE" not in fh.read(20000):
+                raise EditError("Die LUT-Datei ist keine .cube-Datei")
+        items = grade_broll(files, lut, os.path.join(W, "broll"))
 
     report(note="Rohschnitt: Sprache wird erkannt…")
     base = os.path.join(W, "base.mp4")
