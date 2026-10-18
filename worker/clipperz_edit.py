@@ -675,14 +675,14 @@ def render(plan, dst):
     with open(plan_path, "w", encoding="utf-8") as fh:
         json.dump(plan, fh, ensure_ascii=False)
     raw = os.path.join(W, "render.mp4")
-    cmd = ["npx", "remotion", "render", "src/index.ts", "ClipperzEdit", raw, f"--props={plan_path}",
+    cmd = ["npx", "remotion", "render", "src/clipperz/index.ts", "ClipperzEdit", raw, f"--props={plan_path}",
            f"--concurrency={max(1, (os.cpu_count() or 2))}", "--codec=h264", "--crf=19", "--audio-codec=aac", "--log=error"]
     browser = os.environ.get("CLIPPERZ_BROWSER")
     if browser:
         cmd.append(f"--browser-executable={browser}")
     r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True)
     if r.returncode != 0:
-        tail = (r.stderr or r.stdout)[-600:]
+        tail = (r.stderr or r.stdout)[-3000:]
         print(tail)
         raise EditError("Rendern fehlgeschlagen: " + tail[-200:])
     # Master: -14 LUFS like the reels.
