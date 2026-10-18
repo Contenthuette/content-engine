@@ -18,9 +18,8 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-          # faster-whisper calls av.open(metadata_errors=…), which PyAV 15+ removed – keep both pinned.
-          pip install -q -U gdown pillow pillow-heif requests requests-toolbelt
-          pip install -q "faster-whisper==1.2.1" "av>=12,<15"
+          # The worker decodes audio with ffmpeg itself, so the PyAV version does not matter (any wheel works).
+          pip install -q -U gdown pillow pillow-heif requests requests-toolbelt "faster-whisper==1.2.1"
           python3 -c "import av, faster_whisper; print('av', av.__version__, '· faster-whisper', faster_whisper.__version__)"
       - name: Cache speech model
         uses: actions/cache@v4
@@ -30,4 +29,21 @@ jobs:
       # The payload (edit token, callback URL) is read from the event file inside the script,
       # never passed through env – step env values appear in the logs.
       - name: Edit
+        id: edit
         run: python3 worker/clipperz_edit.py
+      # If anything before the script fails (e.g. installing tools), tell CLIPPERZ so the edit
+      # does not hang on "Wartet auf Worker". Payload comes from the event file, nothing is printed.
+      - name: Report setup failure
+        if: failure() && steps.edit.outcome != 'failure'
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          p = json.load(open(os.environ["GITHUB_EVENT_PATH"]))["client_payload"]
+          q = urllib.parse.urlencode({"edit": p["edit"], "k": p["token"]})
+          body = json.dumps({"status": "failed", "error": "Worker konnte nicht starten – bitte „Nochmal versuchen“."}).encode()
+          req = urllib.request.Request(p["api"].rstrip("/") + "/edit-status?" + q, data=body, headers={"Content-Type": "application/json"})
+          try:
+              urllib.request.urlopen(req, timeout=30)
+          except Exception as e:
+              print("status update failed:", type(e).__name__)
+          PY
