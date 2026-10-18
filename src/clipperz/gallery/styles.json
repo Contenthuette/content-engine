@@ -1,0 +1,93 @@
+{
+  "karaoke-gelb": {
+    "label": "Karaoke Gelb",
+    "about": "Drei Wörter in fetten Versalien mit schwarzer Kontur, das gerade gesprochene Wort wird gelb und poppt. Wenige, gezielte Zooms, Whip-Übergänge, Fortschrittsbalken.",
+    "source": "abgeleitet von claude-shorts „Bold“ (MIT) und dem Caption-Kit aus open-edits (MIT)",
+    "config": {
+      "captions": true,
+      "cap": {"font": "montserrat", "weight": 900, "upper": true, "size": 80, "words": 3, "y": 0.68, "style": "karaoke", "color": "#FFFFFF", "track": 0},
+      "accents": ["#FFD400"],
+      "zoom": {"mode": "cut", "every": 3, "maxLevel": 1, "drift": 0, "shake": false},
+      "broll": "whip",
+      "inserts": {"perMin": 0, "codes": {}, "bg": ["BG-03"], "tr": []},
+      "hook": "kleinecke",
+      "progress": true,
+      "music": "music/minimal124.mp3",
+      "musicVol": 0.06,
+      "sfx": {"broll": ["whoosh", "swish"], "brollOut": [], "zoom": ["tick"], "hook": ["pop2"]},
+      "sfxVol": 0.4,
+      "smartPunct": true,
+      "grade": "eq=contrast=1.06:saturation=1.10:gamma=0.98"
+    }
+  },
+  "notizzettel": {
+    "label": "Notizzettel",
+    "about": "Ruhig und echt: der Satz klein geschrieben auf einer dunklen, runden Karte, nur das gesprochene Wort in Bernstein. Harte Schnitte, kaum Sounds, wärmere Farben.",
+    "source": "abgeleitet von talking-head-editor (MIT) und claude-youtube-editor (MIT)",
+    "config": {
+      "captions": true,
+      "cap": {"font": "inter", "weight": 600, "upper": false, "case": "lower", "size": 54, "words": 4, "y": 0.74, "style": "scrim", "color": "#FFFFFF", "track": -0.01},
+      "accents": ["#FFB020"],
+      "zoom": {"mode": "cut", "every": 3, "maxLevel": 1, "drift": 0, "shake": false},
+      "broll": "cut",
+      "inserts": {"perMin": 0, "codes": {}, "bg": ["BG-01"], "tr": []},
+      "hook": "none",
+      "progress": false,
+      "music": null,
+      "musicVol": 0,
+      "sfx": {"broll": ["tap"], "brollOut": [], "zoom": [], "hook": []},
+      "sfxVol": 0.3,
+      "smartPunct": true,
+      "grade": "eq=contrast=1.04:saturation=0.95,colorbalance=rs=0.02:bs=-0.03"
+    }
+  },
+  "leselicht": {
+    "label": "Leselicht",
+    "about": "Wie ein Teleprompter: vier Wörter stehen da, noch nicht Gesagtes ist grau, Gesagtes weiß, das aktuelle Wort leuchtet grün. Fotos schieben rein, ein paar Text-Beats.",
+    "source": "abgeleitet von open-edits Longform-Captions (MIT)",
+    "config": {
+      "captions": true,
+      "cap": {"font": "montserrat", "weight": 800, "upper": false, "size": 64, "words": 4, "y": 0.7, "style": "dim", "color": "#FFFFFF", "track": 0},
+      "accents": ["#39FF84"],
+      "zoom": {"mode": "cut", "every": 2, "maxLevel": 1, "drift": 0.01, "shake": false},
+      "broll": "slideRight",
+      "inserts": {"perMin": 1.5, "codes": {
+        "T-13": "Pille – ein Schlüsselbegriff in Akzentfarbe {text, bg: Akzentfarbe}",
+        "T-30": "Odometer – Zahl rollt ein {to}",
+        "T-16": "Zeile mit Pille – Satz + hervorgehobener Teil {text, pill}"
+      }, "bg": ["BG-01", "BG-06"], "tr": [], "defaults": {"T-13": {"size": 120}}},
+      "hook": "clean",
+      "progress": false,
+      "music": "music/minimal124.mp3",
+      "musicVol": 0.06,
+      "sfx": {"broll": ["click"], "brollOut": ["whoosh"], "zoom": [], "hook": ["pop"]},
+      "sfxVol": 0.4,
+      "smartPunct": true,
+      "grade": "eq=contrast=1.05:saturation=1.04"
+    }
+  },
+  "premium-strich": {
+    "label": "Premium-Strich",
+    "about": "Edel und ruhig: Untertitel in normaler Schreibung, unter dem Schlüsselwort wischt ein Indigo-Balken durch. Sanfte Kamerafahrt, weiche Bildwechsel, leise cinematische Musik.",
+    "source": "abgeleitet von claude-youtube-editor brand.md (MIT)",
+    "config": {
+      "captions": true,
+      "cap": {"font": "inter", "weight": 700, "upper": false, "size": 64, "words": 3, "y": 0.75, "style": "underline", "color": "#FFFFFF", "track": -0.015},
+      "accents": ["#6366F1"],
+      "zoom": {"mode": "push", "every": 3, "maxLevel": 1, "drift": 0, "shake": false},
+      "broll": "dissolve",
+      "inserts": {"perMin": 1, "codes": {
+        "T-17": "Serif-Unterstrich – editoriale Betonung 1–3 Wörter {text}",
+        "T-07": "Blur-Wörter – ruhige Aussage 3–6 Wörter, ein Akzentwort {text, accent: Position des Akzentworts im Beat-Text, 0 = erstes Wort}"
+      }, "bg": ["BG-06", "BG-01"], "tr": []},
+      "hook": "story",
+      "progress": false,
+      "music": "music/cinematic128.mp3",
+      "musicVol": 0.05,
+      "sfx": {"broll": ["slide"], "brollOut": [], "zoom": [], "hook": []},
+      "sfxVol": 0.3,
+      "smartPunct": true,
+      "grade": "eq=contrast=1.03:saturation=1.02"
+    }
+  }
+}

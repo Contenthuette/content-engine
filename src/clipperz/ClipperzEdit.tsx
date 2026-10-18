@@ -233,7 +233,9 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   if (!ph || hidden(t)) return null;
   const emph = new Set(plan.emphasis);
   const accent = plan.accent;
-  const family = cap.font === 'anton' ? 'Anton' : SANS;
+  const family = cap.font === 'anton' ? 'Anton' : cap.font === 'montserrat' ? 'Montserrat' : SANS;
+  const lower = (cap as {case?: string}).case === 'lower';
+  const stroke = cap.style === 'karaoke' || cap.style === 'dim';
   const base: React.CSSProperties = {
     fontFamily: family,
     fontWeight: cap.weight,
@@ -241,7 +243,7 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     letterSpacing: `${cap.track}em`,
     lineHeight: 1.08,
     color: cap.color,
-    textShadow: '0 3px 16px rgba(0,0,0,.7), 0 0 4px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.6)',
+    textShadow: stroke || cap.style === 'scrim' ? 'none' : '0 3px 16px rgba(0,0,0,.7), 0 0 4px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.6)',
     fontVariationSettings: cap.font === 'inter' ? "'opsz' 32" : undefined,
   };
   const pk = ease(t, ph.s - 0.03, 0.22, SPRING);
@@ -251,7 +253,10 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     const k = ease(t, w.s - 0.04, 0.2);
     const isEm = emph.has(i);
     const st: React.CSSProperties = {display: 'inline-block', margin: cap.upper ? '0 0.2em' : '0 0.14em', whiteSpace: 'nowrap'};
-    const text = clean(w.w, cap.upper, !!(preset as {smartPunct?: boolean}).smartPunct);
+    const raw = clean(w.w, cap.upper, !!(preset as {smartPunct?: boolean}).smartPunct);
+    const text = lower ? raw.toLowerCase() : raw;
+    const spoken = t >= w.s - 0.04;
+    const live = t >= w.s - 0.04 && t < w.e + 0.12;
     if (cap.style === 'blur') {
       // clean motion: every word blurs in at its timestamp, key words in the accent colour
       Object.assign(st, {opacity: shown ? k : 0, filter: `blur(${(1 - k) * 10}px)`, transform: `translateY(${(1 - k) * 12}px)`, color: cap.color},
@@ -277,6 +282,31 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
         paintOrder: 'stroke fill',
         transform: `scale(${active ? lerp(k, 1.15, 1.06) : 1})`,
       });
+    } else if (cap.style === 'karaoke') {
+      // Karaoke (after claude-shorts "Bold" + open-edits caption kit): the whole group stands, the spoken word
+      // turns into the accent and pops to 1.1 in place (transform only, so nothing shifts), hard black outline.
+      const kp = ease(t, w.s - 0.04, 0.16, SPRING);
+      Object.assign(st, {
+        color: live ? accent : cap.color,
+        WebkitTextStroke: '8px #000',
+        paintOrder: 'stroke fill',
+        transform: `scale(${live ? lerp(kp, 1.0, 1.1) : isEm ? 1.04 : 1})`,
+      });
+    } else if (cap.style === 'dim') {
+      // Leselicht (after open-edits longform captions): future words grey, spoken white, the current one in the accent.
+      Object.assign(st, {
+        color: live ? accent : spoken ? cap.color : 'rgba(255,255,255,.38)',
+        WebkitTextStroke: '7px #000',
+        paintOrder: 'stroke fill',
+      });
+    } else if (cap.style === 'scrim') {
+      // Notizzettel (after talking-head-editor captions): calm phrase on a dark card, spoken word in amber.
+      Object.assign(st, {color: live ? accent : cap.color});
+    } else if (cap.style === 'underline') {
+      // Premium underline: words appear as spoken; key words get an accent bar that wipes in under them.
+      const ku = ease(t, w.s, 0.13);
+      Object.assign(st, {opacity: spoken ? 1 : 0},
+        isEm ? {backgroundImage: `linear-gradient(${accent}, ${accent})`, backgroundRepeat: 'no-repeat', backgroundPosition: '0 92%', backgroundSize: `${ku * 100}% 0.13em`, paddingBottom: '0.06em'} : {});
     } else if (cap.style === 'pop') {
       Object.assign(st, {
         color: isEm ? accent : cap.color,
@@ -291,10 +321,18 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     }
     return <span key={i} style={st}>{text}</span>;
   });
-  const scale = cap.style === 'marker' || cap.style === 'outline' ? lerp(pk, 0.86, 1) : 1;
-  const opacity = cap.style === 'fade' ? ease(t, ph.s - 0.03, 0.2) : 1;
+  const scale = cap.style === 'marker' || cap.style === 'outline' ? lerp(pk, 0.86, 1) : cap.style === 'karaoke' ? lerp(pk, 0.85, 1) : 1;
+  const opacity = cap.style === 'fade' || cap.style === 'underline' || cap.style === 'scrim' ? ease(t, ph.s - 0.03, 0.22) : 1;
+  const rise = cap.style === 'underline' || cap.style === 'scrim' ? (1 - ease(t, ph.s - 0.03, 0.23)) * 24 : 0;
+  if (cap.style === 'scrim') {
+    return (
+      <div style={{position: 'absolute', left: 60, right: 60, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px))`, display: 'flex', justifyContent: 'center', opacity}}>
+        <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'center', background: 'rgba(10,10,10,.62)', borderRadius: 18, padding: '14px 28px', ...base}}>{words}</div>
+      </div>
+    );
+  }
   return (
-    <div style={{position: 'absolute', left: 70, right: 70, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
+    <div style={{position: 'absolute', left: 70, right: 70, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px)) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
       {words}
     </div>
   );
@@ -436,7 +474,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
         );
       })}
 
-      {plan.captions ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
+      {plan.captions && preset.cap.style !== 'scrim' ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
       {plan.captions ? (preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={inInsert} /> : <Captions plan={plan} preset={preset} hidden={inInsert} />) : null}
       {plan.hook ? <Hook text={plan.hook.text} end={plan.hook.e} style={preset.hook} accent={plan.accent} top={hookTop(plan, preset)} /> : null}
 
