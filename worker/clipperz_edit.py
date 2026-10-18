@@ -25,6 +25,7 @@ OUT_W, OUT_H = 1080, 1920
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
 VID_EXT = (".mp4", ".mov", ".m4v")
 MAX_BROLL_FILES = 60
+ROTATE = {}  # b-roll path -> clockwise degrees
 FILLERS = {"äh", "ähm", "öhm", "hm", "ehm", "mhm", "äähm", "ähh"}
 
 with open(os.environ["GITHUB_EVENT_PATH"]) as _f:
@@ -157,10 +158,15 @@ PHOTO_FINISH = os.environ.get("CLIPPERZ_PHOTO_FINISH", "vignette=angle=PI/6,unsh
 
 # ---------- steps ----------
 
-def normalize(src, dst):
-    """Vertical 1080x1920, 30 fps, H.264/AAC, cover crop."""
+def rotate_filter(deg):
+    """Clockwise rotation as an ffmpeg filter prefix ("" for none)."""
+    return {90: "transpose=1,", 180: "hflip,vflip,", 270: "transpose=2,"}.get(int(deg or 0) % 360, "")
+
+
+def normalize(src, dst, rotate=0):
+    """Vertical 1080x1920, 30 fps, H.264/AAC, cover crop. `rotate` fixes cameras that store portrait clips as landscape."""
     _, has_audio = probe(src)
-    vf = f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,crop={OUT_W}:{OUT_H},fps={FPS},setsar=1"
+    vf = f"{rotate_filter(rotate)}scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,crop={OUT_W}:{OUT_H},fps={FPS},setsar=1"
     cmd = ["ffmpeg", "-v", "error", "-y", "-i", src]
     if not has_audio:
         cmd += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest"]
@@ -262,6 +268,8 @@ def grade_broll(files, lut, out_dir):
         try:
             if low.endswith(IMG_EXT):
                 im = ImageOps.exif_transpose(Image.open(f)).convert("RGB")
+                if ROTATE.get(f):
+                    im = im.rotate(-ROTATE[f], expand=True)
                 im = ImageOps.fit(im, (OUT_W, OUT_H), method=Image.LANCZOS)
                 tmp = os.path.join(out_dir, f"raw_{i}.png")
                 im.save(tmp)
@@ -275,7 +283,7 @@ def grade_broll(files, lut, out_dir):
                     continue
                 start = max(0.0, dur / 2 - 1.5)
                 dst = os.path.join(out_dir, f"b{i:03d}.mp4")
-                vf = (f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,crop={OUT_W}:{OUT_H},fps={FPS},"
+                vf = (f"{rotate_filter(ROTATE.get(f, 0))}scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,crop={OUT_W}:{OUT_H},fps={FPS},"
                       f"lut3d=file='{lut}',{PHOTO_FINISH},setsar=1")
                 run(["ffmpeg", "-v", "error", "-y", "-ss", f"{start:.2f}", "-i", f, "-t", "3", "-an", "-vf", vf,
                      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", dst])
@@ -431,7 +439,9 @@ def main():
     files = []
     for k, f in enumerate((cfg.get("brollFiles") or [])[:MAX_BROLL_FILES]):  # uploaded with this video
         try:
-            files.append(drive_file(f["url"], os.path.join(W, "broll_video", str(k))))
+            path = drive_file(f["url"], os.path.join(W, "broll_video", str(k)))
+            ROTATE[path] = int(f.get("rotate") or 0)
+            files.append(path)
         except EditError as e:
             print("skip b-roll:", e)
     if cfg.get("brollUrl"):
@@ -462,7 +472,7 @@ def main():
 
     report(note="Rohschnitt: Sprache wird erkannt…")
     base = os.path.join(W, "base.mp4")
-    normalize(raw, base)
+    normalize(raw, base, cfg.get("rotate") or 0)
     in_dur, _ = probe(base)
     words = transcribe(base)
     if cfg.get("preCut"):
