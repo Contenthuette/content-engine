@@ -162,7 +162,8 @@ function phrases(words: Word[], max: number): Phrase[] {
 const clean = (w: string, upper: boolean, smart = false) => {
   let x = w.replace(/[„“"«»]/g, '').replace(/[,;:]$/, '');
   if (smart) x = x.replace(/…$/, '...').replace(/(?<!\.)\.$/, ''); // keep ? ! ... – drop plain full stops
-  return upper ? x.toUpperCase().replace(/[.!?]$/, '') : x;
+  // smart punctuation keeps ? ! ... also in capitals (plain full stops are already gone)
+  return upper ? (smart ? x.toUpperCase() : x.toUpperCase().replace(/[.!?]$/, '')) : x;
 };
 
 /** Contenthütte captions (reference: Landesverbandstag 2027): whole phrase at once, UPPERCASE Montserrat Black,
@@ -252,7 +253,7 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     const active = t >= w.s - 0.04 && t < w.e + 0.05;
     const k = ease(t, w.s - 0.04, 0.2);
     const isEm = emph.has(i);
-    const st: React.CSSProperties = {display: 'inline-block', margin: cap.upper ? '0 0.2em' : '0 0.14em', whiteSpace: 'nowrap'};
+    const st: React.CSSProperties = {display: 'inline-block', margin: stroke ? '0 0.3em' : cap.upper ? '0 0.2em' : '0 0.14em', whiteSpace: 'nowrap'};
     const raw = clean(w.w, cap.upper, !!(preset as {smartPunct?: boolean}).smartPunct);
     const text = lower ? raw.toLowerCase() : raw;
     const spoken = t >= w.s - 0.04;
@@ -303,10 +304,9 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
       // Notizzettel (after talking-head-editor captions): calm phrase on a dark card, spoken word in amber.
       Object.assign(st, {color: live ? accent : cap.color});
     } else if (cap.style === 'underline') {
-      // Premium underline: words appear as spoken; key words get an accent bar that wipes in under them.
+      // Premium underline: the phrase fades up as a whole; key words get an accent bar that wipes in when spoken.
       const ku = ease(t, w.s, 0.13);
-      Object.assign(st, {opacity: spoken ? 1 : 0},
-        isEm ? {backgroundImage: `linear-gradient(${accent}, ${accent})`, backgroundRepeat: 'no-repeat', backgroundPosition: '0 92%', backgroundSize: `${ku * 100}% 0.13em`, paddingBottom: '0.06em'} : {});
+      Object.assign(st, isEm ? {backgroundImage: `linear-gradient(${accent}, ${accent})`, backgroundRepeat: 'no-repeat', backgroundPosition: '0 94%', backgroundSize: `${ku * 100}% 0.17em`, paddingBottom: '0.08em'} : {});
     } else if (cap.style === 'pop') {
       Object.assign(st, {
         color: isEm ? accent : cap.color,

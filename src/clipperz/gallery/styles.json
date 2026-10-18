@@ -73,7 +73,7 @@
     "config": {
       "captions": true,
       "cap": {"font": "inter", "weight": 700, "upper": false, "size": 64, "words": 3, "y": 0.75, "style": "underline", "color": "#FFFFFF", "track": -0.015},
-      "accents": ["#6366F1"],
+      "accents": ["#7C7FFF"],
       "zoom": {"mode": "push", "every": 3, "maxLevel": 1, "drift": 0, "shake": false},
       "broll": "dissolve",
       "inserts": {"perMin": 1, "codes": {
