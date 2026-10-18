@@ -4,6 +4,8 @@
 import React from 'react';
 import {AbsoluteFill, Audio, CalculateMetadataFunction, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import '@fontsource/anton/400.css';
+import '@fontsource/montserrat/800.css';
+import '@fontsource/montserrat/900.css';
 import {byCode} from '../lib/registry';
 import {EntryView, SfxCtx} from '../lib/Catalog';
 import {C, SANS, SERIF} from '../lib/core';
@@ -159,6 +161,64 @@ const clean = (w: string, upper: boolean, smart = false) => {
   let x = w.replace(/[„“"«»]/g, '').replace(/[,;:]$/, '');
   if (smart) x = x.replace(/…$/, '...').replace(/(?<!\.)\.$/, ''); // keep ? ! ... – drop plain full stops
   return upper ? x.toUpperCase().replace(/[.!?]$/, '') : x;
+};
+
+/** Contenthütte captions (reference: Landesverbandstag 2027): whole phrase at once, UPPERCASE Montserrat Black,
+ * white with a soft dark shadow, the key word in the accent red – long key words get their own, bigger line. */
+const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boolean}> = ({plan, preset, hidden}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const t = f / fps;
+  const cap = preset.cap;
+  const list = React.useMemo(() => phrases(plan.words, cap.words), [plan.words, cap.words]);
+  const ph = list.find((p) => t >= p.s - 0.03 && t < p.e);
+  if (!ph || hidden(t)) return null;
+  const emph = new Set(plan.emphasis);
+  const base = cap.size;
+  const big = base * 1.3;
+  type Tok = {text: string; em: boolean};
+  const toks: Tok[] = ph.words.map(({w, i}) => ({text: clean(w.w, true, true).replace(/\.{3}$/, '...'), em: emph.has(i)}));
+  // keep ? ! ... at the end even in caps (clean() strips them for upper case)
+  ph.words.forEach(({w}, k) => {
+    const m = w.w.match(/(\.\.\.|…|[?!])$/);
+    if (m) toks[k].text = toks[k].text.replace(/[.!?…]+$/, '') + (m[1] === '…' ? '...' : m[1]);
+  });
+  const lines: {toks: Tok[]; big: boolean}[] = [];
+  let cur: Tok[] = [];
+  const len = (xs: Tok[]) => xs.reduce((n, x) => n + x.text.length + 1, 0);
+  for (const tk of toks) {
+    if (tk.em && tk.text.length >= 9) {
+      if (cur.length) lines.push({toks: cur, big: false});
+      lines.push({toks: [tk], big: true});
+      cur = [];
+      continue;
+    }
+    if (cur.length && len(cur) + tk.text.length > 16) {
+      lines.push({toks: cur, big: false});
+      cur = [];
+    }
+    cur.push(tk);
+  }
+  if (cur.length) lines.push({toks: cur, big: false});
+  const k = ease(t, ph.s - 0.03, 0.14, SPRING);
+  const shadow = '0 0 18px rgba(0,0,0,.55), 0 4px 14px rgba(0,0,0,.6), 0 0 3px rgba(0,0,0,.7)';
+  return (
+    <div style={{position: 'absolute', left: 50, right: 50, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${lerp(k, 0.88, 1)})`, opacity: cl(k * 3),
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center'}}>
+      {lines.map((ln, li) => {
+        const size0 = ln.big ? big : base;
+        const chars = ln.toks.reduce((n, x) => n + x.text.length, 0) + ln.toks.length - 1;
+        const size = Math.min(size0, 960 / Math.max(1, chars * 0.74)); // never wider than the frame
+        return (
+          <div key={li} style={{fontFamily: 'Montserrat', fontWeight: cap.weight, fontSize: size, lineHeight: 1.02, letterSpacing: '-0.01em', whiteSpace: 'nowrap', textShadow: shadow}}>
+            {ln.toks.map((tk, ti) => (
+              <span key={ti} style={{color: tk.em ? plan.accent : cap.color}}>{(ti ? ' ' : '') + tk.text}</span>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boolean}> = ({plan, preset, hidden}) => {
@@ -375,7 +435,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
       })}
 
       {plan.captions ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
-      {plan.captions ? <Captions plan={plan} preset={preset} hidden={inInsert} /> : null}
+      {plan.captions ? (preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={inInsert} /> : <Captions plan={plan} preset={preset} hidden={inInsert} />) : null}
       {plan.hook ? <Hook text={plan.hook.text} end={plan.hook.e} style={preset.hook} accent={plan.accent} top={hookTop(plan, preset)} /> : null}
 
       {plan.inserts.map((x, i) => {

@@ -202,7 +202,8 @@ def normalize(src, dst, rotate=0, hi=False):
     """Vertical 1080x1920 (or 1440x2560 with `hi` for sharp zooms), 30 fps, H.264/AAC, cover crop.
     `rotate` fixes cameras that store portrait clips as landscape."""
     _, has_audio = probe(src)
-    w, h = (1440, 2560) if hi and min(src_size(src)) >= 1440 else (OUT_W, OUT_H)
+    m = min(src_size(src))
+    w, h = (2160, 3840) if hi and m >= 2160 else (1440, 2560) if hi and m >= 1440 else (OUT_W, OUT_H)
     vf = f"{rotate_filter(rotate)}scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},fps={FPS},setsar=1"
     cmd = ["ffmpeg", "-v", "error", "-y", "-i", src]
     if not has_audio:
@@ -505,6 +506,9 @@ def edit_plan(words, duration, items, preset_id, spoken_hook):
         "1. hook: Titel für die ersten 2–3 Sekunden, max. 6 Wörter, deutsch, macht neugierig (Ergebnis, Zahl, Konflikt, Frage). "
         "Nicht einfach den ersten Satz wiederholen.\n",
         f"2. accent: eine Akzentfarbe aus [{accents}], passend zum Thema (Blau = Vertrauen/Technik, Grün = Erfolg/Lösung, Rot = Problem/Warnung).\n",
+        ("3. emphasis: Indizes der Schlüsselwörter für die roten Untertitel: in fast jedem kurzen Satzteil (3–4 Wörter) genau EIN Wort – "
+         "Namen, Orte, Daten, Zahlen, Fachbegriffe, das Wichtigste der Aussage; zusammengehörige Teile (z. B. „23. Mai 2027“, „Radisson Hotel“) "
+         "alle markieren. Nie Füllwörter.\n") if pr.get("emphasis") == "phrase" else
         "3. emphasis: Indizes der wichtigsten Wörter (Zahlen, Ergebnisse, Fachbegriffe, Pointen) – etwa jedes 6. bis 8. Wort, nie Füllwörter.\n",
     ]
     if n_ins:
@@ -543,7 +547,7 @@ def edit_plan(words, duration, items, preset_id, spoken_hook):
     return res if isinstance(res, dict) else {}
 
 
-def build_plan(words, duration, items, preset_id, captions, focus, res, video_rel, broll_rel, hi_res=False):
+def build_plan(words, duration, items, preset_id, captions, focus, res, video_rel, broll_rel, hi_res=False, src_min=1080):
     pr = PRESETS[preset_id]
     n = len(words)
     fixes = res.get("fixes") if isinstance(res.get("fixes"), dict) else {}
@@ -686,6 +690,7 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         "music": {"src": pr["music"], "vol": pr["musicVol"]} if pr.get("music") else None,
         "preset": preset_id,
         "maxZoom": 2.2 if hi_res else 1.7,
+        "outScale": 2 if src_min >= 2160 else 1,
         "accent": accent,
         "captions": bool(captions),
     }
@@ -700,6 +705,8 @@ def render(plan, dst):
     raw = os.path.join(W, "render.mp4")
     cmd = ["npx", "remotion", "render", "src/clipperz/index.ts", "ClipperzEdit", raw, f"--props={plan_path}",
            f"--concurrency={max(1, (os.cpu_count() or 2))}", "--codec=h264", "--crf=19", "--audio-codec=aac", "--log=error"]
+    if plan.get("outScale", 1) > 1:  # 4K source -> 4K output (sharp captions and graphics)
+        cmd.append(f"--scale={plan['outScale']}")
     browser = os.environ.get("CLIPPERZ_BROWSER")
     if browser:
         cmd.append(f"--browser-executable={browser}")
@@ -817,7 +824,7 @@ def main():
         shutil.copy(it["path"], os.path.join(pub, f"b{i}{ext}"))
         broll_rel.append(f"{job}/b{i}{ext}")
     plan = build_plan(words_cut, out_dur, items, preset_id, cfg.get("captions", pr["captions"]), focus, res, f"{job}/main.mp4", broll_rel,
-                      hi_res=min(src_size(cut_path)) >= 1440)
+                      hi_res=min(src_size(cut_path)) >= 1440, src_min=min(src_size(cut_path)))
     print(f"plan: {len(plan['zooms'])} zooms, {len(plan['broll'])} b-roll, {len(plan['inserts'])} beats, hook: {plan['hook']}, focus: {focus}")
 
     report(note=f"Video wird gerendert ({pr['label']})…", stats={"inSec": in_dur, "outSec": out_dur, "broll": len(plan["broll"])})

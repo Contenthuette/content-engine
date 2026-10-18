@@ -35,6 +35,8 @@ export type Plan = {
   sfx: Sfx[];
   music: {src: string; vol: number} | null;
   preset: PresetId;
+  /** Output scale for the render (2 = 4K when the source is 4K). */
+  outScale?: number;
   /** Upper zoom limit: 1.7 for 1080p sources, 2.2 when the source was kept at 1440p. */
   maxZoom?: number;
   accent: string;

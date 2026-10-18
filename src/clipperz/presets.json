@@ -1,21 +1,21 @@
 {
   "contenthuette": {
     "label": "Contenthütte",
-    "about": "Unser Stil: alles Unnötige raus, starke Hook, passende Fotos/Clips mit leichtem Zoom (Klick rein, Klick + Woosh nach rechts raus), schlaue Untertitel mittig auf der Brust, kräftigeres Color Grading.",
+    "about": "Unser Stil: alles Unnötige raus, starke Hook, passende Fotos/Clips mit leichtem Zoom (Klick rein, Klick + Woosh nach rechts raus), Untertitel groß in Versalien mittig auf der Brust mit rotem Schlüsselwort, kräftiges Color Grading, in 4K wenn das Material es hergibt.",
     "captions": true,
     "cap": {
-      "font": "inter",
-      "weight": 800,
-      "upper": false,
-      "size": 74,
-      "words": 3,
+      "font": "montserrat",
+      "weight": 900,
+      "upper": true,
+      "size": 60,
+      "words": 4,
       "y": "chest",
-      "style": "plain",
+      "style": "stack",
       "color": "#FFFFFF",
-      "track": -0.02
+      "track": -0.01
     },
     "accents": [
-      "#FFFFFF"
+      "#F2302B"
     ],
     "zoom": {
       "mode": "cut",
@@ -51,7 +51,8 @@
     "sfxVol": 0.45,
     "sfxMaxRepeat": 99,
     "smartPunct": true,
-    "grade": "eq=contrast=1.12:brightness=-0.012:saturation=1.07,unsharp=5:5:0.45:5:5:0"
+    "grade": "curves=all='0/0 0.22/0.16 0.5/0.5 0.78/0.85 1/1',eq=saturation=1.06,unsharp=5:5:0.5:5:5:0",
+    "emphasis": "phrase"
   },
   "clean": {
     "label": "Clean Motion",
