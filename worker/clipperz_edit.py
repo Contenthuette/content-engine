@@ -182,7 +182,15 @@ def transcribe(path):
             return json.load(fh)
     from faster_whisper import WhisperModel
     model = WhisperModel(os.environ.get("CLIPPERZ_WHISPER", "medium"), device="cpu", compute_type="int8")
-    segs, _ = model.transcribe(path, language="de", word_timestamps=True, vad_filter=True)
+    # Decode with ffmpeg ourselves (16 kHz mono float) – faster-whisper's own decoder depends on PyAV
+    # internals that change between versions (metadata_errors was removed in PyAV 15).
+    import numpy as np
+    pcm = subprocess.run(
+        ["ffmpeg", "-nostdin", "-loglevel", "error", "-i", path, "-vn", "-ac", "1", "-ar", "16000", "-f", "f32le", "-"],
+        check=True, stdout=subprocess.PIPE,
+    ).stdout
+    audio = np.frombuffer(pcm, dtype=np.float32)
+    segs, _ = model.transcribe(audio, language="de", word_timestamps=True, vad_filter=True)
     words = []
     for s in segs:
         for w in s.words or []:

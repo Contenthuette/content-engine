@@ -18,7 +18,10 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-          pip install -q -U gdown faster-whisper pillow pillow-heif requests requests-toolbelt
+          # faster-whisper calls av.open(metadata_errors=…), which PyAV 15+ removed – keep both pinned.
+          pip install -q -U gdown pillow pillow-heif requests requests-toolbelt
+          pip install -q "faster-whisper==1.2.1" "av>=12,<15"
+          python3 -c "import av, faster_whisper; print('av', av.__version__, '· faster-whisper', faster_whisper.__version__)"
       - name: Cache speech model
         uses: actions/cache@v4
         with:
