@@ -625,7 +625,8 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
             level = 0 if (k // max(1, z["every"])) % 2 else 1
         if zooms and level == zooms[-1]["level"]:
             level = 0 if level else 1
-        zooms.append({"s": round(a, 3), "e": round(b, 3), "level": level, "mode": z["mode"], "shake": bool(z["shake"] and level == 2)})
+        # the hook framing is set from frame 0 (no push), so the hook title never slides over the face
+        zooms.append({"s": round(a, 3), "e": round(b, 3), "level": level, "mode": "cut" if k == 0 else z["mode"], "shake": bool(z["shake"] and level == 2)})
     if not zooms:
         zooms = [{"s": 0, "e": duration, "level": 1, "mode": z["mode"], "shake": False}]
 
