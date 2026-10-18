@@ -17,7 +17,8 @@ export type Broll = {s: number; e: number; src: string; kind: 'photo' | 'video'}
 export type Insert = {s: number; e: number; code: string; props: Record<string, unknown>; bg?: string; tr?: string};
 export type Sfx = {t: number; name: string; vol: number};
 
-export type PresetId = 'clean' | 'kleinecke' | 'handwerk' | 'hype' | 'story';
+/** Built-in ids (presets.json) or a gallery style id. */
+export type PresetId = string;
 
 export type Plan = {
   fps: number;
@@ -35,6 +36,8 @@ export type Plan = {
   sfx: Sfx[];
   music: {src: string; vol: number} | null;
   preset: PresetId;
+  /** Full style config (worker fills it for every edit; gallery styles depend on it). */
+  style?: Record<string, unknown>;
   /** Output scale for the render (2 = 4K when the source is 4K). */
   outScale?: number;
   /** Upper zoom limit: 1.7 for 1080p sources, 2.2 when the source was kept at 1440p. */

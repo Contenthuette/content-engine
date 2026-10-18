@@ -22,7 +22,9 @@ const lerp = (k: number, a: number, b: number) => a + (b - a) * k;
 const ease = (t: number, a: number, d: number, e = EXPO) => e(cl((t - a) / d));
 
 type Preset = (typeof PRESETS)['clean'];
-const presetOf = (id: string): Preset => ((PRESETS as Record<string, Preset>)[id] ?? PRESETS.clean);
+// Built-in styles come from presets.json; gallery styles (ADMIN → Stil-Galerie) arrive complete in plan.style.
+const presetOf = (plan: Plan): Preset =>
+  (plan.style as unknown as Preset | undefined) ?? (PRESETS as Record<string, Preset>)[plan.preset] ?? PRESETS.clean;
 
 export const calcClipperz: CalculateMetadataFunction<Plan> = ({props}) => ({
   durationInFrames: Math.max(1, Math.round(props.duration * (props.fps || 30))),
@@ -391,7 +393,7 @@ const Progress: React.FC<{accent: string; duration: number}> = ({accent, duratio
 
 export const ClipperzEdit: React.FC<Plan> = (plan) => {
   const {fps} = useVideoConfig();
-  const preset = presetOf(plan.preset);
+  const preset = presetOf(plan);
   const fr = (s: number) => Math.max(0, Math.round(s * fps));
   const len = (a: number, b: number) => Math.max(1, Math.round((b - a) * fps));
   const speech = React.useMemo(() => {

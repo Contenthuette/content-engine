@@ -21,6 +21,29 @@ import requests
 W = os.path.abspath(os.environ.get("CLIPPERZ_WORKDIR", "w"))
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PRESETS = json.load(open(os.path.join(REPO, "src", "clipperz", "presets.json"), encoding="utf-8"))
+
+
+def _fill(d, base):
+    """Missing keys of a gallery style are taken from a built-in one, so a short config cannot crash the worker."""
+    out = dict(base)
+    for k, v in (d or {}).items():
+        merge = k in ("cap", "zoom", "sfx", "inserts") and isinstance(v, dict) and isinstance(base.get(k), dict)
+        out[k] = {**base[k], **v} if merge else v
+    return out
+
+
+def register_style(style_id, config):
+    """Gallery styles (ADMIN → Stil-Galerie) arrive as JSON from edit-config; built-ins come from presets.json."""
+    if style_id in PRESETS:
+        return style_id
+    if isinstance(style_id, str) and isinstance(config, dict) and isinstance(config.get("cap"), dict):
+        base = PRESETS.get(config.get("base")) or PRESETS["clean"]
+        st = _fill(config, base)
+        st.setdefault("label", style_id)
+        st["inserts"].setdefault("codes", {})
+        PRESETS[style_id] = st
+        return style_id
+    return "clean"
 FPS = 30
 OUT_W, OUT_H = 1080, 1920
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
@@ -262,14 +285,7 @@ def rough_cut_plan(words, duration):
     keep = [w for i, w in enumerate(words) if i not in drop and w["w"].lower().strip(".,!?…") not in FILLERS]
     if len(keep) < max(3, len(words) * 0.25):  # the model removed far too much: keep everything but fillers
         keep = [w for w in words if w["w"].lower().strip(".,!?…") not in FILLERS]
-    intervals = []
-    for w in keep:
-        s, e = max(0.0, w["s"] - 0.06), min(duration, w["e"] + 0.12)
-        if intervals and s - intervals[-1][1] <= 0.30:
-            intervals[-1][1] = max(intervals[-1][1], e)
-        else:
-            intervals.append([s, e])
-    return [(round(a, 3), round(b, 3)) for a, b in intervals if b - a > 0.15]
+    return word_intervals(keep, duration)
 
 
 def sentences_of(words):
@@ -288,11 +304,58 @@ def sentences_of(words):
     return out
 
 
+# Audio envelope of the source (10 ms RMS frames) – lets the cut follow the real end of a word instead of
+# Whisper's timestamps, which often end a little early and clip the last consonant.
+ENV = None
+ENV_HOP = 0.01
+
+
+def energy_env(path):
+    import numpy as np
+    pcm = subprocess.run(
+        ["ffmpeg", "-nostdin", "-loglevel", "error", "-i", path, "-vn", "-ac", "1", "-ar", "16000", "-f", "f32le", "-"],
+        check=True, stdout=subprocess.PIPE,
+    ).stdout
+    a = np.frombuffer(pcm, dtype=np.float32)
+    hop = int(16000 * ENV_HOP)
+    n = len(a) // hop
+    if n < 10:
+        return None
+    rms = np.sqrt((a[: n * hop].reshape(n, hop) ** 2).mean(axis=1))
+    floor, loud = float(np.percentile(rms, 15)), float(np.percentile(rms, 92))
+    if loud <= floor * 1.5:
+        return None
+    return {"rms": rms, "thr": floor + 0.12 * (loud - floor)}
+
+
+# Jump cuts: about 0.09 s of air at every cut (0.04 s before the word, 0.05 s after its audible end).
+CUT_HEAD, CUT_TAIL, KEEP_GAP = 0.04, 0.05, 0.12
+
+
+def _bounds(w, duration):
+    s, e = w["s"], w["e"]
+    if ENV is None:
+        return max(0.0, s - 0.06), min(duration, e + 0.12)
+    rms, thr = ENV["rms"], ENV["thr"]
+    n = len(rms)
+    i = min(n - 1, int(e / ENV_HOP))
+    stop = min(n - 1, int((e + 0.30) / ENV_HOP))
+    while i < stop and rms[i] > thr:  # still sounding: follow the word to its audible end
+        i += 1
+    e2 = max(e, i * ENV_HOP)
+    j = max(0, int(s / ENV_HOP))
+    stop = max(0, int((s - 0.15) / ENV_HOP))
+    while j > stop and rms[j - 1] > thr:  # breath/onset just before Whisper's start
+        j -= 1
+    s2 = min(s, j * ENV_HOP)
+    return max(0.0, s2 - CUT_HEAD), min(duration, e2 + CUT_TAIL)
+
+
 def word_intervals(ws, duration):
     iv = []
     for w in ws:
-        s, e = max(0.0, w["s"] - 0.06), min(duration, w["e"] + 0.12)
-        if iv and s - iv[-1][1] <= 0.30:
+        s, e = _bounds(w, duration)
+        if iv and s - iv[-1][1] <= KEEP_GAP:  # short natural pauses stay, longer ones are cut to ~0.09 s
             iv[-1][1] = max(iv[-1][1], e)
         else:
             iv.append([s, e])
@@ -689,6 +752,7 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         "sfx": sfx,
         "music": {"src": pr["music"], "vol": pr["musicVol"]} if pr.get("music") else None,
         "preset": preset_id,
+        "style": {k: v for k, v in pr.items() if k not in ("about",)},
         "maxZoom": 2.2 if hi_res else 1.7,
         "outScale": 2 if src_min >= 2160 else 1,
         "accent": accent,
@@ -782,6 +846,11 @@ def main():
     normalize(raw, base, cfg.get("rotate") or 0, hi=True)
     in_dur, _ = probe(base)
     words = transcribe(base)
+    global ENV
+    try:
+        ENV = energy_env(base)
+    except Exception as e:  # envelope is a refinement only
+        print("audio envelope failed:", e)
     hook = None
     if cfg.get("preCut"):
         cut_path, words_cut, out_dur = base, words, in_dur
@@ -799,7 +868,7 @@ def main():
         words_cut = remap_words(words, intervals)
         out_dur, _ = probe(cut_path)
 
-    preset_id = cfg.get("preset") if cfg.get("preset") in PRESETS else "clean"
+    preset_id = register_style(cfg.get("preset"), cfg.get("styleConfig"))
     pr = PRESETS[preset_id]
     report(note=f"Claude plant den Schnitt ({pr['label']}): Hook, Zooms, B-Roll, Text-Beats…")
     if items:
