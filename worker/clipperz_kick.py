@@ -4,6 +4,7 @@ Never prints the Submagic key or the stream token. Status goes back to CLIPPERZ 
 """
 import glob
 import json
+import re
 import math
 import os
 import subprocess
@@ -47,13 +48,33 @@ def main():
     key, hook = cfg["submagicKey"], cfg["webhook"]
 
     os.makedirs("w", exist_ok=True)
-    dl = subprocess.run(
-        ["yt-dlp", "--no-progress", "-f", "best[height<=1080]/best", "-o", "w/src.%(ext)s"]
-        + (["--enable-file-urls"] if p["url"].startswith("file://") else [])
-        + [p["url"]],
-        capture_output=True,
-        text=True,
+    extra = ["--enable-file-urls"] if p["url"].startswith("file://") else []
+    if not p["url"].startswith("file://"):
+        info = subprocess.run(["yt-dlp", "-J", "--skip-download"] + [p["url"]], capture_output=True, text=True)
+        meta = {}
+        try:
+            meta = json.loads(info.stdout or "{}")
+        except ValueError:
+            pass
+        if meta.get("live_status") in ("is_live", "is_upcoming") or meta.get("is_live"):
+            # A running stream never finishes downloading - the job would hang until the stream ends.
+            raise RuntimeError("Der Stream läuft noch. Bitte nach dem Ende des Streams nochmal starten (dann ist das VOD komplett).")
+        if meta.get("duration"):
+            report(note=f"Video wird geladen ({round(meta['duration'] / 60)} Min.)…")
+    # Download with progress for CLIPPERZ (every ~10 %), 8 parallel fragments for HLS VODs.
+    proc = subprocess.Popen(
+        ["yt-dlp", "--newline", "-N", "8", "-f", "best[height<=1080]/best", "-o", "w/src.%(ext)s"] + extra + [p["url"]],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
+    out_lines, last = [], -10
+    for line in proc.stdout:
+        out_lines.append(line)
+        m = re.search(r"\[download\]\s+([0-9.]+)%", line)
+        if m and float(m.group(1)) >= last + 10:
+            last = float(m.group(1))
+            report(note=f"Video wird geladen… {int(last)} %")
+    proc.wait()
+    dl = subprocess.CompletedProcess(proc.args, proc.returncode, "".join(out_lines[-40:]), "")
     if dl.returncode != 0:
         tail = (dl.stderr or dl.stdout or "")[-400:]
         print(tail)
