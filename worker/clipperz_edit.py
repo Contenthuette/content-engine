@@ -93,6 +93,16 @@ def drive_file(url, out_dir):
         dst = os.path.join(out_dir, os.path.basename(src))
         shutil.copy(src, dst)
         return dst
+    if not re.search(r"(drive|docs)\.google\.com", url):
+        name = re.sub(r"[^\w.\-]+", "_", url.split("?")[0].rsplit("/", 1)[-1]) or "file"
+        dst = os.path.join(out_dir, name)
+        with requests.get(url, stream=True, timeout=600) as r:
+            if r.status_code != 200:
+                raise EditError(f"Datei nicht ladbar ({r.status_code})")
+            with open(dst, "wb") as fh:
+                for chunk in r.iter_content(1 << 20):
+                    fh.write(chunk)
+        return dst
     import gdown
     if "/folders/" in url:
         files = gdown.download_folder(url, output=out_dir, quiet=True, use_cookies=False, remaining_ok=True) or []
@@ -119,6 +129,30 @@ def drive_folder(url, out_dir):
     except Exception:
         raise EditError("B-Roll-Ordner nicht ladbar – Freigabe auf „Jeder mit dem Link“ stellen")
     return files
+
+
+# ---------- LUT ----------
+
+def hald_to_cube(src, dst):
+    """Lightroom-exported HALD image (identity CLUT with the preset applied) -> .cube."""
+    import numpy as np
+    from PIL import Image
+    im = np.asarray(Image.open(src).convert("RGB"), dtype=np.float64) / 255.0
+    side = im.shape[0]
+    level = round(side ** (1 / 3))
+    if im.shape[0] != im.shape[1] or level ** 3 != side:
+        raise EditError("Das LUT-Bild ist kein unverändertes HALD-Bild (nicht zuschneiden oder skalieren)")
+    n = level * level
+    with open(dst, "w") as f:
+        f.write(f"TITLE \"CLIPPERZ\"\nLUT_3D_SIZE {n}\nDOMAIN_MIN 0 0 0\nDOMAIN_MAX 1 1 1\n")
+        for r, g, b in im.reshape(-1, 3):
+            f.write(f"{r:.6f} {g:.6f} {b:.6f}\n")
+    return dst
+
+
+# Lightroom's local effects (vignette, clarity/texture) are not colour transforms, so they are not in the LUT.
+# They are added here, gently, after the LUT.
+PHOTO_FINISH = os.environ.get("CLIPPERZ_PHOTO_FINISH", "vignette=angle=PI/6,unsharp=9:9:0.35:5:5:0")
 
 
 # ---------- steps ----------
@@ -232,7 +266,7 @@ def grade_broll(files, lut, out_dir):
                 tmp = os.path.join(out_dir, f"raw_{i}.png")
                 im.save(tmp)
                 dst = os.path.join(out_dir, f"b{i:03d}.jpg")
-                run(["ffmpeg", "-v", "error", "-y", "-i", tmp, "-vf", f"lut3d=file='{lut}'", "-q:v", "2", dst])
+                run(["ffmpeg", "-v", "error", "-y", "-i", tmp, "-vf", f"lut3d=file='{lut}',{PHOTO_FINISH}", "-q:v", "2", dst])
                 os.remove(tmp)
                 items.append({"kind": "photo", "path": dst, "name": os.path.basename(f)})
             elif low.endswith(VID_EXT):
@@ -242,7 +276,7 @@ def grade_broll(files, lut, out_dir):
                 start = max(0.0, dur / 2 - 1.5)
                 dst = os.path.join(out_dir, f"b{i:03d}.mp4")
                 vf = (f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,crop={OUT_W}:{OUT_H},fps={FPS},"
-                      f"lut3d=file='{lut}',setsar=1")
+                      f"lut3d=file='{lut}',{PHOTO_FINISH},setsar=1")
                 run(["ffmpeg", "-v", "error", "-y", "-ss", f"{start:.2f}", "-i", f, "-t", "3", "-an", "-vf", vf,
                      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", dst])
                 thumb = dst[:-4] + ".jpg"
@@ -392,6 +426,8 @@ def main():
 
     raw = drive_file(cfg["videoUrl"], os.path.join(W, "raw"))
     lut = drive_file(cfg["lutUrl"], os.path.join(W, "lut"))
+    if lut.lower().endswith((".png", ".tif", ".tiff")):
+        lut = hald_to_cube(lut, os.path.join(W, "lut", "look.cube"))
     with open(lut, "rb") as fh:
         if b"LUT_3D_SIZE" not in fh.read(20000):
             raise EditError("Die LUT-Datei ist keine .cube-Datei")
@@ -403,7 +439,14 @@ def main():
     lib = []
     if cfg.get("libraryUrl"):
         lib = drive_folder(cfg["libraryUrl"], os.path.join(W, "broll_lib"))
-        random.shuffle(lib)
+    uploaded = list(cfg.get("libraryFiles") or [])
+    random.shuffle(uploaded)
+    for k, f in enumerate(uploaded[:MAX_BROLL_FILES]):
+        try:
+            lib.append(drive_file(f["url"], os.path.join(W, "broll_up", str(k))))
+        except EditError as e:
+            print("skip library file:", e)
+    random.shuffle(lib)
     files = [f for f in files + lib if f.lower().endswith(IMG_EXT + VID_EXT)][:MAX_BROLL_FILES]
     items = grade_broll(files, lut, os.path.join(W, "broll"))
 
