@@ -322,30 +322,41 @@ def energy_env(path):
     if n < 10:
         return None
     rms = np.sqrt((a[: n * hop].reshape(n, hop) ** 2).mean(axis=1))
-    floor, loud = float(np.percentile(rms, 15)), float(np.percentile(rms, 92))
-    if loud <= floor * 1.5:
-        return None
-    return {"rms": rms, "thr": floor + 0.12 * (loud - floor)}
+    db = 20 * np.log10(rms + 1e-9)
+    floor = float(np.percentile(db, 8))
+    # Quiet threshold: noise floor + 12 dB (after griffinwooldridge/talking-head-editor), kept in a sane range
+    # so a windy outdoor take does not turn everything into "speech".
+    return {"db": db, "q": min(-28.0, max(-56.0, floor + 12.0))}
 
 
 # Jump cuts: about 0.09 s of air at every cut (0.04 s before the word, 0.05 s after its audible end).
 CUT_HEAD, CUT_TAIL, KEEP_GAP = 0.04, 0.05, 0.12
 
 
-def _bounds(w, duration):
+def _bounds(w, duration, nxt=None):
     s, e = w["s"], w["e"]
     if ENV is None:
         return max(0.0, s - 0.06), min(duration, e + 0.12)
-    rms, thr = ENV["rms"], ENV["thr"]
-    n = len(rms)
+    db, q = ENV["db"], ENV["q"]
+    n = len(db)
+    # Out point: walk from Whisper's end until the level stays 30 ms below the threshold (max +0.25 s,
+    # never into the next word) – catches trailing "-ts", "-s", "-enz" Whisper cuts off.
     i = min(n - 1, int(e / ENV_HOP))
-    stop = min(n - 1, int((e + 0.30) / ENV_HOP))
-    while i < stop and rms[i] > thr:  # still sounding: follow the word to its audible end
+    lim = min(n - 1, int((e + 0.25) / ENV_HOP))
+    if nxt is not None:
+        lim = min(lim, int((nxt - 0.02) / ENV_HOP))
+    quiet = 0
+    while i < lim:
+        quiet = quiet + 1 if db[i] < q else 0
+        if quiet >= 3:
+            i -= 2
+            break
         i += 1
     e2 = max(e, i * ENV_HOP)
+    # In point: up to 150 ms back while it is still loud (breathy onsets h-, f-, s-, sch-).
     j = max(0, int(s / ENV_HOP))
     stop = max(0, int((s - 0.15) / ENV_HOP))
-    while j > stop and rms[j - 1] > thr:  # breath/onset just before Whisper's start
+    while j > stop and db[j - 1] >= q:
         j -= 1
     s2 = min(s, j * ENV_HOP)
     return max(0.0, s2 - CUT_HEAD), min(duration, e2 + CUT_TAIL)
@@ -353,8 +364,8 @@ def _bounds(w, duration):
 
 def word_intervals(ws, duration):
     iv = []
-    for w in ws:
-        s, e = _bounds(w, duration)
+    for k, w in enumerate(ws):
+        s, e = _bounds(w, duration, ws[k + 1]["s"] if k + 1 < len(ws) else None)
         if iv and s - iv[-1][1] <= KEEP_GAP:  # short natural pauses stay, longer ones are cut to ~0.09 s
             iv[-1][1] = max(iv[-1][1], e)
         else:
