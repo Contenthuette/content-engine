@@ -1,0 +1,23 @@
+{
+  "fps": 30,
+  "duration": 4,
+  "video": "lib/img/face_demo.mp4",
+  "focus": {"x": 0.5, "y": 0.33, "h": 0},
+  "words": [
+    {"s": 0.1, "e": 0.4, "w": "Heute"},
+    {"s": 0.45, "e": 0.8, "w": "zeige"},
+    {"s": 0.85, "e": 1.1, "w": "ich"},
+    {"s": 1.15, "e": 1.6, "w": "euch"},
+    {"s": 1.65, "e": 2.2, "w": "das."}
+  ],
+  "emphasis": [4],
+  "zooms": [{"s": 0, "e": 2, "level": 1, "mode": "cut"}, {"s": 2, "e": 4, "level": 0, "mode": "cut"}],
+  "broll": [],
+  "inserts": [{"s": 2.2, "e": 3.8, "code": "T-01", "props": {"text": "Stopp."}, "bg": "BG-01"}],
+  "hook": {"text": "So geht's richtig", "e": 2},
+  "sfx": [],
+  "music": null,
+  "preset": "clean",
+  "accent": "#0A66FF",
+  "captions": true
+}

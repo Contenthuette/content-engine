@@ -20,6 +20,9 @@ import {Showreel as UltraV7Showreel, DUR as V7DUR} from './styles/ultra_v7/Showr
 import {Showreel as UltraV8Showreel, DUR as V8DUR} from './styles/ultra_v8/Showreel';
 import {Rea20, DUR as REA20DUR} from './jobs/rea20/Rea20';
 import {Catalog as DLCatalog, calcCatalog, Preview as DLPreview, calcPreview, Reel as DLReel, calcReel, Sheet as DLSheet, calcSheet, Probe as DLProbe, SpecProbe as DLSpecProbe, calcSpecProbe} from './lib/Catalog';
+import {ClipperzEdit, calcClipperz} from './clipperz/ClipperzEdit';
+import clipperzSample from './clipperz/sample.json';
+import type {Plan as ClipperzPlan} from './clipperz/types';
 import {ReelFromSpec as StyleFastBwV1, calcReelMeta as calcFastBwV1} from './styles/fast_bw_v1/ReelFromSpec';
 
 export const RemotionRoot: React.FC = () => (
@@ -35,6 +38,7 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="Style-fast-bw-v1" component={StyleFastBwV1} defaultProps={nick1Spec as unknown as ReelSpec} calculateMetadata={calcFastBwV1} durationInFrames={Math.round(nick1Spec.duration * FPS)} fps={FPS} width={1080} height={1920} />
     <Composition id="Style-apple-motion-v2" component={StyleAppleMotionV2} defaultProps={appleMotionV2Ref as unknown as MotionSpec} calculateMetadata={calcAppleMotionV2} durationInFrames={Math.round(appleMotionV2Ref.duration * FPS)} fps={FPS} width={1080} height={1920} />
     <Composition id="ULTRA-REA-20" component={Rea20} durationInFrames={Math.round(REA20DUR * 30)} fps={30} width={1080} height={1920} />
+    <Composition id="ClipperzEdit" component={ClipperzEdit} defaultProps={clipperzSample as unknown as ClipperzPlan} calculateMetadata={calcClipperz} durationInFrames={300} fps={30} width={1080} height={1920} />
     <Composition id="DL-Catalog" component={DLCatalog} defaultProps={{cats: [] as any[], codes: [] as string[], mute: false}} calculateMetadata={calcCatalog} durationInFrames={300} fps={FPS} width={1080} height={1920} />
     <Composition id="DL-Probe" component={DLProbe} defaultProps={{cats: [] as any[], at: 0.6}} calculateMetadata={calcSheet} durationInFrames={10} fps={FPS} width={1080} height={1920} />
     <Composition id="DL-SpecProbe" component={DLSpecProbe} defaultProps={{dur: 1, layers: [{code: "T-01", at: 0}]} as any} calculateMetadata={calcSpecProbe} durationInFrames={1} fps={FPS} width={1080} height={1920} />

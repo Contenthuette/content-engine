@@ -19,8 +19,8 @@ const f0 = (s: number) => Math.max(0, Math.round(s * FPS)); // Startframe: 0 erl
 
 // ---------- Bausteine ----------
 // SFX-Mix (QA 15.10.: SFX lagen auf Schlüsselwörtern so laut wie die Stimme): Bus-Gain + Ducking während Sprache (spec.speech aus mixprep)
-type SfxMix = {speech: number[][]; gain: number; base: number};
-const SfxCtx = React.createContext<SfxMix | null>(null);
+export type SfxMix = {speech: number[][]; gain: number; base: number};
+export const SfxCtx = React.createContext<SfxMix | null>(null);
 const sfxVol = (c: SfxMix | null, t: number, v: number) => (fr: number) => {
   if (!c) return v;
   const at = c.base + t + fr / FPS;

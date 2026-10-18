@@ -54,3 +54,6 @@ jobs/*/*.png
 clipperz/index.html
 clipperz/sample.mp4
 clipperz/*.jpg
+
+# CLIPPERZ editor: media per edit job (worker copies them in, never committed)
+public/job/

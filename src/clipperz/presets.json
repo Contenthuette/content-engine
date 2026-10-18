@@ -1,0 +1,330 @@
+{
+  "clean": {
+    "label": "Clean Motion",
+    "about": "Apple-clean (creatoroly): Untertitel Wort für Wort weich eingeblendet, eine Akzentfarbe, Kamera fährt immer sanft, Text-Beats aus der Editing Library.",
+    "captions": true,
+    "cap": {
+      "font": "inter",
+      "weight": 700,
+      "upper": false,
+      "size": 76,
+      "words": 4,
+      "y": 0.66,
+      "style": "blur",
+      "color": "#FFFFFF",
+      "track": -0.03
+    },
+    "accents": [
+      "#0A66FF",
+      "#19C37D",
+      "#FF3B30"
+    ],
+    "zoom": {
+      "mode": "push",
+      "every": 2,
+      "maxLevel": 1,
+      "drift": 0.04,
+      "shake": false
+    },
+    "broll": "dissolve",
+    "inserts": {
+      "perMin": 3,
+      "codes": {
+        "T-01": "Slam – ein Wort knallt rein (max. 10 Buchstaben) {text}",
+        "T-03": "Stagger – kurze Aussage, Buchstaben fliegen hoch {text}",
+        "T-07": "Blur-Wörter – ruhige Aussage 3–6 Wörter, ein Akzentwort {text, accent: Position des Akzentworts im Beat-Text, 0 = erstes Wort}",
+        "T-11": "Masken-Wipe – sauberer Reveal 1–2 Wörter {text}",
+        "T-13": "Pille – ein Schlüsselbegriff in Akzentfarbe {text, bg: Akzentfarbe}",
+        "T-16": "Zeile mit Pille – Satz + hervorgehobener Teil {text, pill}",
+        "T-17": "Serif-Unterstrich – editoriale Betonung 1–3 Wörter {text}",
+        "T-22": "Textmarker – Satzanfang + markiertes Wort {text, mark}",
+        "T-25": "Klammern – Fokuswort {text}",
+        "T-28": "Korrektur – falsch durchgestrichen → richtig {wrong, text}",
+        "T-30": "Odometer – Zahl rollt ein {to}"
+      },
+      "bg": [
+        "BG-01",
+        "BG-06",
+        "BG-02"
+      ],
+      "tr": [],
+      "defaults": {
+        "T-13": {
+          "size": 120
+        },
+        "T-16": {},
+        "T-01": {}
+      }
+    },
+    "hook": "clean",
+    "progress": false,
+    "music": "music/minimal124.mp3",
+    "musicVol": 0.06,
+    "sfx": {
+      "broll": [
+        "swish",
+        "slide"
+      ],
+      "zoom": [],
+      "hook": [
+        "pop"
+      ]
+    },
+    "sfxVol": 0.3
+  },
+  "kleinecke": {
+    "label": "Kleinecke",
+    "about": "Schnell und voll (Lucas-Kleinecke-Stil): fette Großbuchstaben mit gelbem Marker, Zoom-Punches auf Betonungen, Burst-/Whip-Übergänge, viele Treffer-Sounds.",
+    "captions": true,
+    "cap": {
+      "font": "inter",
+      "weight": 900,
+      "upper": true,
+      "size": 84,
+      "words": 2,
+      "y": 0.66,
+      "style": "marker",
+      "color": "#FFFFFF",
+      "track": -0.04
+    },
+    "accents": [
+      "#FFD45A"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 1,
+      "maxLevel": 2,
+      "drift": 0.02,
+      "shake": true
+    },
+    "broll": "whip",
+    "inserts": {
+      "perMin": 5,
+      "codes": {
+        "KT-01": "Headline-Stapel – Satz in 3 Schlägen {lines: [3 kurze Zeilen]}",
+        "KT-05": "Pappschild – provokantes Wort {text}",
+        "KT-08": "Tippen + Pille – Aussage + Nachsatz in Pille {text, pill, pillColor}",
+        "KT-13": "Wort sprengt Breite – ein Riesen-Begriff (max. 7 Buchstaben, sonst abgeschnitten) + Unterzeile {text, sub}",
+        "KT-15": "Chrom-Nummer – Listenpunkt/Rang {text: '#1', label}",
+        "KT-24": "Beat-Wörter – Aufzählung im Takt {words: [3–5 Wörter]}",
+        "KT-26": "Echo-Outline – Betonung {text}",
+        "KT-28": "Marker-Wörter – Kernaussage markiert {text}",
+        "KT-36": "Zahl schwebt hoch – Gewinn/Zahl {text}",
+        "KT-39": "Stempel – Bestätigung {text}",
+        "KT-43": "Wort aus der Kamera – Punch-Wort (max. 9 Buchstaben) {text}"
+      },
+      "bg": [
+        "BG-03",
+        "BG-01",
+        "BG-02"
+      ],
+      "tr": [
+        "KX-06",
+        "KX-07",
+        "KX-19",
+        "KX-16",
+        "KX-04"
+      ]
+    },
+    "hook": "kleinecke",
+    "progress": true,
+    "music": "music/phonk130_bed.mp3",
+    "musicVol": 0.08,
+    "sfx": {
+      "broll": [
+        "whoosh",
+        "swipe",
+        "zip"
+      ],
+      "zoom": [
+        "tick",
+        "tap"
+      ],
+      "hook": [
+        "pop2"
+      ]
+    },
+    "sfxVol": 0.4
+  },
+  "handwerk": {
+    "label": "Handwerk & Baustelle",
+    "about": "Kräftig und direkt: große Großbuchstaben mit Kontur, Rot als Akzent, Stempel- und Pappschild-Beats, treibender Beat.",
+    "captions": true,
+    "cap": {
+      "font": "anton",
+      "weight": 400,
+      "upper": true,
+      "size": 96,
+      "words": 2,
+      "y": 0.68,
+      "style": "outline",
+      "color": "#FFFFFF",
+      "track": 0
+    },
+    "accents": [
+      "#FF3B30"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 1,
+      "maxLevel": 2,
+      "drift": 0.02,
+      "shake": false
+    },
+    "broll": "cut",
+    "inserts": {
+      "perMin": 3,
+      "codes": {
+        "KT-05": "Pappschild – provokantes Wort {text}",
+        "KT-13": "Wort sprengt Breite – ein Riesen-Begriff (max. 7 Buchstaben, sonst abgeschnitten) + Unterzeile {text, sub}",
+        "KT-15": "Chrom-Nummer – Listenpunkt/Schritt {text: '#1', label}",
+        "KT-28": "Marker-Wörter – Kernaussage markiert {text}",
+        "KT-39": "Stempel – Bestätigung, z. B. FERTIG / DICHT {text}",
+        "KT-43": "Wort aus der Kamera – Punch-Wort (max. 9 Buchstaben) {text}"
+      },
+      "bg": [
+        "BG-04",
+        "BG-01"
+      ],
+      "tr": [
+        "KX-16",
+        "KX-04"
+      ]
+    },
+    "hook": "handwerk",
+    "progress": true,
+    "music": "music/popfunk118_bed.mp3",
+    "musicVol": 0.08,
+    "sfx": {
+      "broll": [
+        "whoosh3",
+        "swipe"
+      ],
+      "zoom": [],
+      "hook": [
+        "stamp"
+      ]
+    },
+    "sfxVol": 0.4
+  },
+  "hype": {
+    "label": "Hype & schnell",
+    "about": "Maximales Tempo: 1 Wort riesig mit Pop, Zoom bei jedem Satz mit Ruck, Burst- und Slam-Übergänge, viele Sounds.",
+    "captions": true,
+    "cap": {
+      "font": "anton",
+      "weight": 400,
+      "upper": true,
+      "size": 124,
+      "words": 1,
+      "y": 0.64,
+      "style": "pop",
+      "color": "#FFFFFF",
+      "track": 0
+    },
+    "accents": [
+      "#3DFF6E",
+      "#FFD45A"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 1,
+      "maxLevel": 2,
+      "drift": 0.03,
+      "shake": true
+    },
+    "broll": "whip",
+    "inserts": {
+      "perMin": 5,
+      "codes": {
+        "KT-01": "Headline-Stapel – Satz in 3 Schlägen {lines: [3 kurze Zeilen]}",
+        "KT-13": "Wort sprengt Breite – ein Riesen-Begriff (max. 7 Buchstaben, sonst abgeschnitten) + Unterzeile {text, sub}",
+        "KT-24": "Beat-Wörter – Aufzählung im Takt {words: [3–5 Wörter]}",
+        "KT-26": "Echo-Outline – Betonung {text}",
+        "KT-36": "Zahl schwebt hoch – Zahl {text}",
+        "KT-43": "Wort aus der Kamera – Punch-Wort (max. 9 Buchstaben) {text}"
+      },
+      "bg": [
+        "BG-03"
+      ],
+      "tr": [
+        "KX-19",
+        "KX-28",
+        "KX-06",
+        "KX-07"
+      ]
+    },
+    "hook": "kleinecke",
+    "progress": true,
+    "music": "music/phonk130_bed.mp3",
+    "musicVol": 0.09,
+    "sfx": {
+      "broll": [
+        "whoosh",
+        "swish",
+        "zip"
+      ],
+      "zoom": [
+        "tick",
+        "pop2"
+      ],
+      "hook": [
+        "pop2"
+      ]
+    },
+    "sfxVol": 0.45
+  },
+  "story": {
+    "label": "Story & ruhig",
+    "about": "Erzählend: Satzteile in Inter mit Serif-Akzent, langsame Kamerafahrten, weiche Bildwechsel, Zitat- und Serif-Beats, cinematische Musik.",
+    "captions": true,
+    "cap": {
+      "font": "inter",
+      "weight": 650,
+      "upper": false,
+      "size": 72,
+      "words": 4,
+      "y": 0.72,
+      "style": "fade",
+      "color": "#FFFFFF",
+      "track": -0.02
+    },
+    "accents": [
+      "#FFE7B0"
+    ],
+    "zoom": {
+      "mode": "push",
+      "every": 1,
+      "maxLevel": 1,
+      "drift": 0.05,
+      "shake": false
+    },
+    "broll": "dissolve",
+    "inserts": {
+      "perMin": 2,
+      "codes": {
+        "T-07": "Blur-Wörter – ruhige Aussage 3–6 Wörter {text, accent: Position des Akzentworts im Beat-Text, 0 = erstes Wort}",
+        "T-17": "Serif-Unterstrich – editoriale Betonung {text}",
+        "T-29": "Zitat – Kernsatz als Zitat {text, who}",
+        "T-03": "Stagger – kurze Aussage {text}"
+      },
+      "bg": [
+        "BG-06",
+        "BG-01"
+      ],
+      "tr": []
+    },
+    "hook": "story",
+    "progress": false,
+    "music": "music/cinematic128.mp3",
+    "musicVol": 0.06,
+    "sfx": {
+      "broll": [
+        "slide"
+      ],
+      "zoom": [],
+      "hook": []
+    },
+    "sfxVol": 0.25
+  }
+}

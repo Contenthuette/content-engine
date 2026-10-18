@@ -1,6 +1,6 @@
-# CLIPPERZ standard edit worker.
-# Triggered by CLIPPERZ (repository_dispatch "clipperz-edit"): raw short video from Drive ->
-# rough cut -> LUT-graded B-roll photos on top -> Submagic captions in the house style.
+# CLIPPERZ standard edit worker ("Claude-Editor").
+# Triggered by CLIPPERZ (repository_dispatch "clipperz-edit"): raw short video -> rough cut -> Claude writes the
+# edit plan -> Remotion renders it with the Dunkelmann Editing Library in the chosen preset -> upload to R2.
 name: clipperz-edit
 on:
   repository_dispatch:
@@ -12,15 +12,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      # Full checkout: the renderer uses src/ (Remotion + Editing Library) and public/lib, public/music.
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          sparse-checkout: worker
+          node-version: 22
+          cache: npm
       - name: Install tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
           # The worker decodes audio with ffmpeg itself, so the PyAV version does not matter (any wheel works).
-          pip install -q -U gdown pillow pillow-heif requests requests-toolbelt "faster-whisper==1.2.1"
-          python3 -c "import av, faster_whisper; print('av', av.__version__, '· faster-whisper', faster_whisper.__version__)"
+          pip install -q -U gdown pillow pillow-heif requests "opencv-python-headless<5" "faster-whisper==1.2.1"
+          python3 -c "import av, faster_whisper, cv2; print('av', av.__version__, '· faster-whisper', faster_whisper.__version__, '· cv2', cv2.__version__)"
+          npm ci --no-audit --no-fund
+          npx remotion browser ensure
       - name: Cache speech model
         uses: actions/cache@v4
         with:

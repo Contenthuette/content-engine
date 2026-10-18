@@ -1,7 +1,8 @@
 """CLIPPERZ standard edit worker.
 
-Raw short video (Drive link) -> rough cut (speech model + Claude) -> LUT-graded B-roll photos/clips on top
--> Submagic captions in the house style. Status goes back to CLIPPERZ; nothing secret is printed.
+Raw short video -> rough cut (speech model + Claude) -> Claude writes the edit plan (hook title, key words,
+zooms, B-roll, text beats from the Dunkelmann Editing Library) -> Remotion renders it in the chosen preset
+(captions, zooms, sounds, music) -> upload. Status goes back to CLIPPERZ; nothing secret is printed.
 """
 import base64
 import glob
@@ -16,10 +17,10 @@ import sys
 from urllib.parse import quote
 
 import requests
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-SUBMAGIC = os.environ.get("CLIPPERZ_SUBMAGIC_URL", "https://api.submagic.co/v1/projects/upload")
-W = os.environ.get("CLIPPERZ_WORKDIR", "w")
+W = os.path.abspath(os.environ.get("CLIPPERZ_WORKDIR", "w"))
+REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+PRESETS = json.load(open(os.path.join(REPO, "src", "clipperz", "presets.json"), encoding="utf-8"))
 FPS = 30
 OUT_W, OUT_H = 1080, 1920
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
@@ -65,22 +66,47 @@ def probe(path):
 # ---------- LLM (via CLIPPERZ, budgeted per edit) ----------
 
 def llm(messages, max_tokens=4000, temperature=0.2):
-    r = requests.post(f"{API}/llm?{AUTH}", json={"messages": messages, "maxTokens": max_tokens, "temperature": temperature}, timeout=300)
-    if r.status_code != 200:
-        raise EditError(f"KI nicht erreichbar ({r.status_code})")
-    return r.json().get("text", "")
+    import time
+    status = 0
+    for attempt in range(3):
+        try:
+            r = requests.post(f"{API}/llm?{AUTH}", json={"messages": messages, "maxTokens": max_tokens, "temperature": temperature}, timeout=300)
+            status = r.status_code
+            if status == 200:
+                return r.json().get("text", "")
+            if status in (403, 429):  # token gone / budget used up: retrying does not help
+                break
+        except requests.RequestException as e:
+            print("llm request failed:", type(e).__name__)
+        time.sleep(4 * (attempt + 1))
+    raise EditError(f"KI nicht erreichbar ({status})")
+
+
+def parse_json(text):
+    """First JSON object/array in a model answer; tolerates code fences, comments and trailing commas."""
+    t = re.sub(r"```(?:json)?", "", text)
+    starts = [i for i in (t.find("{"), t.find("[")) if i >= 0]
+    if not starts:
+        return None
+    t = t[min(starts):]
+    dec = json.JSONDecoder()
+    for cand in (t, re.sub(r",\s*([\]}])", r"\1", re.sub(r"//[^\n]*", "", t))):
+        try:
+            obj, _ = dec.raw_decode(cand)
+            return obj
+        except json.JSONDecodeError:
+            continue
+    return None
 
 
 def llm_json(messages, max_tokens=4000):
-    for attempt in range(2):
+    for attempt in range(3):
         text = llm(messages, max_tokens=max_tokens)
-        m = re.search(r"[\[{].*[\]}]", text, re.S)
-        if m:
-            try:
-                return json.loads(m.group(0))
-            except json.JSONDecodeError:
-                pass
-        messages = messages + [{"role": "assistant", "content": text}, {"role": "user", "content": "Bitte NUR gültiges JSON ausgeben, ohne Text drumherum."}]
+        obj = parse_json(text)
+        if obj is not None:
+            return obj
+        print("no JSON in answer:", text[:300].replace("\n", " "))
+        messages = messages + [{"role": "assistant", "content": text}, {"role": "user", "content": "Bitte NUR gültiges JSON ausgeben, ohne Text drumherum, ohne Kommentare."}]
     raise EditError("KI-Antwort war kein JSON")
 
 
@@ -158,15 +184,26 @@ PHOTO_FINISH = os.environ.get("CLIPPERZ_PHOTO_FINISH", "vignette=angle=PI/6,unsh
 
 # ---------- steps ----------
 
+def src_size(path):
+    out = run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", path])
+    try:
+        w, h = [int(x) for x in out.strip().split(",")[:2]]
+        return w, h
+    except ValueError:
+        return OUT_W, OUT_H
+
+
 def rotate_filter(deg):
     """Clockwise rotation as an ffmpeg filter prefix ("" for none)."""
     return {90: "transpose=1,", 180: "hflip,vflip,", 270: "transpose=2,"}.get(int(deg or 0) % 360, "")
 
 
-def normalize(src, dst, rotate=0):
-    """Vertical 1080x1920, 30 fps, H.264/AAC, cover crop. `rotate` fixes cameras that store portrait clips as landscape."""
+def normalize(src, dst, rotate=0, hi=False):
+    """Vertical 1080x1920 (or 1440x2560 with `hi` for sharp zooms), 30 fps, H.264/AAC, cover crop.
+    `rotate` fixes cameras that store portrait clips as landscape."""
     _, has_audio = probe(src)
-    vf = f"{rotate_filter(rotate)}scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,crop={OUT_W}:{OUT_H},fps={FPS},setsar=1"
+    w, h = (1440, 2560) if hi and min(src_size(src)) >= 1440 else (OUT_W, OUT_H)
+    vf = f"{rotate_filter(rotate)}scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},fps={FPS},setsar=1"
     cmd = ["ffmpeg", "-v", "error", "-y", "-i", src]
     if not has_audio:
         cmd += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest"]
@@ -415,109 +452,254 @@ def describe_broll(items):
         it.setdefault("desc", re.sub(r"[_\-.]+", " ", os.path.splitext(it["name"])[0]))
 
 
-def place_broll(words, duration, items):
-    """B-roll placements [(item_index, start, end)] on the cut timeline."""
-    if not items or duration < 4:
-        return []
-    target = max(1, min(len(items), int(duration / 4)))
-    sentences, cur = [], []
-    for w in words:
-        cur.append(w)
-        if re.search(r"[.!?]$", w["w"]) or len(cur) >= 14:
-            sentences.append(cur)
+# ---------- face position (zooms go to the face, captions stay off it) ----------
+
+def detect_focus(path, duration):
+    """Median face centre and face height (0..1) over a few frames. Falls back to the upper middle."""
+    try:
+        import cv2
+        casc = cv2.CascadeClassifier(os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml"))
+    except (ImportError, AttributeError):  # OpenCV 5 moved Haar cascades out; workflow pins opencv < 5
+        print("face detection unavailable, using default focus")
+        return {"x": 0.5, "y": 0.33, "h": 0}
+    cap = cv2.VideoCapture(path)
+    xs, ys, hs = [], [], []
+    for k in range(12):
+        cap.set(cv2.CAP_PROP_POS_MSEC, 1000 * duration * (k + 0.5) / 12)
+        ok, frame = cap.read()
+        if not ok:
+            continue
+        H_, W_ = frame.shape[:2]
+        small = cv2.resize(frame, (W_ // 2, H_ // 2))
+        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+        faces = casc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6, minSize=(30, 30))
+        if len(faces):
+            x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
+            xs.append((x + w / 2) * 2 / W_)
+            ys.append((y + h / 2) * 2 / H_)
+            hs.append(h * 2 / H_)
+    cap.release()
+    if len(xs) < 3:
+        return {"x": 0.5, "y": 0.33, "h": 0}
+    med = lambda v: sorted(v)[len(v) // 2]
+    return {"x": round(float(med(xs)), 3), "y": round(float(med(ys)), 3), "h": round(float(med(hs)), 3)}
+
+
+# ---------- Claude: edit plan ----------
+
+def edit_plan(words, duration, items, preset_id, spoken_hook):
+    """Claude decides content (hook title, key words, text beats, B-roll); code enforces timing rules."""
+    pr = PRESETS[preset_id]
+    sents = sentences_of(words)
+    idx, lines = 0, []
+    for s_ in sents:
+        lines.append(f"[{s_[0]['s']:.2f}-{s_[-1]['e']:.2f}] " + " ".join(f"{w['w']}#{idx + k}" for k, w in enumerate(s_)))
+        idx += len(s_)
+    pics = "\n".join(f"{i}: {it['desc']}" for i, it in enumerate(items)) or "(keine)"
+    n_ins = max(2 if duration >= 15 else 1, round(duration / 60 * pr["inserts"]["perMin"]))
+    menu = "\n".join(f"{c}: {d}" for c, d in pr["inserts"]["codes"].items())
+    accents = ", ".join(pr["accents"])
+    system = (
+        f"Du bist Editor für deutsche Kurzvideos (Reels/TikTok, Hochformat, eine Person spricht in die Kamera). Stil: {pr['label']} – {pr['about']}\n"
+        "Du bekommst das Transkript Wort für Wort (Wort#Index, Zeiten in Sekunden) und die B-Roll-Bilder. Plane den Schnitt:\n"
+        "1. hook: Titel für die ersten 2–3 Sekunden, max. 6 Wörter, deutsch, macht neugierig (Ergebnis, Zahl, Konflikt, Frage). "
+        "Nicht einfach den ersten Satz wiederholen.\n"
+        f"2. accent: eine Akzentfarbe aus [{accents}], passend zum Thema (Blau = Vertrauen/Technik, Grün = Erfolg/Lösung, Rot = Problem/Warnung).\n"
+        "3. emphasis: Indizes der wichtigsten Wörter (Zahlen, Ergebnisse, Fachbegriffe, Pointen) – etwa jedes 6. bis 8. Wort, nie Füllwörter.\n"
+        f"4. inserts: genau {n_ins} Text-Beats aus der Editing Library. Ein Beat ersetzt 1,2–2 s lang das Bild (die Stimme läuft weiter) und "
+        "zeigt das, was in dem Moment gesagt wird, als große Typo (max. 5 Wörter, eigene Worte erlaubt, deutsch). Setze sie auf die stärksten "
+        "Aussagen, nie in den ersten 2 Sekunden, nie in der letzten Sekunde, verteilt über das Video. "
+        "Felder: code, start (Wortindex, an dem der Beat beginnt), props (genau die Felder in den geschweiften Klammern).\n"
+        f"Menü:\n{menu}\n"
+        "5. fixes: Die Spracherkennung macht Fehler bei Fachbegriffen und Namen (z. B. „4 PC“ statt „WPC“). Korrigiere offensichtlich falsch "
+        "erkannte Wörter: {\"Wortindex\": \"richtiges Wort\"} – nur wenn du dir sicher bist, ein Wort pro Index, Satzzeichen behalten.\n"
+        "6. broll: Platziere passende B-Roll-Bilder (je 1,2–2,5 s, ab dem passenden Wort, nicht in den ersten 1,5 s, nicht über einem Text-Beat, "
+        "mindestens 1 s Gesicht dazwischen, jedes Bild höchstens einmal). Ohne passende Bilder: leere Liste.\n"
+        "Antworte NUR mit JSON: {\"hook\": \"…\", \"accent\": \"#…\", \"emphasis\": [..], "
+        "\"inserts\": [{\"code\": \"…\", \"start\": Wortindex, \"props\": {…}}], \"fixes\": {}, \"broll\": [{\"bild\": Nummer, \"start\": Sekunden, \"ende\": Sekunden}]}"
+    )
+    user = f"Video-Länge: {duration:.2f} s\nGesprochener Einstieg: {spoken_hook or '-'}\n\nTranskript:\n" + "\n".join(lines) + f"\n\nB-Roll-Bilder:\n{pics}"
+    try:
+        res = llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens=3000)
+    except EditError as e:
+        print("edit plan failed, using defaults:", e)
+        res = {}
+    return res if isinstance(res, dict) else {}
+
+
+def build_plan(words, duration, items, preset_id, captions, focus, res, video_rel, broll_rel, hi_res=False):
+    pr = PRESETS[preset_id]
+    n = len(words)
+    fixes = res.get("fixes") if isinstance(res.get("fixes"), dict) else {}
+    words = [dict(w) for w in words]
+    for k, v in fixes.items():
+        if str(k).isdigit() and 0 <= int(k) < n and isinstance(v, str) and 0 < len(v.strip()) <= 40 and len(v.split()) <= 3:
+            words[int(k)]["w"] = v.strip()
+    accent = res.get("accent") if res.get("accent") in pr["accents"] else pr["accents"][0]
+    hook_text = str(res.get("hook") or "").strip()[:60]
+    emphasis = sorted({int(i) for i in res.get("emphasis", []) if str(i).lstrip("-").isdigit() and 0 <= int(i) < n})
+
+    # Text beats: timing from the word index, length 1.2-2.0 s, rules enforced here.
+    busy = []  # (s, e) windows that already cover the face
+    inserts = []
+    allowed = pr["inserts"]["codes"]
+    bgs, trs = pr["inserts"]["bg"], pr["inserts"]["tr"]
+    for k, x in enumerate(sorted(res.get("inserts") or [], key=lambda x: int(x.get("start", 0)) if str(x.get("start", 0)).isdigit() else 0)):
+        try:
+            code = str(x["code"]).upper()
+            wi = int(x["start"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if code not in allowed or not (0 <= wi < n):
+            continue
+        props = {kk: vv for kk, vv in (x.get("props") or {}).items() if isinstance(vv, (str, int, float, list))}
+        for kk, vv in list(props.items()):
+            if isinstance(vv, str):
+                props[kk] = vv[:60]
+            if isinstance(vv, list):
+                props[kk] = [str(v)[:24] for v in vv][:5]
+        s_ = max(2.0, words[wi]["s"])
+        e_ = min(s_ + 1.7, duration - 1.0)
+        if e_ - s_ < 1.2 or any(a < e_ + 0.8 and s_ < b + 0.8 for a, b in busy):
+            continue
+        props = {**pr["inserts"].get("defaults", {}).get(code, {}), **props}
+        ins = {"s": round(s_, 2), "e": round(e_, 2), "code": code, "props": props, "bg": bgs[len(inserts) % len(bgs)]}
+        if trs:
+            ins["tr"] = trs[len(inserts) % len(trs)]
+        inserts.append(ins)
+        busy.append((s_, e_))
+
+    broll = []
+    used = set()
+    for row in sorted(res.get("broll") or [], key=lambda r: float(r.get("start", 0)) if isinstance(r, dict) else 0):
+        try:
+            i, s_, e_ = int(row["bild"]), float(row["start"]), float(row["ende"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not (0 <= i < len(items)) or i in used:
+            continue
+        s_ = max(s_, 1.5)
+        e_ = min(max(e_, s_ + 1.2), s_ + 2.5, duration - 1.0)
+        if e_ - s_ < 1.0 or any(a < e_ + 1.0 and s_ < b + 1.0 for a, b in busy):
+            continue
+        broll.append({"s": round(s_, 2), "e": round(e_, 2), "src": broll_rel[i], "kind": items[i]["kind"]})
+        busy.append((s_, e_))
+        used.add(i)
+    if items and not broll:  # fallback: spread the photos over the free time
+        t = 2.5
+        for i in range(len(items)):
+            while t + 1.8 < duration - 1.0 and any(a < t + 2.8 and t < b + 1.0 for a, b in busy):
+                t += 0.5
+            if t + 1.8 >= duration - 1.0:
+                break
+            broll.append({"s": round(t, 2), "e": round(t + 1.8, 2), "src": broll_rel[i], "kind": items[i]["kind"]})
+            busy.append((t, t + 1.8))
+            t += 4.5
+
+    # Zooms: a new framing every 1.5-3.5 s at phrase boundaries (comma, full stop, pause); the hook and
+    # phrases with key words go closer, two neighbours never share the same framing.
+    z = pr["zoom"]
+    em = set(emphasis)
+    segs, cur = [], []
+    for i, w in enumerate(words):
+        cur.append(i)
+        span = words[cur[-1]]["e"] - words[cur[0]]["s"]
+        nxt_gap = words[i + 1]["s"] - w["e"] if i + 1 < n else 0
+        if (re.search(r"[.!?,;:]$", w["w"]) and span >= 1.5) or nxt_gap > 0.45 or span >= 3.5:
+            segs.append(cur)
             cur = []
     if cur:
-        sentences.append(cur)
-    text = "\n".join(f"[{s[0]['s']:.2f}-{s[-1]['e']:.2f}] {' '.join(x['w'] for x in s)}" for s in sentences)
-    pics = "\n".join(f"{i}: {it['desc']}" for i, it in enumerate(items))
-    plan = []
-    try:
-        res = llm_json([
-            {"role": "system", "content": (
-                "Du platzierst B-Roll-Fotos über ein deutsches Kurzvideo (Hochformat, Person spricht in die Kamera). "
-                f"Regeln: etwa {target} Einblendungen, je 1.2 bis 2.5 Sekunden, keine vor Sekunde 1.5 (der Hook zeigt das Gesicht), "
-                f"keine in der letzten Sekunde (Video endet bei {duration:.2f} s), mindestens 1 Sekunde Gesicht zwischen zwei Einblendungen, "
-                "jedes Bild höchstens einmal. Wähle Bilder, die zum gesagten Inhalt passen, und starte sie auf dem passenden Wort. "
-                "Antworte NUR mit JSON: [{\"bild\": Nummer, \"start\": Sekunden, \"ende\": Sekunden}]"
-            )},
-            {"role": "user", "content": f"Transkript:\n{text}\n\nBilder:\n{pics}"},
-        ], max_tokens=2000)
-        for row in res if isinstance(res, list) else []:
-            plan.append((int(row["bild"]), float(row["start"]), float(row["ende"])))
-    except (EditError, KeyError, TypeError, ValueError):
-        plan = []
-    # Enforce the rules in code, whatever the model returned.
-    out, used, last_end = [], set(), 1.5 - 1.0
-    for idx, s, e in sorted(plan, key=lambda x: x[1]):
-        if not (0 <= idx < len(items)) or idx in used:
-            continue
-        s = max(s, 1.5, last_end + 1.0)
-        e = min(max(e, s + 1.2), s + 2.5, duration - 1.0)
-        if e - s < 1.0:
-            continue
-        out.append((idx, round(s, 2), round(e, 2)))
-        used.add(idx)
-        last_end = e
-    if not out:  # fallback: evenly spaced, random order
-        order = list(range(len(items)))
-        random.shuffle(order)
-        t = 2.0
-        for idx in order[:target]:
-            if t + 1.8 > duration - 1.0:
-                break
-            out.append((idx, round(t, 2), round(t + 1.8, 2)))
-            t += 4.0
-    return out
-
-
-def render_overlays(base, items, plan, dst):
-    if not plan:
-        shutil.copy(base, dst)
-        return
-    cmd = ["ffmpeg", "-v", "error", "-y", "-i", base]
-    chains, prev = [], "0:v"
-    for n, (idx, s, e) in enumerate(plan):
-        it = items[idx]
-        d = e - s
-        frames = int(round(d * FPS)) + 2
-        if it["kind"] == "photo":
-            cmd += ["-loop", "1", "-framerate", str(FPS), "-t", f"{d + 0.1:.2f}", "-i", it["path"]]
-            # gentle push-in, like a Ken Burns move
-            src = (f"[{n + 1}:v]scale={OUT_W * 2}:{OUT_H * 2},zoompan=z='min(1+0.0009*on,1.08)':d={frames}:"
-                   f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={OUT_W}x{OUT_H}:fps={FPS}")
+        if segs and words[cur[-1]]["e"] - words[cur[0]]["s"] < 1.2:
+            segs[-1] += cur
         else:
-            cmd += ["-t", f"{d + 0.1:.2f}", "-i", it["path"]]
-            src = f"[{n + 1}:v]scale={OUT_W}:{OUT_H}"
-        chains.append(f"{src},setsar=1,format=yuv420p,setpts=PTS-STARTPTS+{s}/TB[b{n}]")
-        chains.append(f"[{prev}][b{n}]overlay=0:0:enable='between(t,{s},{e})':eof_action=pass[o{n}]")
-        prev = f"o{n}"
-    with open(os.path.join(W, "broll.filter"), "w") as fh:
-        fh.write(";".join(chains))
-    run(cmd + ["-filter_complex_script", os.path.join(W, "broll.filter"), "-map", f"[{prev}]", "-map", "0:a",
-               "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "copy", dst])
+            segs.append(cur)
+    zooms = []
+    for k, ids in enumerate(segs):
+        a = 0.0 if k == 0 else words[ids[0]]["s"]
+        b = words[segs[k + 1][0]]["s"] if k + 1 < len(segs) else duration
+        if k == 0:
+            level = 1
+        elif any(i in em for i in ids):
+            level = z["maxLevel"]
+        else:
+            level = 0 if (k // max(1, z["every"])) % 2 else 1
+        if zooms and level == zooms[-1]["level"]:
+            level = 0 if level else 1
+        zooms.append({"s": round(a, 3), "e": round(b, 3), "level": level, "mode": z["mode"], "shake": bool(z["shake"] and level == 2)})
+    if not zooms:
+        zooms = [{"s": 0, "e": duration, "level": 1, "mode": z["mode"], "shake": False}]
 
+    # Sounds: one per visible event, each name at most 3 times.
+    sfx, count = [], {}
+    def add(t, names, vol):
+        for nm in names[len(sfx) % max(1, len(names)):] + names:
+            if count.get(nm, 0) < 3:
+                count[nm] = count.get(nm, 0) + 1
+                sfx.append({"t": round(max(0.0, t), 3), "name": nm, "vol": vol})
+                return
+    vol = pr["sfxVol"]
+    if hook_text and pr["sfx"]["hook"]:
+        add(0.05, pr["sfx"]["hook"], vol)
+    for b in broll:
+        if pr["sfx"]["broll"]:
+            add(b["s"] - 0.12, pr["sfx"]["broll"], vol)
+    if pr["sfx"]["zoom"]:
+        for prev, cur in zip(zooms, zooms[1:]):
+            if cur["mode"] == "cut" and cur["level"] > prev["level"]:
+                add(cur["s"], pr["sfx"]["zoom"], vol * 0.7)
 
-def submagic(path, cfg):
-    style = cfg["style"]
-    fields = {
-        "title": cfg["title"][:100],
-        "language": "de",
-        "webhookUrl": cfg["webhook"],
-        "magicZooms": "true",  # "ein paar Effekte": Submagic's automatic punch-in zooms
-        "file": ("edit.mp4", open(path, "rb"), "video/mp4"),
+    return {
+        "fps": FPS,
+        "duration": round(duration, 3),
+        "video": video_rel,
+        "focus": focus,
+        "words": words,
+        "emphasis": emphasis,
+        "zooms": zooms,
+        "broll": broll,
+        "inserts": inserts,
+        "hook": {"text": hook_text, "e": round(min(2.6, duration / 3), 2)} if hook_text else None,
+        "sfx": sfx,
+        "music": {"src": pr["music"], "vol": pr["musicVol"]} if pr.get("music") else None,
+        "preset": preset_id,
+        "maxZoom": 2.2 if hi_res else 1.7,
+        "accent": accent,
+        "captions": bool(captions),
     }
-    if re.fullmatch(r"[0-9a-fA-F-]{36}", style):
-        fields["userThemeId"] = style
-    else:
-        fields["templateName"] = style
-    form = MultipartEncoder(fields=fields)
-    r = requests.post(SUBMAGIC, data=form, headers={"x-api-key": cfg["submagicKey"], "Content-Type": form.content_type}, timeout=1800)
-    if r.status_code >= 300:
-        msg = {403: "Submagic: Abo oder Credits fehlen"}.get(r.status_code)
-        if r.status_code == 400 and "template" in r.text.lower():
-            msg = f"Submagic kennt den Style „{style}“ nicht. Bei einem eigenen Theme die Theme-ID in TEAM → Einstellungen eintragen."
-        raise EditError(msg or f"Submagic-Fehler {r.status_code}: {r.text[:200]}")
-    return r.json()["id"]
+
+
+# ---------- render + upload ----------
+
+def render(plan, dst):
+    plan_path = os.path.join(W, "plan.json")
+    with open(plan_path, "w", encoding="utf-8") as fh:
+        json.dump(plan, fh, ensure_ascii=False)
+    raw = os.path.join(W, "render.mp4")
+    cmd = ["npx", "remotion", "render", "src/index.ts", "ClipperzEdit", raw, f"--props={plan_path}",
+           f"--concurrency={max(1, (os.cpu_count() or 2))}", "--codec=h264", "--crf=19", "--audio-codec=aac", "--log=error"]
+    browser = os.environ.get("CLIPPERZ_BROWSER")
+    if browser:
+        cmd.append(f"--browser-executable={browser}")
+    r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True)
+    if r.returncode != 0:
+        tail = (r.stderr or r.stdout)[-600:]
+        print(tail)
+        raise EditError("Rendern fehlgeschlagen: " + tail[-200:])
+    # Master: -14 LUFS like the reels.
+    run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1:LRA=11",
+         "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", dst])
+
+
+def upload(path):
+    r = requests.post(f"{API}/edit-upload?{AUTH}", json={"size": os.path.getsize(path)}, timeout=60)
+    if r.status_code != 200:
+        raise EditError(f"Upload-Freigabe fehlt ({r.status_code})")
+    g = r.json()
+    with open(path, "rb") as fh:
+        put = requests.put(g["uploadUrl"], data=fh, headers=g.get("headers") or {"Content-Type": "video/mp4"}, timeout=1800)
+    if put.status_code >= 300:
+        raise EditError(f"Upload fehlgeschlagen ({put.status_code})")
+    return g["url"]
 
 
 def main():
@@ -567,13 +749,13 @@ def main():
 
     report(note="Rohschnitt: Sprache wird erkannt…")
     base = os.path.join(W, "base.mp4")
-    normalize(raw, base, cfg.get("rotate") or 0)
+    normalize(raw, base, cfg.get("rotate") or 0, hi=True)
     in_dur, _ = probe(base)
     words = transcribe(base)
+    hook = None
     if cfg.get("preCut"):
         cut_path, words_cut, out_dur = base, words, in_dur
     else:
-        hook = None
         if cfg.get("cutMode") == "smart":
             report(note="Intelligenter Rohschnitt: Wichtiges, Witziges und die stärkste Hook werden gesucht…")
             intervals, hook = smart_cut_plan(words, in_dur, cfg.get("targetSec"))
@@ -587,25 +769,45 @@ def main():
         words_cut = remap_words(words, intervals)
         out_dur, _ = probe(cut_path)
 
-    report(note=f"B-Roll wird passend zum Inhalt gesetzt ({len(items)} Fotos/Clips)…")
+    preset_id = cfg.get("preset") if cfg.get("preset") in PRESETS else "clean"
+    pr = PRESETS[preset_id]
+    report(note=f"Claude plant den Schnitt ({pr['label']}): Hook, Zooms, B-Roll, Text-Beats…")
     if items:
         describe_broll(items)
-    plan = place_broll(words_cut, out_dur, items)
+    focus = detect_focus(cut_path, out_dur)
+    res = edit_plan(words_cut, out_dur, items, preset_id, hook)
+    with open(os.path.join(W, "claude_plan.json"), "w", encoding="utf-8") as fh:  # for the run log / debugging
+        json.dump({"words": words_cut, "duration": out_dur, "items": items, "focus": focus, "res": res, "hook": hook}, fh, ensure_ascii=False)
+
+    # Media go into the Remotion public folder for this job.
+    job = f"job/{re.sub(r'[^A-Za-z0-9]', '', str(P['edit']))[:40] or 'edit'}"
+    pub = os.path.join(REPO, "public", job)
+    os.makedirs(pub, exist_ok=True)
+    shutil.copy(cut_path, os.path.join(pub, "main.mp4"))
+    broll_rel = []
+    for i, it in enumerate(items):
+        ext = os.path.splitext(it["path"])[1]
+        shutil.copy(it["path"], os.path.join(pub, f"b{i}{ext}"))
+        broll_rel.append(f"{job}/b{i}{ext}")
+    plan = build_plan(words_cut, out_dur, items, preset_id, cfg.get("captions", pr["captions"]), focus, res, f"{job}/main.mp4", broll_rel,
+                      hi_res=min(src_size(cut_path)) >= 1440)
+    print(f"plan: {len(plan['zooms'])} zooms, {len(plan['broll'])} b-roll, {len(plan['inserts'])} beats, hook: {plan['hook']}, focus: {focus}")
+
+    report(note=f"Video wird gerendert ({pr['label']})…", stats={"inSec": in_dur, "outSec": out_dur, "broll": len(plan["broll"])})
     final = os.path.join(W, "final.mp4")
-    render_overlays(cut_path, items, plan, final)
+    render(plan, final)
+    report(note="Fertiges Video wird hochgeladen…")
+    url = upload(final)
+    report(status="done", resultUrl=url, note="Fertig")
 
-    report(note="Untertitel bei Submagic…", stats={"inSec": in_dur, "outSec": out_dur, "broll": len(plan)})
-    project = submagic(final, cfg)
-    report(status="subtitling", projectId=project, note=f"Submagic setzt die Untertitel ({cfg['style']})…")
-
-
-try:
-    main()
-except EditError as e:
-    print("FAILED:", e)
-    report(status="failed", error=str(e)[:500])
-    sys.exit(1)
-except Exception as e:
-    print("FAILED:", type(e).__name__, e)
-    report(status="failed", error=f"Interner Fehler: {type(e).__name__}: {str(e)[:300]}")
-    sys.exit(1)
+if __name__ == "__main__":
+    try:
+        main()
+    except EditError as e:
+        print("FAILED:", e)
+        report(status="failed", error=str(e)[:500])
+        sys.exit(1)
+    except Exception as e:
+        print("FAILED:", type(e).__name__, e)
+        report(status="failed", error=f"Interner Fehler: {type(e).__name__}: {str(e)[:300]}")
+        sys.exit(1)
