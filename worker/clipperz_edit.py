@@ -226,6 +226,93 @@ def rough_cut_plan(words, duration):
     return [(round(a, 3), round(b, 3)) for a, b in intervals if b - a > 0.15]
 
 
+def sentences_of(words):
+    """Groups words into sentences (punctuation or a pause > 0.7 s)."""
+    out, cur = [], []
+    for i, w in enumerate(words):
+        if cur and w["s"] - words[i - 1]["e"] > 0.7:
+            out.append(cur)
+            cur = []
+        cur.append(w)
+        if w["w"].rstrip().endswith((".", "?", "!", "…")) and len(cur) >= 2:
+            out.append(cur)
+            cur = []
+    if cur:
+        out.append(cur)
+    return out
+
+
+def word_intervals(ws, duration):
+    iv = []
+    for w in ws:
+        s, e = max(0.0, w["s"] - 0.06), min(duration, w["e"] + 0.12)
+        if iv and s - iv[-1][1] <= 0.30:
+            iv[-1][1] = max(iv[-1][1], e)
+        else:
+            iv.append([s, e])
+    return [(round(a, 3), round(b, 3)) for a, b in iv if b - a > 0.15]
+
+
+def smart_cut_plan(words, duration, target=None):
+    """Editorial cut on top of the clean cut: boring parts out, the strongest hook first.
+    Returns (intervals in final order, hook text or None)."""
+    clean = rough_cut_plan(words, duration)
+    kept = [w for w in words if any(a - 0.01 <= w["s"] and w["e"] <= b + 0.01 for a, b in clean)]
+    sents = sentences_of(kept)
+    if len(sents) < 3:
+        return clean, None
+    total = sum(s[-1]["e"] - s[0]["s"] for s in sents)
+    lines = "\n".join(f"{i} ({s[-1]['e'] - s[0]['s']:.1f}s): {' '.join(w['w'] for w in s)}" for i, s in enumerate(sents))
+    goal = (f"Ziel-Länge: etwa {int(target)} Sekunden (aktuell {total:.0f} s)." if target
+            else f"Keine feste Länge (aktuell {total:.0f} s): nur raus, was wirklich langweilig, doppelt oder unwichtig ist.")
+    plan = llm_json([
+        {"role": "system", "content": (
+            "Du bist ein Top-Cutter für deutsche Kurzvideos (TikTok/Reels/Shorts). Du bekommst ein schon von Versprechern bereinigtes "
+            "Transkript, Satz für Satz mit Nummer und Länge. Deine Aufgabe ist der redaktionelle Rohschnitt:\n"
+            "1. HOOK: Wähle den Satz, der in den ersten 2 Sekunden am stärksten fesselt (überraschende Aussage, Ergebnis, Konflikt, "
+            "Pointe, provokante Frage). Ist der erste Satz schon stark, nimm ihn. Sonst stellst du den Hook-Satz an den Anfang (Cold Open). "
+            "Der Hook muss allein verständlich sein.\n"
+            "2. BEHALTEN: alles, was wichtig ist (Kernaussage, Belege, Beispiele), alles Witzige (Pointen, lustige Momente – "
+            "und ihren Aufbau, sonst zündet die Pointe nicht) und das Ende/CTA.\n"
+            "3. RAUS: Langweiliges, Abschweifungen, Wiederholungen derselben Aussage, leere Einleitungen („also heute zeig ich euch…“), "
+            "Satzanfänge ohne Inhalt.\n"
+            "4. Reihenfolge sonst NIE ändern. Das Video muss logisch und flüssig bleiben.\n"
+            + goal + "\n"
+            "Antworte NUR mit JSON: {\"hook\": <nummer>, \"order\": [nummern in finaler Reihenfolge, Hook zuerst], "
+            "\"funny\": [nummern witziger Sätze], \"why\": \"ein Satz, warum dieser Hook\"}"
+        )},
+        {"role": "user", "content": lines},
+    ], max_tokens=2000)
+    try:
+        order = [int(x) for x in plan.get("order", [])]
+        hook = int(plan.get("hook", order[0] if order else 0))
+    except (TypeError, ValueError, AttributeError):
+        return clean, None
+    seen, final = set(), []
+    for i in order:
+        if 0 <= i < len(sents) and i not in seen:
+            seen.add(i)
+            final.append(i)
+    if hook in seen and final[0] != hook:  # hook always first
+        final.remove(hook)
+        final.insert(0, hook)
+    # Safety: never keep less than a third (or 70 % of the target), keep the last sentence (ending/CTA).
+    kept_s = sum(sents[i][-1]["e"] - sents[i][0]["s"] for i in final)
+    floor = 0.7 * target if target else total / 3
+    if not final or kept_s < min(floor, total * 0.9):
+        print("smart cut rejected (too short), using clean cut")
+        return clean, None
+    last = len(sents) - 1
+    if last not in seen:
+        final.append(last)
+    intervals = []
+    for i in final:
+        intervals += word_intervals(sents[i], duration)
+    hook_text = " ".join(w["w"] for w in sents[final[0]])[:200]
+    print(f"smart cut: {len(sents)} -> {len(final)} sentences, hook #{final[0]}: {hook_text}")
+    return intervals, hook_text
+
+
 def cut(src, intervals, dst):
     if len(intervals) == 1 and intervals[0][0] < 0.05:
         run(["ffmpeg", "-v", "error", "-y", "-i", src, "-t", str(intervals[0][1]), "-c", "copy", dst])
@@ -478,8 +565,15 @@ def main():
     if cfg.get("preCut"):
         cut_path, words_cut, out_dur = base, words, in_dur
     else:
-        report(note="Rohschnitt: Versprecher und Pausen werden entfernt…")
-        intervals = rough_cut_plan(words, in_dur)
+        hook = None
+        if cfg.get("cutMode") == "smart":
+            report(note="Intelligenter Rohschnitt: Wichtiges, Witziges und die stärkste Hook werden gesucht…")
+            intervals, hook = smart_cut_plan(words, in_dur, cfg.get("targetSec"))
+        else:
+            report(note="Rohschnitt: Versprecher und Pausen werden entfernt…")
+            intervals = rough_cut_plan(words, in_dur)
+        if hook:
+            report(hook=hook)
         cut_path = os.path.join(W, "cut.mp4")
         cut(base, intervals, cut_path)
         words_cut = remap_words(words, intervals)

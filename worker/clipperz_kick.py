@@ -86,30 +86,42 @@ def main():
 
     templates = p.get("templates") or ["Sara"]
     projects = []
+    # Every chosen style gets its own clips (1 Magic-Clips credit per style and part).
     for i, f in enumerate(files):
-        t = templates[i % len(templates)]
-        title = (p["title"] if len(files) == 1 else f"{p['title']} – Teil {i + 1}")[:100]
-        report(note=f"Teil {i + 1}/{len(files)} wird an Submagic übergeben ({t})…")
-        with open(f, "rb") as fh:
-            form = MultipartEncoder(fields={
+        for t in templates:
+            label = "Paustian" if t.startswith("theme:") else t
+            title = (p["title"] if len(files) == 1 else f"{p['title']} – Teil {i + 1}")
+            title = f"{title} · {label}"[:100]
+            report(note=f"Teil {i + 1}/{len(files)} wird an Submagic übergeben ({label})…")
+            fields = {
                 "title": title,
                 "language": "de",
-                "templateName": t,
                 "minClipLength": str(p["min"]),
                 "maxClipLength": str(p["max"]),
                 "faceTracking": "true",
-                "webhookUrl": f"{hook}&part={i + 1}&t={quote(t)}",
-                "file": (os.path.basename(f) if f.endswith(".mp4") else "stream.mp4", fh, "video/mp4"),
-            })
-            r = requests.post(SUBMAGIC, data=form, headers={"x-api-key": key, "Content-Type": form.content_type}, timeout=7200)
-        if r.status_code >= 300:
-            msg = {403: "Submagic: Magic-Clips-Abo oder Credits fehlen", 413: "Submagic: Datei zu groß"}.get(r.status_code)
-            raise RuntimeError(msg or f"Submagic-Fehler {r.status_code}: {r.text[:300]}")
-        projects.append({"id": r.json()["id"], "template": t, "part": i + 1})
-        report(projects=projects)
+                "webhookUrl": f"{hook}&part={i + 1}&t={quote(t, safe='')}",
+            }
+            if t.startswith("theme:"):
+                fields["userThemeId"] = t[len("theme:"):]
+            else:
+                fields["templateName"] = t
+            with open(f, "rb") as fh:
+                fields["file"] = (os.path.basename(f) if f.endswith(".mp4") else "stream.mp4", fh, "video/mp4")
+                form = MultipartEncoder(fields=fields)
+                r = requests.post(SUBMAGIC, data=form, headers={"x-api-key": key, "Content-Type": form.content_type}, timeout=7200)
+            if r.status_code >= 300:
+                msg = {403: "Submagic: Magic-Clips-Abo oder Credits fehlen", 413: "Submagic: Datei zu groß"}.get(r.status_code)
+                if r.status_code == 400 and "theme" in r.text.lower():
+                    msg = "Submagic kennt deinen eigenen Style nicht – Theme-ID in TEAM → Einstellungen prüfen"
+                if projects:  # keep what already runs, report the rest
+                    report(note=f"{label}: {msg or r.status_code} – andere Styles laufen weiter")
+                    continue
+                raise RuntimeError(msg or f"Submagic-Fehler {r.status_code}: {r.text[:300]}")
+            projects.append({"id": r.json()["id"], "template": t, "part": i + 1})
+            report(projects=projects)
         os.remove(f)
 
-    report(status="clipping", note=f"Submagic schneidet {len(projects)} Teil(e)…", projects=projects)
+    report(status="clipping", note=f"Submagic schneidet ({len(files)} Teil(e) × {len(templates)} Style(s))…", projects=projects)
 
 
 try:
