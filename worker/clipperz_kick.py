@@ -1,4 +1,4 @@
-"""CLIPPERZ worker: Kick VOD -> parts (<= 110 min) -> Submagic Magic Clips upload.
+"""CLIPPERZ worker: Kick/Twitch VOD -> parts (<= 110 min) -> Submagic Magic Clips upload.
 
 Never prints the Submagic key or the stream token. Status goes back to CLIPPERZ via its HTTP API.
 """
@@ -39,7 +39,7 @@ def probe_duration(path):
 
 
 def main():
-    report(status="downloading", note="Stream wird von Kick geladen…", runUrl=RUN_URL)
+    report(status="downloading", note="Video wird geladen…", runUrl=RUN_URL)
     cfg = requests.get(f"{api}/worker-config?{auth}", timeout=30)
     if cfg.status_code != 200:
         raise RuntimeError(f"CLIPPERZ-Konfiguration nicht abrufbar ({cfg.status_code})")
@@ -58,7 +58,7 @@ def main():
         tail = (dl.stderr or dl.stdout or "")[-400:]
         print(tail)
         if "subscriber" in tail.lower() or "403" in tail:
-            raise RuntimeError("Kick blockiert den Download (Sub-only-VOD oder gesperrt). VOD öffentlich machen und nochmal versuchen.")
+            raise RuntimeError("Die Plattform blockiert den Download (Sub-only, privat oder gelöscht). VOD öffentlich machen und nochmal versuchen.")
         raise RuntimeError("Download fehlgeschlagen: " + tail)
     src = sorted(glob.glob("w/src.*"))[0]
     if not src.endswith(".mp4"):  # Submagic accepts MP4/MOV only

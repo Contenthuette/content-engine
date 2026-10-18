@@ -1,5 +1,5 @@
 # CLIPPERZ stream clipping worker.
-# Triggered by CLIPPERZ (repository_dispatch "clipperz-kick"): downloads a Kick VOD,
+# Triggered by CLIPPERZ (repository_dispatch "clipperz-kick"): downloads a Kick or Twitch VOD,
 # splits it into parts of max. 110 minutes and hands each part to Submagic Magic Clips.
 name: clipperz-kick
 on:

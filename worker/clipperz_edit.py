@@ -400,6 +400,7 @@ def submagic(path, cfg):
         "title": cfg["title"][:100],
         "language": "de",
         "webhookUrl": cfg["webhook"],
+        "magicZooms": "true",  # "ein paar Effekte": Submagic's automatic punch-in zooms
         "file": ("edit.mp4", open(path, "rb"), "video/mp4"),
     }
     if re.fullmatch(r"[0-9a-fA-F-]{36}", style):
