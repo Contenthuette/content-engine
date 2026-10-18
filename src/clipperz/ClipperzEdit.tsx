@@ -6,7 +6,7 @@ import {AbsoluteFill, Audio, CalculateMetadataFunction, Easing, Img, interpolate
 import '@fontsource/anton/400.css';
 import {byCode} from '../lib/registry';
 import {EntryView, SfxCtx} from '../lib/Catalog';
-import {C, SFX, SANS, SERIF} from '../lib/core';
+import {C, SANS, SERIF} from '../lib/core';
 import PRESETS from './presets.json';
 import type {Plan, Word, Zoom} from './types';
 
@@ -105,6 +105,12 @@ const BrollItem: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; st
     const speed = Math.abs((1 - kIn) + kOut);
     transform = `translateX(${x}px) scale(${push})`;
     filter = speed > 0.02 ? `blur(${speed * 22}px)` : 'none';
+  } else if (style === 'slideRight') {
+    // hard in (click), very light zoom while it is shown, whoosh out to the right
+    const out = ease(t, dur - 0.22, 0.22, Easing.in(Easing.cubic));
+    const z = 1.0 + 0.05 * (t / Math.max(dur, 0.5));
+    transform = `translateX(${out * W}px) scale(${z})`;
+    filter = out > 0.02 && out < 0.98 ? `blur(${Math.sin(out * Math.PI) * 18}px)` : 'none';
   } else {
     transform = `scale(${push * lerp(kIn, 1.1, 1)})`;
     opacity = 1 - kOut;
@@ -116,6 +122,16 @@ const BrollItem: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; st
 };
 
 // ---------- captions ----------
+
+/** Caption centre (px). Number = fraction of the height; "chest" = on the chest of the speaker, follows the zoom. */
+function captionY(plan: Plan, preset: Preset, t: number) {
+  const y = preset.cap.y as unknown as number | string;
+  if (typeof y === 'number') return y * H;
+  const {S, ty} = camera(t, plan.zooms, plan.focus, preset.zoom.drift, plan.maxZoom ?? 1.7);
+  const fh = (plan.focus.h > 0 ? plan.focus.h : 0.12) * H * S;
+  const faceY = S * plan.focus.y * H + ty;
+  return Math.max(H * 0.42, Math.min(H * 0.78, faceY + fh * 2.3));
+}
 
 type Phrase = {words: {w: Word; i: number}[]; s: number; e: number};
 
@@ -139,8 +155,9 @@ function phrases(words: Word[], max: number): Phrase[] {
   return out.map((p, k) => ({...p, e: Math.min(out[k + 1]?.s ?? p.e + 0.4, p.e + 0.6)}));
 }
 
-const clean = (w: string, upper: boolean) => {
-  const x = w.replace(/[„“"«»]/g, '').replace(/[,;:]$/, '');
+const clean = (w: string, upper: boolean, smart = false) => {
+  let x = w.replace(/[„“"«»]/g, '').replace(/[,;:]$/, '');
+  if (smart) x = x.replace(/…$/, '...').replace(/(?<!\.)\.$/, ''); // keep ? ! ... – drop plain full stops
   return upper ? x.toUpperCase().replace(/[.!?]$/, '') : x;
 };
 
@@ -172,11 +189,14 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     const k = ease(t, w.s - 0.04, 0.2);
     const isEm = emph.has(i);
     const st: React.CSSProperties = {display: 'inline-block', margin: cap.upper ? '0 0.2em' : '0 0.14em', whiteSpace: 'nowrap'};
-    const text = clean(w.w, cap.upper);
+    const text = clean(w.w, cap.upper, !!(preset as {smartPunct?: boolean}).smartPunct);
     if (cap.style === 'blur') {
       // clean motion: every word blurs in at its timestamp, key words in the accent colour
       Object.assign(st, {opacity: shown ? k : 0, filter: `blur(${(1 - k) * 10}px)`, transform: `translateY(${(1 - k) * 12}px)`, color: cap.color},
         isEm ? {background: accent, color: '#fff', padding: '0.04em 0.28em 0.08em', borderRadius: 18, textShadow: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.25)'} : {});
+    } else if (cap.style === 'plain') {
+      // Contenthütte: the phrase stands calmly, words appear as they are spoken
+      Object.assign(st, {opacity: shown ? 1 : 0});
     } else if (cap.style === 'marker') {
       Object.assign(st, {
         opacity: shown ? 1 : 0.0,
@@ -212,7 +232,7 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   const scale = cap.style === 'marker' || cap.style === 'outline' ? lerp(pk, 0.86, 1) : 1;
   const opacity = cap.style === 'fade' ? ease(t, ph.s - 0.03, 0.2) : 1;
   return (
-    <div style={{position: 'absolute', left: 70, right: 70, top: cap.y * H, transform: `translateY(-50%) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
+    <div style={{position: 'absolute', left: 70, right: 70, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
       {words}
     </div>
   );
@@ -294,7 +314,7 @@ function hookTop(plan: Plan, preset: Preset) {
   }
   const above = 170;
   if (top > above + tall) return above;
-  return Math.min(H * preset.cap.y - tall - 60, bottom + 30);
+  return Math.min(captionY(plan, preset, 1) - tall - 60, bottom + 30);
 }
 
 // ---------- progress bar ----------
@@ -354,7 +374,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
         );
       })}
 
-      {plan.captions ? <Shade y={preset.cap.y} /> : null}
+      {plan.captions ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
       {plan.captions ? <Captions plan={plan} preset={preset} hidden={inInsert} /> : null}
       {plan.hook ? <Hook text={plan.hook.text} end={plan.hook.e} style={preset.hook} accent={plan.accent} top={hookTop(plan, preset)} /> : null}
 
@@ -383,7 +403,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
       ) : null}
       {plan.sfx.map((s, i) => (
         <Sequence key={'s' + i} from={fr(s.t)} durationInFrames={fr(1.5)} layout="none">
-          <Audio src={staticFile(SFX(s.name))} volume={(f) => s.vol * (talking(s.t + f / fps) ? 0.6 : 1)} />
+          <Audio src={staticFile(`lib/sfx/s_${s.name}.wav`)} volume={(f) => s.vol * (talking(s.t + f / fps) ? 0.6 : 1)} />
         </Sequence>
       ))}
     </AbsoluteFill>

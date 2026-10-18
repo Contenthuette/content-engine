@@ -1,4 +1,58 @@
 {
+  "contenthuette": {
+    "label": "Contenthütte",
+    "about": "Unser Stil: alles Unnötige raus, starke Hook, passende Fotos/Clips mit leichtem Zoom (Klick rein, Klick + Woosh nach rechts raus), schlaue Untertitel mittig auf der Brust, kräftigeres Color Grading.",
+    "captions": true,
+    "cap": {
+      "font": "inter",
+      "weight": 800,
+      "upper": false,
+      "size": 74,
+      "words": 3,
+      "y": "chest",
+      "style": "plain",
+      "color": "#FFFFFF",
+      "track": -0.02
+    },
+    "accents": [
+      "#FFFFFF"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 1,
+      "maxLevel": 0,
+      "drift": 0,
+      "shake": false
+    },
+    "broll": "slideRight",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-01"
+      ],
+      "tr": []
+    },
+    "hook": "none",
+    "progress": false,
+    "music": null,
+    "musicVol": 0,
+    "sfx": {
+      "broll": [
+        "click"
+      ],
+      "brollOut": [
+        "whoosh",
+        "click"
+      ],
+      "zoom": [],
+      "hook": []
+    },
+    "sfxVol": 0.45,
+    "sfxMaxRepeat": 99,
+    "smartPunct": true,
+    "grade": "eq=contrast=1.12:brightness=-0.012:saturation=1.07,unsharp=5:5:0.45:5:5:0"
+  },
   "clean": {
     "label": "Clean Motion",
     "about": "Apple-clean (creatoroly): Untertitel Wort für Wort weich eingeblendet, eine Akzentfarbe, Kamera fährt immer sanft, Text-Beats aus der Editing Library.",

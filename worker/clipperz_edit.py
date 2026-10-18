@@ -496,28 +496,44 @@ def edit_plan(words, duration, items, preset_id, spoken_hook):
         lines.append(f"[{s_[0]['s']:.2f}-{s_[-1]['e']:.2f}] " + " ".join(f"{w['w']}#{idx + k}" for k, w in enumerate(s_)))
         idx += len(s_)
     pics = "\n".join(f"{i}: {it['desc']}" for i, it in enumerate(items)) or "(keine)"
-    n_ins = max(2 if duration >= 15 else 1, round(duration / 60 * pr["inserts"]["perMin"]))
+    n_ins = max(2 if duration >= 15 else 1, round(duration / 60 * pr["inserts"]["perMin"])) if pr["inserts"]["perMin"] > 0 else 0
     menu = "\n".join(f"{c}: {d}" for c, d in pr["inserts"]["codes"].items())
     accents = ", ".join(pr["accents"])
-    system = (
+    parts = [
         f"Du bist Editor für deutsche Kurzvideos (Reels/TikTok, Hochformat, eine Person spricht in die Kamera). Stil: {pr['label']} – {pr['about']}\n"
-        "Du bekommst das Transkript Wort für Wort (Wort#Index, Zeiten in Sekunden) und die B-Roll-Bilder. Plane den Schnitt:\n"
+        "Du bekommst das Transkript Wort für Wort (Wort#Index, Zeiten in Sekunden) und die B-Roll-Bilder. Plane den Schnitt:\n",
         "1. hook: Titel für die ersten 2–3 Sekunden, max. 6 Wörter, deutsch, macht neugierig (Ergebnis, Zahl, Konflikt, Frage). "
-        "Nicht einfach den ersten Satz wiederholen.\n"
-        f"2. accent: eine Akzentfarbe aus [{accents}], passend zum Thema (Blau = Vertrauen/Technik, Grün = Erfolg/Lösung, Rot = Problem/Warnung).\n"
-        "3. emphasis: Indizes der wichtigsten Wörter (Zahlen, Ergebnisse, Fachbegriffe, Pointen) – etwa jedes 6. bis 8. Wort, nie Füllwörter.\n"
-        f"4. inserts: genau {n_ins} Text-Beats aus der Editing Library. Ein Beat ersetzt 1,2–2 s lang das Bild (die Stimme läuft weiter) und "
-        "zeigt das, was in dem Moment gesagt wird, als große Typo (max. 5 Wörter, eigene Worte erlaubt, deutsch). Setze sie auf die stärksten "
-        "Aussagen, nie in den ersten 2 Sekunden, nie in der letzten Sekunde, verteilt über das Video. "
-        "Felder: code, start (Wortindex, an dem der Beat beginnt), props (genau die Felder in den geschweiften Klammern).\n"
-        f"Menü:\n{menu}\n"
+        "Nicht einfach den ersten Satz wiederholen.\n",
+        f"2. accent: eine Akzentfarbe aus [{accents}], passend zum Thema (Blau = Vertrauen/Technik, Grün = Erfolg/Lösung, Rot = Problem/Warnung).\n",
+        "3. emphasis: Indizes der wichtigsten Wörter (Zahlen, Ergebnisse, Fachbegriffe, Pointen) – etwa jedes 6. bis 8. Wort, nie Füllwörter.\n",
+    ]
+    if n_ins:
+        parts.append(
+            f"4. inserts: genau {n_ins} Text-Beats aus der Editing Library. Ein Beat ersetzt 1,2–2 s lang das Bild (die Stimme läuft weiter) und "
+            "zeigt das, was in dem Moment gesagt wird, als große Typo (max. 5 Wörter, eigene Worte erlaubt, deutsch). Setze sie auf die stärksten "
+            "Aussagen, nie in den ersten 2 Sekunden, nie in der letzten Sekunde, verteilt über das Video. "
+            "Felder: code, start (Wortindex, an dem der Beat beginnt), props (genau die Felder in den geschweiften Klammern).\n"
+            f"Menü:\n{menu}\n"
+        )
+    else:
+        parts.append("4. inserts: keine – leere Liste.\n")
+    parts.append(
         "5. fixes: Die Spracherkennung macht Fehler bei Fachbegriffen und Namen (z. B. „4 PC“ statt „WPC“). Korrigiere offensichtlich falsch "
         "erkannte Wörter: {\"Wortindex\": \"richtiges Wort\"} – nur wenn du dir sicher bist, ein Wort pro Index, Satzzeichen behalten.\n"
+    )
+    if pr.get("smartPunct"):
+        parts.append(
+            "   Außerdem schlaue Untertitel: setze über fixes ausdrucksstarke Satzzeichen ans Wortende, wo sie zur Sprechweise passen – "
+            "„?“ bei Fragen, „!“ bei Betonung/Ausruf, „...“ bei Spannungspausen oder vor einer Auflösung (Wort bleibt gleich, nur Zeichen dran). "
+            "Nicht übertreiben: höchstens etwa jedes 5. Wort.\n"
+        )
+    parts.append(
         "6. broll: Platziere passende B-Roll-Bilder (je 1,2–2,5 s, ab dem passenden Wort, nicht in den ersten 1,5 s, nicht über einem Text-Beat, "
         "mindestens 1 s Gesicht dazwischen, jedes Bild höchstens einmal). Ohne passende Bilder: leere Liste.\n"
         "Antworte NUR mit JSON: {\"hook\": \"…\", \"accent\": \"#…\", \"emphasis\": [..], "
         "\"inserts\": [{\"code\": \"…\", \"start\": Wortindex, \"props\": {…}}], \"fixes\": {}, \"broll\": [{\"bild\": Nummer, \"start\": Sekunden, \"ende\": Sekunden}]}"
     )
+    system = "".join(parts)
     user = f"Video-Länge: {duration:.2f} s\nGesprochener Einstieg: {spoken_hook or '-'}\n\nTranskript:\n" + "\n".join(lines) + f"\n\nB-Roll-Bilder:\n{pics}"
     try:
         res = llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens=3000)
@@ -625,25 +641,31 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
             level = 0 if (k // max(1, z["every"])) % 2 else 1
         if zooms and level == zooms[-1]["level"]:
             level = 0 if level else 1
+        level = min(level, z["maxLevel"])
         # the hook framing is set from frame 0 (no push), so the hook title never slides over the face
         zooms.append({"s": round(a, 3), "e": round(b, 3), "level": level, "mode": "cut" if k == 0 else z["mode"], "shake": bool(z["shake"] and level == 2)})
     if not zooms:
         zooms = [{"s": 0, "e": duration, "level": 1, "mode": z["mode"], "shake": False}]
 
-    # Sounds: one per visible event, each name at most 3 times.
+    # Sounds: one per visible event; each name at most 3 times unless the preset says otherwise.
     sfx, count = [], {}
+    cap_n = pr.get("sfxMaxRepeat", 3)
     def add(t, names, vol):
         for nm in names[len(sfx) % max(1, len(names)):] + names:
-            if count.get(nm, 0) < 3:
+            if count.get(nm, 0) < cap_n:
                 count[nm] = count.get(nm, 0) + 1
                 sfx.append({"t": round(max(0.0, t), 3), "name": nm, "vol": vol})
                 return
     vol = pr["sfxVol"]
-    if hook_text and pr["sfx"]["hook"]:
+    if hook_text and pr["sfx"]["hook"] and pr.get("hook") != "none":
         add(0.05, pr["sfx"]["hook"], vol)
     for b in broll:
         if pr["sfx"]["broll"]:
-            add(b["s"] - 0.12, pr["sfx"]["broll"], vol)
+            add(b["s"] - (0.02 if pr["broll"] == "slideRight" else 0.12), pr["sfx"]["broll"], vol)
+        for k2, nm in enumerate(pr["sfx"].get("brollOut", [])):  # every listed sound plays at the exit
+            if count.get(nm, 0) < cap_n:
+                count[nm] = count.get(nm, 0) + 1
+                sfx.append({"t": round(max(0.0, b["e"] - 0.22 + 0.06 * k2), 3), "name": nm, "vol": vol})
     if pr["sfx"]["zoom"]:
         for prev, cur in zip(zooms, zooms[1:]):
             if cur["mode"] == "cut" and cur["level"] > prev["level"]:
@@ -659,7 +681,7 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         "zooms": zooms,
         "broll": broll,
         "inserts": inserts,
-        "hook": {"text": hook_text, "e": round(min(2.6, duration / 3), 2)} if hook_text else None,
+        "hook": {"text": hook_text, "e": round(min(2.6, duration / 3), 2)} if hook_text and pr.get("hook") != "none" else None,
         "sfx": sfx,
         "music": {"src": pr["music"], "vol": pr["musicVol"]} if pr.get("music") else None,
         "preset": preset_id,
@@ -784,7 +806,11 @@ def main():
     job = f"job/{re.sub(r'[^A-Za-z0-9]', '', str(P['edit']))[:40] or 'edit'}"
     pub = os.path.join(REPO, "public", job)
     os.makedirs(pub, exist_ok=True)
-    shutil.copy(cut_path, os.path.join(pub, "main.mp4"))
+    if pr.get("grade"):  # preset colour grade (e.g. more contrast: darks darker, lights lighter, a bit sharper)
+        run(["ffmpeg", "-v", "error", "-y", "-i", cut_path, "-vf", pr["grade"], "-c:v", "libx264", "-preset", "veryfast", "-crf", "17",
+             "-pix_fmt", "yuv420p", "-c:a", "copy", os.path.join(pub, "main.mp4")])
+    else:
+        shutil.copy(cut_path, os.path.join(pub, "main.mp4"))
     broll_rel = []
     for i, it in enumerate(items):
         ext = os.path.splitext(it["path"])[1]
