@@ -17,6 +17,7 @@ const H = 1920;
 const EXPO = Easing.bezier(0.16, 1, 0.3, 1);
 const INOUT = Easing.bezier(0.65, 0, 0.35, 1);
 const SPRING = Easing.bezier(0.2, 1.4, 0.35, 1);
+const POP = Easing.bezier(0.34, 1.9, 0.5, 1); // word pop with a clear overshoot
 const cl = (x: number) => Math.max(0, Math.min(1, x));
 const lerp = (k: number, a: number, b: number) => a + (b - a) * k;
 const ease = (t: number, a: number, d: number, e = EXPO) => e(cl((t - a) / d));
@@ -196,8 +197,9 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
   const emph = new Set(plan.emphasis);
   const base = cap.size;
   const big = base * 1.3;
-  type Tok = {text: string; em: boolean};
-  const toks: Tok[] = ph.words.map(({w, i}) => ({text: clean(w.w, true, true).replace(/\.{3}$/, '...'), em: emph.has(i)}));
+  type Tok = {text: string; em: boolean; s: number; next: number};
+  const toks: Tok[] = ph.words.map(({w, i}, k) => ({text: clean(w.w, true, true).replace(/\.{3}$/, '...'), em: emph.has(i), s: w.s,
+    next: ph.words[k + 1]?.w.s ?? ph.e}));
   // keep ? ! ... at the end even in caps (clean() strips them for upper case)
   ph.words.forEach(({w}, k) => {
     const m = w.w.match(/(\.\.\.|…|[?!])$/);
@@ -222,8 +224,11 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
   if (cur.length) lines.push({toks: cur, big: false});
   const k = ease(t, ph.s - 0.03, 0.14, SPRING);
   const shadow = '0 0 18px rgba(0,0,0,.55), 0 4px 14px rgba(0,0,0,.6), 0 0 3px rgba(0,0,0,.7)';
+  // Submagic-like: every word pops in the moment it is said (overshoot), the spoken word stands a bit bigger,
+  // the key word lands with an extra punch. The layout of the whole phrase is fixed from the start, so nothing jumps.
+  const pop = (cap as {anim?: string}).anim !== 'phrase';
   return (
-    <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${lerp(k, 0.88, 1)})`, opacity: cl(k * 3),
+    <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${pop ? 1 : lerp(k, 0.88, 1)})`, opacity: pop ? 1 : cl(k * 3),
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center'}}>
       {lines.map((ln, li) => {
         const size0 = ln.big ? big : base;
@@ -231,9 +236,20 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
         const size = Math.min(size0, (W - SAFE.left - SAFE.right) / Math.max(1, chars * 0.74)); // stays inside the safe area
         return (
           <div key={li} style={{fontFamily: 'Montserrat', fontWeight: cap.weight, fontSize: size, lineHeight: 1.02, letterSpacing: '-0.01em', whiteSpace: 'nowrap', textShadow: shadow}}>
-            {ln.toks.map((tk, ti) => (
-              <span key={ti} style={{color: tk.em ? plan.accent : cap.color}}>{(ti ? ' ' : '') + tk.text}</span>
-            ))}
+            {ln.toks.map((tk, ti) => {
+              const st: React.CSSProperties = {display: 'inline-block', color: tk.em ? plan.accent : cap.color, marginLeft: ti ? '0.26em' : 0};
+              if (pop) {
+                const kw = ease(t, tk.s - 0.05, tk.em ? 0.26 : 0.2, POP);
+                const live = t >= tk.s - 0.05 && t < tk.next;
+                const kl = ease(t, tk.s - 0.05, 0.12) * (1 - ease(t, tk.next - 0.02, 0.1));
+                Object.assign(st, {
+                  opacity: cl(kw * 4),
+                  transform: `translateY(${(1 - kw) * 26}px) scale(${lerp(kw, tk.em ? 0.35 : 0.55, 1) * (1 + (tk.em ? 0.1 : 0.07) * (live ? kl : 0))}) rotate(${tk.em ? (1 - kw) * -6 : 0}deg)`,
+                  textShadow: live ? shadow + ', 0 0 26px rgba(0,0,0,.45)' : shadow,
+                });
+              }
+              return <span key={ti} style={st}>{tk.text}</span>;
+            })}
           </div>
         );
       })}
@@ -394,6 +410,25 @@ const Hook: React.FC<{text: string; end: number; style: string; accent: string; 
       </div>
     );
   }
+  if (style === 'none' || style === 'stack' || style === 'caption') {
+    const lines = hookLines(text, 14);
+    const longest = text.split(/\s+/).reduce((a, b) => (b.replace(/\W/g, '').length > a.replace(/\W/g, '').length ? b : a), '');
+    return (
+      <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+        opacity: 1 - kOut, transform: `translateY(${-kOut * 30}px)`}}>
+        {lines.map((l, i) => (
+          <div key={i} style={{fontFamily: 'Montserrat', fontWeight: 900, fontSize: CAPTION_HOOK, lineHeight: 1.0, letterSpacing: '-0.01em', whiteSpace: 'nowrap',
+            textShadow: '0 0 18px rgba(0,0,0,.6), 0 4px 14px rgba(0,0,0,.65), 0 0 3px rgba(0,0,0,.7)'}}>
+            {l.split(' ').map((w, j) => {
+              const k = ease(t, i * 0.1 + j * 0.06, 0.24, POP);
+              return <span key={j} style={{display: 'inline-block', marginLeft: j ? '0.26em' : 0, color: w === longest.toUpperCase() ? accent : '#fff', opacity: cl(k * 4),
+                transform: `translateY(${(1 - k) * 26}px) scale(${lerp(k, 0.5, 1)})`}}>{w}</span>;
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (style === 'story') {
     return (
       <div style={{position: 'absolute', left: 70, right: 70, top, textAlign: 'center', fontFamily: SERIF, fontStyle: 'italic', fontSize: 104, lineHeight: 1.02, color: '#fff',
@@ -417,23 +452,49 @@ const Hook: React.FC<{text: string; end: number; style: string; accent: string; 
   );
 };
 
-/** Hook title above the head if there is room, otherwise under the chin - never over the face. */
-function hookTop(plan: Plan, preset: Preset) {
-  const tall = preset.hook === 'clean' ? 260 : preset.hook === 'story' ? 250 : 400;
+const CAPTION_HOOK = 92;
+
+function hookLines(text: string, max: number) {
+  return text.toUpperCase().split(/\s+/).reduce<string[]>((acc, w) => {
+    const last = acc[acc.length - 1];
+    if (last && (last + ' ' + w).length <= max) acc[acc.length - 1] = last + ' ' + w;
+    else acc.push(w);
+    return acc;
+  }, []).slice(0, 4);
+}
+
+/** Real height of the hook block, so the face check works with the true size (the old fixed guess let the pill slide over the face). */
+function hookHeight(text: string, style: string) {
+  if (style === 'kleinecke' || style === 'handwerk') return Math.min(3, hookLines(text, 14).length) * 124;
+  if (style === 'story') return Math.ceil(text.length / 18) * 106 + 20;
+  if (style === 'none' || style === 'stack' || style === 'caption') return hookLines(text, 14).length * (CAPTION_HOOK + 4);
+  return Math.ceil(text.length / 20) * 84 + 64; // clean pill
+}
+
+/** Hook above the head if there is room, else between chin and captions, else it takes the captions' place
+ * (captions pause while it is up). Never over the face. */
+function hookLayout(plan: Plan, preset: Preset): {top: number; takeover: boolean} {
+  const text = plan.hook?.text ?? '';
+  const tall = hookHeight(text, preset.hook);
   const end = plan.hook?.e ?? 1;
   // The camera may still move during the hook (push mode): check start, middle and end.
   let top = H;
   let bottom = 0;
+  let capY = H;
   for (const t of [0.05, end / 2, end]) {
     const {S, ty} = camera(t, plan.zooms, plan.focus, preset.zoom.drift, plan.maxZoom ?? 1.7);
     const faceY = S * plan.focus.y * H + ty;
     const half = (plan.focus.h > 0 ? plan.focus.h : 0.12) * H * S * 0.5;
-    top = Math.min(top, faceY - half * 1.5);
-    bottom = Math.max(bottom, faceY + half * 1.3);
+    top = Math.min(top, faceY - half * 1.6); // hair / cap
+    bottom = Math.max(bottom, faceY + half * 1.5); // chin + neck
+    capY = Math.min(capY, captionY(plan, preset, t));
   }
-  const above = 170;
-  if (top > above + tall) return above;
-  return Math.min(captionY(plan, preset, 1) - tall - 60, bottom + 30);
+  const above = SAFE.top - 50;
+  if (top - 30 >= above + tall) return {top: Math.max(above, top - 40 - tall), takeover: false};
+  const capTop = plan.captions ? capY - 110 : H - SAFE.bottom - 40;
+  if (bottom + 40 + tall <= capTop - 30) return {top: bottom + 40, takeover: false};
+  // no room: the hook sits where the captions are, captions wait until it is gone
+  return {top: Math.max(bottom + 40, Math.min(H - SAFE.bottom - tall - 20, capY - tall / 2)), takeover: true};
 }
 
 // ---------- text behind the speaker (needs the cut-out, style "depth") ----------
@@ -530,6 +591,9 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
     return g;
   };
   const inInsert = (t: number) => plan.inserts.some((x) => t >= x.s && t < x.e);
+  const showHook = !!plan.hook && !(plan.fg && preset.hook === 'behind');
+  const hl = React.useMemo(() => (showHook ? hookLayout(plan, preset) : {top: 0, takeover: false}), [plan, preset, showHook]);
+  const capHidden = (t: number) => inInsert(t) || (showHook && hl.takeover && t < plan.hook!.e);
   const total = plan.duration;
 
   return (
@@ -566,8 +630,8 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
       })}
 
       {plan.captions && preset.cap.style !== 'scrim' ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
-      {plan.captions ? (preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={inInsert} /> : <Captions plan={plan} preset={preset} hidden={inInsert} />) : null}
-      {plan.hook && !(plan.fg && preset.hook === 'behind') ? <Hook text={plan.hook.text} end={plan.hook.e} style={preset.hook} accent={plan.accent} top={hookTop(plan, preset)} /> : null}
+      {plan.captions ? (preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
+      {showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} /> : null}
 
       {plan.inserts.map((x, i) => {
         const tr = x.tr ? byCode(x.tr) : null;
