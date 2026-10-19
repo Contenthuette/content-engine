@@ -32,7 +32,15 @@ def sh(cmd):
 
 
 def focus_of(path):
-    """Face position for the caption face guard (Haar cascade on a few frames)."""
+    """Face position for the caption face guard (Haar cascade on a few frames). Never fails: default framing."""
+    try:
+        return _focus_of(path)
+    except Exception as e:
+        print("face detection skipped:", type(e).__name__)
+        return {"x": 0.5, "y": 0.3, "h": 0.1}
+
+
+def _focus_of(path):
     import glob as _g
     xml = None
     try:

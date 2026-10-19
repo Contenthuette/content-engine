@@ -20,7 +20,11 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tesseract-ocr tesseract-ocr-deu
-          pip install -q -U requests pillow pytesseract scenedetect "opencv-python-headless<5" "faster-whisper==1.2.1"
+          pip install -q -U requests pillow pytesseract scenedetect click platformdirs tqdm "faster-whisper==1.2.1"
+          # scenedetect pulls the full opencv-python; two OpenCV builds in one env break cv2 -> keep only headless
+          pip uninstall -y -q opencv-python opencv-contrib-python || true
+          pip install -q --force-reinstall --no-deps "opencv-python-headless<5"
+          python3 -c "import cv2; print('cv2', cv2.__version__, hasattr(cv2, 'CascadeClassifier'))"
           npm ci --no-audit --no-fund
           npx remotion browser ensure
       - name: Cache speech model
