@@ -1044,12 +1044,12 @@ def level_sfx(plan, main_video, style_vol):
             continue
         role = next((k for k, names in SFX_ROLE.items() if nm in names), "ui")
         gain = 10 ** ((voice + SFX_OFFSET[role] - pk) / 20) * (style_vol / 0.4)
-        s_["vol"] = round(max(0.03, min(1.0, gain)), 3)
+        s_["vol"] = round(float(max(0.03, min(1.0, gain))), 3)
     print("sfx levelled to voice p95", round(voice, 1), "dBFS")
 
 
-def upload(path):
-    r = requests.post(f"{API}/edit-upload?{AUTH}", json={"size": os.path.getsize(path)}, timeout=60)
+def upload(path, ext="mp4"):
+    r = requests.post(f"{API}/edit-upload?{AUTH}", json={"size": os.path.getsize(path), "ext": ext}, timeout=60)
     if r.status_code != 200:
         raise EditError(f"Upload-Freigabe fehlt ({r.status_code})")
     g = r.json()
@@ -1060,6 +1060,199 @@ def upload(path):
     return g["url"]
 
 
+# ---------- corrections by prompt ("Bei Sekunde 11 ist das Wort xyz falsch") ----------
+
+def save_job(plan, job, only=None):
+    """Uploads the plan and its media so a correction can re-render without redoing the edit. Returns (planUrl, assets)."""
+    pub = os.path.join(REPO, "public", job)
+    assets = []
+    for name in sorted(os.listdir(pub)):
+        rel = f"{job}/{name}"
+        if only is not None and rel not in only:
+            continue
+        ext = name.rsplit(".", 1)[-1].lower()
+        if ext == "jpeg":
+            ext = "jpg"
+        if ext not in ("mp4", "webm", "jpg", "png"):
+            continue
+        assets.append({"rel": rel, "url": upload(os.path.join(pub, name), ext)})
+    pj = os.path.join(W, "plan_saved.json")
+    with open(pj, "w", encoding="utf-8") as fh:
+        json.dump(plan, fh, ensure_ascii=False)
+    return upload(pj, "json"), assets
+
+
+def revise_ops(plan, prompt):
+    """Claude turns the correction request into concrete changes on the plan."""
+    words = plan["words"]
+    em = set(plan.get("emphasis", []))
+    lines = "\n".join(f"{i} [{w['s']:.2f}] {w['w']}{' *' if i in em else ''}" for i, w in enumerate(words))
+    br = "\n".join(f"{i}: {b['s']:.2f}-{b['e']:.2f} s ({os.path.basename(b['src'])})" for i, b in enumerate(plan.get("broll", []))) or "(keine)"
+    ins = "\n".join(f"{i}: {x['s']:.2f}-{x['e']:.2f} s {x['code']} {json.dumps(x.get('props', {}), ensure_ascii=False)}" for i, x in enumerate(plan.get("inserts", []))) or "(keine)"
+    hook = plan.get("hook") or {}
+    system = (
+        "Du korrigierst ein fertig geschnittenes deutsches Kurzvideo nach der Anweisung des Nutzers. Zeitangaben des Nutzers "
+        "(\"Sekunde 11\", \"bei 0:11\") beziehen sich auf das fertige Video - nimm das Wort, das zu der Zeit läuft (±1 s). "
+        "Ändere NUR, was verlangt ist. Mögliche Änderungen, alle Felder optional:\n"
+        "- words: {\"Index\": \"neuer Text\"} – Untertitel-Wort korrigieren (Satzzeichen behalten, max 3 Wörter pro Index)\n"
+        "- hook: \"neuer Hook-Text\" oder \"\" zum Entfernen\n"
+        "- emphasis_add / emphasis_remove: Wort-Indizes der hervorgehobenen Schlüsselwörter (im Transkript mit * markiert)\n"
+        "- broll_remove: B-Roll-Nummern entfernen; broll_move: [{\"i\": Nummer, \"start\": s, \"end\": s}]\n"
+        "- inserts_remove: Text-Beat-Nummern; insert_props: [{\"i\": Nummer, \"props\": {...}}]\n"
+        "- captions: true/false (Untertitel an/aus)\n"
+        "- remove: [[von_index, bis_index]] – gesprochene Wörter aus dem Video SCHNEIDEN (nur wenn der Nutzer das will)\n"
+        "- note: ein kurzer deutscher Satz, was du geändert hast\n"
+        "Wenn die Anweisung unklar ist oder nicht geht, ändere nichts und erkläre es in note. Antworte NUR mit JSON."
+    )
+    user = (f"Video-Länge: {plan['duration']:.1f} s\nHook: {hook.get('text') or '(keiner)'}\nUntertitel: {'an' if plan.get('captions') else 'aus'}\n\n"
+            f"Transkript (Index [Start] Wort, * = Schlüsselwort):\n{lines}\n\nB-Roll:\n{br}\n\nText-Beats:\n{ins}\n\nAnweisung: {prompt}")
+    res = llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}])
+    return res if isinstance(res, dict) else {}
+
+
+def _map_time(t, iv):
+    off = 0.0
+    for a, b in iv:
+        if a - 0.001 <= t <= b + 0.001:
+            return off + (t - a)
+        off += b - a
+    return None
+
+
+def apply_ops(plan, res, job):
+    """Applies Claude's changes. Cuts (remove) re-cut main.mp4 and move every timed element. Returns (plan, changed files)."""
+    words = plan["words"]
+    n = len(words)
+    changed = set()
+    for k, v in (res.get("words") or {}).items():
+        if str(k).isdigit() and 0 <= int(k) < n and isinstance(v, str) and 0 < len(v.strip()) <= 40 and len(v.split()) <= 3:
+            words[int(k)]["w"] = v.strip()
+    if isinstance(res.get("hook"), str):
+        t = res["hook"].strip()[:60]
+        plan["hook"] = {"text": t, "e": (plan.get("hook") or {}).get("e") or round(min(2.6, plan["duration"] / 3), 2)} if t else None
+    em = set(plan.get("emphasis", []))
+    em |= {int(i) for i in res.get("emphasis_add", []) if str(i).isdigit() and int(i) < n}
+    em -= {int(i) for i in res.get("emphasis_remove", []) if str(i).isdigit()}
+    plan["emphasis"] = sorted(em)
+    br = plan.get("broll", [])
+    for m in res.get("broll_move", []) or []:
+        try:
+            i, s_, e_ = int(m["i"]), float(m["start"]), float(m["end"])
+            if 0 <= i < len(br) and 0 <= s_ < e_ <= plan["duration"]:
+                br[i]["s"], br[i]["e"] = round(s_, 2), round(e_, 2)
+        except (KeyError, TypeError, ValueError):
+            pass
+    gone = {int(i) for i in res.get("broll_remove", []) if str(i).isdigit()}
+    plan["broll"] = [b for i, b in enumerate(br) if i not in gone]
+    ins = plan.get("inserts", [])
+    for m in res.get("insert_props", []) or []:
+        try:
+            i = int(m["i"])
+            if 0 <= i < len(ins) and isinstance(m.get("props"), dict):
+                ins[i]["props"] = {**ins[i].get("props", {}), **m["props"]}
+        except (KeyError, TypeError, ValueError):
+            pass
+    gone = {int(i) for i in res.get("inserts_remove", []) if str(i).isdigit()}
+    plan["inserts"] = [x for i, x in enumerate(ins) if i not in gone]
+    if isinstance(res.get("captions"), bool):
+        plan["captions"] = res["captions"]
+    # Cuts
+    drop = set()
+    for rng in res.get("remove", []) or []:
+        try:
+            a, b = int(rng[0]), int(rng[1])
+            drop.update(range(max(0, a), min(n - 1, b) + 1))
+        except (TypeError, ValueError, IndexError):
+            pass
+    if drop and len(drop) < n - 2:
+        dur = plan["duration"]
+        cuts, i = [], 0
+        while i < n:
+            if i in drop:
+                j = i
+                while j + 1 < n and j + 1 in drop:
+                    j += 1
+                a = words[i - 1]["e"] + 0.05 if i > 0 else 0.0
+                b = words[j + 1]["s"] - 0.04 if j + 1 < n else dur
+                cuts.append((max(0.0, a), min(dur, max(a, b))))
+                i = j + 1
+            else:
+                i += 1
+        iv, t = [], 0.0
+        for a, b in cuts:
+            if a - t > 0.05:
+                iv.append((round(t, 3), round(a, 3)))
+            t = b
+        if dur - t > 0.05:
+            iv.append((round(t, 3), round(dur, 3)))
+        pub = os.path.join(REPO, "public", job)
+        main_path = os.path.join(pub, "main.mp4")
+        tmp = os.path.join(W, "main_cut.mp4")
+        cut(main_path, iv, tmp)
+        shutil.move(tmp, main_path)
+        changed.add(f"{job}/main.mp4")
+        plan["words"] = remap_words([w for k, w in enumerate(words) if k not in drop], iv)
+        keep_idx = [k for k in range(n) if k not in drop]
+        plan["emphasis"] = sorted(keep_idx.index(k) for k in plan["emphasis"] if k in keep_idx)
+        def mapped(items):
+            out = []
+            for x in items:
+                s2, e2 = _map_time(x["s"], iv), _map_time(x["e"], iv)
+                if s2 is None:
+                    continue
+                if e2 is None or e2 <= s2:
+                    e2 = s2 + (x["e"] - x["s"])
+                out.append({**x, "s": round(s2, 3), "e": round(e2, 3)})
+            return out
+        plan["broll"] = mapped(plan["broll"])
+        plan["inserts"] = mapped(plan["inserts"])
+        zooms = []
+        off = 0.0
+        for a, b in iv:  # zoom segments clipped to the kept pieces
+            for z in plan.get("zooms", []):
+                s2, e2 = max(z["s"], a), min(z["e"], b)
+                if e2 - s2 > 0.05:
+                    zooms.append({**z, "s": round(off + s2 - a, 3), "e": round(off + e2 - a, 3)})
+            off += b - a
+        plan["zooms"] = zooms
+        plan["sfx"] = [{**x, "t": round(m, 3)} for x in plan.get("sfx", []) for m in [_map_time(x["t"], iv)] if m is not None]
+        plan["duration"] = round(off, 3)
+        if plan.get("fg"):
+            cutout(main_path, os.path.join(REPO, "public", plan["fg"]))
+            changed.add(plan["fg"])
+    return plan, changed
+
+
+def run_revision(cfg):
+    rv = cfg["revise"]
+    report(status="working", note="Korrektur: Schnittplan wird geladen…", runUrl=RUN_URL)
+    plan = requests.get(rv["planUrl"], timeout=60).json()
+    job = os.path.dirname(plan["video"])
+    for a in rv.get("assets") or []:
+        rel = a["rel"]
+        if not re.fullmatch(r"job/[A-Za-z0-9_]+/[A-Za-z0-9_.-]+", rel):
+            continue
+        dst = os.path.join(REPO, "public", rel)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with requests.get(a["url"], stream=True, timeout=600) as r:
+            r.raise_for_status()
+            with open(dst, "wb") as fh:
+                for chunk in r.iter_content(1 << 20):
+                    fh.write(chunk)
+    report(note="Korrektur: Claude setzt deine Anweisung um…")
+    res = revise_ops(plan, rv["prompt"])
+    note = str(res.get("note") or "Korrektur umgesetzt")[:300]
+    plan, changed = apply_ops(plan, res, job)
+    print("revision:", note, "| changed files:", changed)
+    report(note=f"Korrektur wird gerendert… ({note})")
+    final = os.path.join(W, "final.mp4")
+    render(plan, final)
+    url = upload(final)
+    keep = [a for a in rv.get("assets") or [] if a["rel"] not in changed]
+    plan_url, new_assets = save_job(plan, job, only=changed)
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=keep + new_assets, note=note)
+
+
 def main():
     report(status="working", note="Video wird geladen…", runUrl=RUN_URL)
     cfg = requests.get(f"{API}/edit-config?{AUTH}", timeout=30)
@@ -1067,6 +1260,8 @@ def main():
         raise EditError(f"CLIPPERZ-Konfiguration nicht abrufbar ({cfg.status_code})")
     cfg = cfg.json()
     os.makedirs(W, exist_ok=True)
+    if cfg.get("revise"):
+        return run_revision(cfg)
 
     raw = drive_file(cfg["videoUrl"], os.path.join(W, "raw"))
 
@@ -1183,7 +1378,12 @@ def main():
     render(plan, final)
     report(note="Fertiges Video wird hochgeladen…")
     url = upload(final)
-    report(status="done", resultUrl=url, note="Fertig")
+    try:  # plan + media for corrections by prompt
+        plan_url, assets = save_job(plan, job)
+    except Exception as e:
+        print("saving the plan for corrections failed:", e)
+        plan_url, assets = None, []
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig")
 
 if __name__ == "__main__":
     try:
