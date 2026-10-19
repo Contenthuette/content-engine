@@ -412,14 +412,17 @@ class Search:
         # geometry first so comparisons are aligned, then the layout (which words are on screen at all),
         # then exact alignment for that layout - only after that is a font comparison meaningful
         style, best = grid(style, (0.75, 0.88, 1, 1.14, 1.3), (-0.05, -0.025, 0, 0.025, 0.05), "Größe/Höhe grob")
-        # which words are on screen at all: phrase length x how the phrase appears (all at once, word by word,
-        # karaoke). Wrong here means every later comparison compares different text - so it is searched jointly.
-        vs = [self.vary(style, lambda c, w=w, r=r: c.update(words=w, reveal=r))
-              for w in (1, 2, 3, 4, 5) for r in ("phrase", "word", "karaoke")]
-        vs = [v for v in vs if json.dumps(v["cap"], sort_keys=True) != json.dumps(style["cap"], sort_keys=True)]
-        budget -= len(vs)
-        style, best = self.best_of(style, vs, "Wörter/Einblendung")
-        style, best = refine(style, best, "Ausrichten")
+        # which words are on screen at all decides everything else (one word off costs ~30 points even with the
+        # right font), and the score only shows it once the text is aligned: so every phrase length is aligned
+        # on its own and the best aligned one wins. How the phrase appears (all at once, word by word, karaoke)
+        # is checked on top of the winner.
+        cands = []
+        for w in (1, 2, 3, 4, 5):
+            st = self.vary(style, lambda c, w=w: c.update(words=w))
+            b0 = self.evaluate([st])[0]
+            cands.append(refine(st, b0, f"Ausrichten {w} Wörter", ds=0.04, dy=0.008))
+        style, best = max(cands, key=lambda r: r[1])
+        step("Einblendung", ["phrase", "word", "karaoke"], lambda c, v: c.update(reveal=v))
         font_scan(4, "Schrift")
         looks(1)
         style, best = refine(style, best, "Ausrichten 2", ds=0.02, dy=0.004)
