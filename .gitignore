@@ -57,3 +57,6 @@ clipperz/*.jpg
 
 # CLIPPERZ editor: media per edit job (worker copies them in, never committed)
 public/job/
+
+# Style lab: reference videos of other creators stay local
+jobs/stylelab/
