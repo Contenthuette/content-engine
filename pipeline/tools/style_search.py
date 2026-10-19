@@ -411,7 +411,27 @@ class Search:
 
         # geometry first so comparisons are aligned, then the layout (which words are on screen at all),
         # then exact alignment for that layout - only after that is a font comparison meaningful
-        style, best = grid(style, (0.75, 0.88, 1, 1.14, 1.3), (-0.05, -0.025, 0, 0.025, 0.05), "Größe/Höhe grob")
+        # Far from the right size/height the sharp score is flat (every candidate ~40), so the first alignment uses
+        # the blurred score (a wide hill) and starts from what the probe measured in the original: the caption's
+        # vertical centre and the OCR box height of capitals (cap height + outline).
+        pos = self.rep.get("position") or {}
+        box_h = float((self.rep.get("size") or {}).get("box_h_px") or 0)
+        f0 = style["cap"]["font"]
+        starts = [style]
+        if isinstance(pos.get("y_center"), (int, float)) or box_h:
+            sw = float(((style["cap"].get("stroke") or {}).get("w")) or 0)
+            meas = (box_h - sw) / caps.get(f0, 0.7) if box_h > 20 else None
+            starts.append(self.vary(style, lambda c: c.update(
+                y=round(float(pos.get("y_center", yv(c))), 4),
+                **({"size": round(meas, 1)} if meas and 30 < meas < 200 else {}))))
+        self.mode = "coarse"
+        found = []
+        for i, st in enumerate(starts):
+            b0 = self.evaluate([st])[0]
+            found.append(grid(st, (0.7, 0.82, 1, 1.18, 1.36), (-0.04, -0.02, 0, 0.02, 0.04), f"Größe/Höhe grob {i + 1}")[::-1])
+        cb, style = max(found, key=lambda r: r[0])
+        self.mode = "fine"
+        best = self.evaluate([style])[0]
         # which words are on screen at all decides everything else (one word off costs ~30 points even with the
         # right font), and the score only shows it once the text is aligned: so every phrase length is aligned
         # on its own and the best aligned one wins. How the phrase appears (all at once, word by word, karaoke)
@@ -420,7 +440,10 @@ class Search:
         for w in (1, 2, 3, 4, 5):
             st = self.vary(style, lambda c, w=w: c.update(words=w))
             b0 = self.evaluate([st])[0]
-            cands.append(refine(st, b0, f"Ausrichten {w} Wörter", ds=0.04, dy=0.008))
+            self.mode = "coarse"
+            st, _ = refine(st, self.evaluate([st])[0], f"Ausrichten {w} Wörter (grob)", ds=0.06, dy=0.012)
+            self.mode = "fine"
+            cands.append(refine(st, self.evaluate([st])[0], f"Ausrichten {w} Wörter", ds=0.03, dy=0.006))
         style, best = max(cands, key=lambda r: r[1])
         step("Einblendung", ["phrase", "word", "karaoke"], lambda c, v: c.update(reveal=v))
         font_scan(4, "Schrift")
