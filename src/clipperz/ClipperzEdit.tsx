@@ -467,12 +467,14 @@ const BehindText: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => b
   }
   if (!text) return null;
   // Lines of max ~9 characters, as big as the width allows (Montserrat Black ≈ 0.68 em per capital).
+  const isHook = !!(plan.hook && t < plan.hook.e);
+  const maxChars = isHook ? 14 : 10;
   const lines = text.split(/\s+/).reduce<string[]>((acc, w) => {
     const last = acc[acc.length - 1];
-    if (last && (last + ' ' + w).length <= 10) acc[acc.length - 1] = last + ' ' + w;
+    if (last && (last + ' ' + w).length <= maxChars) acc[acc.length - 1] = last + ' ' + w;
     else acc.push(w);
     return acc;
-  }, []).slice(0, 3);
+  }, []).slice(0, 4);
   const longest = Math.max(...lines.map((l) => l.length));
   const size = Math.min(330, (W - 90) / Math.max(1, longest * 0.7));
   const blockH = lines.length * size * 0.92;
