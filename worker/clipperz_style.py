@@ -451,8 +451,23 @@ def main():
         pos = rep1.get("position") or {"y_p10": 0.4, "y_p90": 0.6}
         first = [x["t"] for x in ocr if x["boxes"]]
         t0 = first[len(first) // 3] if first else 2.0
-        for rnd in range(4):
-            report(note=f"Pixel-Vergleich mit dem Original ({rnd + 1}/4)…")
+        # measured tuning: font, weight, size, height, tracking, stroke, shadow, words - by pixel score, not by guessing
+        report(note="Feinabstimmung: Schrift, Größe, Position, Kontur werden durchprobiert und gemessen…")
+        try:
+            sj = os.path.join(out, "style_claude.json")
+            json.dump(style, open(sj, "w"), ensure_ascii=False)
+            cmd = [sys.executable, os.path.join(REPO, "pipeline", "tools", "style_search.py"), refs[0], p1, sj, os.path.join(out, "search"),
+                   "--budget", "150", "--frames", "10"]
+            if BROWSER:
+                cmd += ["--browser", BROWSER]
+            run(cmd, cwd=REPO)
+            tuned = json.load(open(os.path.join(out, "search", "best_style.json")))
+            style["cap"] = tuned["cap"]
+            print("search:", json.dumps(json.load(open(os.path.join(out, "search", "search.json")))["history"], ensure_ascii=False)[:1500])
+        except Exception as e:
+            print("search failed, keeping Claude's settings:", e)
+        for rnd in range(3):
+            report(note=f"Pixel-Vergleich mit dem Original ({rnd + 1}/3)…")
             sj = os.path.join(out, f"style_{rnd}.json")
             json.dump(style, open(sj, "w"), ensure_ascii=False)
             cdir = os.path.join(out, f"cmp_{rnd}")
@@ -464,7 +479,7 @@ def main():
             print("round", rnd, "pixel match", sc["pixel_match"], "identical frames", sc.get("frames_identical_pct"))
             if best is None or sc["pixel_match"] > best[0]:
                 best = (sc["pixel_match"], copy.deepcopy(style), cdir)
-            if sc["pixel_match"] >= 95 or rnd == 3:
+            if sc["pixel_match"] >= 95 or rnd == 2:
                 break
             y_ours = style["cap"]["y"] if isinstance(style["cap"]["y"], (int, float)) else 0.6
             lo = int(max(0, min(pos["y_p10"], y_ours) - 0.1) * 1920)
@@ -476,8 +491,9 @@ def main():
             msg = (f"Pixel-Übereinstimmung jetzt: {sc['pixel_match']} % (Ziel 95+). Gemessene Abweichung (Geometrie): {json.dumps(sc.get('geometry'), ensure_ascii=False)}. "
                    "Die Position y ist ein Anteil der Höhe (1920 px): 10 px = 0.0052. Aktuelles Template: "
                    f"{json.dumps({k: v for k, v in style.items() if k in ('cap', 'accents', 'hook')}, ensure_ascii=False)}\n"
-                   "Finde JEDEN sichtbaren Unterschied der Untertitel (Schrift, Stärke, Größe, Laufweite, Position, Farben, Kontur, "
-                   "Schatten, Kasten, Rundung, Abstände, Wörter pro Einblendung, Animationskurve, Hervorhebung) und gib das korrigierte "
+                   "Schrift, Größe, Position, Laufweite, Kontur und Wörter pro Einblendung sind bereits per Messung optimiert – ändere sie nur, "
+                   "wenn du dir sehr sicher bist. Konzentriere dich auf Farben, Hervorhebung (gesprochenes Wort/Schlüsselwort), Kasten, "
+                   "Rundungen, Schatten und vor allem die Animationskurve (Frame für Frame). Gib das korrigierte "
                    "Template im selben JSON-Format zurück (nur cap, accents, hook, notes). Hinweis: Wenn das Original andere Wörter "
                    "gleichzeitig zeigt, liegt das an der Wortaufteilung – dann \"words\" anpassen.")
             fix = llm_json([{"role": "system", "content": system}, {"role": "user", "content": as_content(msg, imgs)}])
