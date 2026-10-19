@@ -2,10 +2,37 @@
 // Mechanics follow the clean-motion skill (blur-in words, one accent, the camera always lives) and the
 // Dunkelmann Editing Library (full-screen text beats and transitions by code, with their own sounds).
 import React from 'react';
-import {AbsoluteFill, Audio, CalculateMetadataFunction, Easing, Img, interpolate, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Audio, CalculateMetadataFunction, continueRender, delayRender, Easing, Img, interpolate, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig} from 'remotion';
 import '@fontsource/anton/400.css';
 import '@fontsource/montserrat/800.css';
 import '@fontsource/montserrat/900.css';
+import '@fontsource/poppins/800.css';
+import '@fontsource/poppins/900.css';
+import '@fontsource/bebas-neue/400.css';
+import '@fontsource/oswald/700.css';
+import '@fontsource/archivo-black/400.css';
+import '@fontsource/lilita-one/400.css';
+import '@fontsource/luckiest-guy/400.css';
+import '@fontsource/bangers/400.css';
+import '@fontsource/rubik/800.css';
+import '@fontsource/rubik/900.css';
+import '@fontsource/league-spartan/800.css';
+import '@fontsource/league-spartan/900.css';
+import '@fontsource/kanit/800.css';
+import '@fontsource/kanit/900.css';
+import '@fontsource/figtree/800.css';
+import '@fontsource/figtree/900.css';
+import '@fontsource/outfit/800.css';
+import '@fontsource/outfit/900.css';
+import '@fontsource/titan-one/400.css';
+import '@fontsource/barlow/800.css';
+import '@fontsource/barlow/900.css';
+import '@fontsource/roboto/900.css';
+import '@fontsource/nunito/900.css';
+import '@fontsource/dm-sans/800.css';
+import '@fontsource/permanent-marker/400.css';
+import '@fontsource/caveat/700.css';
+import '@fontsource/montserrat/700.css';
 import {byCode} from '../lib/registry';
 import {EntryView, SfxCtx} from '../lib/Catalog';
 import {asset, C, SANS, SERIF} from '../lib/core';
@@ -384,6 +411,144 @@ const Shade: React.FC<{y: number}> = ({y}) => (
   <AbsoluteFill style={{background: `linear-gradient(to bottom, rgba(0,0,0,0) ${(y - 0.13) * 100}%, rgba(0,0,0,.32) ${(y - 0.03) * 100}%, rgba(0,0,0,.32) ${(y + 0.04) * 100}%, rgba(0,0,0,0) ${(y + 0.14) * 100}%)`}} />
 );
 
+// ---------- custom captions (learned styles: every look is data, no code per style) ----------
+
+/** Caption fonts a learned style may use (key -> CSS family, rough width of a capital in em for auto-fit). */
+export const CAPTION_FONTS: Record<string, {family: string; w: number}> = {
+  montserrat: {family: 'Montserrat', w: 0.74}, inter: {family: 'Inter Variable', w: 0.7}, anton: {family: 'Anton', w: 0.5},
+  poppins: {family: 'Poppins', w: 0.74}, bebas: {family: 'Bebas Neue', w: 0.44}, oswald: {family: 'Oswald', w: 0.52},
+  archivo: {family: 'Archivo Black', w: 0.8}, lilita: {family: 'Lilita One', w: 0.6}, luckiest: {family: 'Luckiest Guy', w: 0.72},
+  bangers: {family: 'Bangers', w: 0.52}, rubik: {family: 'Rubik', w: 0.7}, spartan: {family: 'League Spartan', w: 0.66},
+  kanit: {family: 'Kanit', w: 0.7}, figtree: {family: 'Figtree', w: 0.66}, outfit: {family: 'Outfit', w: 0.66},
+  titan: {family: 'Titan One', w: 0.78}, barlow: {family: 'Barlow', w: 0.6}, roboto: {family: 'Roboto', w: 0.66},
+  nunito: {family: 'Nunito', w: 0.68}, dmsans: {family: 'DM Sans', w: 0.68}, marker: {family: 'Permanent Marker', w: 0.7},
+  caveat: {family: 'Caveat', w: 0.5}, serif: {family: 'Instrument Serif', w: 0.55},
+};
+
+type Hl = {color?: string; bg?: string; scale?: number; font?: string; italic?: boolean; weight?: number; radius?: number};
+export type CustomCap = {
+  style: 'custom'; font: string; weight?: number; size: number; upper?: boolean; lower?: boolean; track?: number; lineHeight?: number;
+  words: number; y: number | string; color: string; maxWidth?: number;
+  stroke?: {w: number; color: string} | null; shadow?: 'none' | 'soft' | 'hard' | 'glow'; shadowColor?: string;
+  box?: {scope: 'phrase' | 'word'; color: string; radius?: number; padX?: number; padY?: number} | null;
+  active?: Hl | null; key?: Hl | null; future?: {color?: string; opacity?: number} | null;
+  reveal?: 'phrase' | 'word' | 'karaoke';
+  anim?: {type: 'none' | 'pop' | 'fade' | 'slide' | 'blur' | 'scale' | 'drop' | 'typewriter'; scope?: 'phrase' | 'word'; dur?: number; from?: number; overshoot?: boolean; dy?: number; stagger?: number} | null;
+  out?: 'none' | 'fade' | 'pop'; tilt?: number; lead?: number;
+};
+
+const SHADOWS = (c = '#000') => ({
+  none: 'none',
+  soft: `0 4px 18px ${c}99, 0 0 4px ${c}88`,
+  hard: `0 5px 0 ${c}`,
+  glow: `0 0 18px ${c}, 0 0 36px ${c}`,
+});
+
+/** Waits (render only) until the fonts a style needs are loaded, so frame 1 never shows a fallback font. */
+function useFonts(families: string[]) {
+  const key = families.join('|');
+  const [h] = React.useState(() => (typeof document !== 'undefined' && document.fonts ? delayRender('caption fonts ' + key) : null));
+  React.useEffect(() => {
+    if (h === null) return;
+    Promise.all(families.map((f) => document.fonts.load(`900 64px "${f}"`).catch(() => null)))
+      .then(() => document.fonts.ready)
+      .finally(() => continueRender(h));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+}
+
+const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boolean}> = ({plan, preset, hidden}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const t = f / fps;
+  const cap = preset.cap as unknown as CustomCap;
+  const font = CAPTION_FONTS[cap.font] ?? CAPTION_FONTS.montserrat;
+  const keyFont = cap.key?.font ? CAPTION_FONTS[cap.key.font] ?? font : font;
+  useFonts(Array.from(new Set([font.family, keyFont.family])));
+  const list = React.useMemo(() => phrases(plan.words, Math.max(1, cap.words || 3)), [plan.words, cap.words]);
+  const ph = list.find((p) => t >= p.s - 0.05 && t < p.e);
+  if (!ph || hidden(t)) return null;
+  const emph = new Set(plan.emphasis);
+  const accent = plan.accent;
+  const lead = cap.lead ?? 0.04;
+  const anim = cap.anim ?? {type: 'pop'};
+  const dur = anim.dur ?? 0.18;
+  const curve = anim.overshoot === false ? EXPO : POP;
+  const reveal = cap.reveal ?? 'word';
+  const sc = (x?: string) => (x === 'accent' ? accent : x);
+  const maxW = (W - SAFE.left - SAFE.right) * (cap.maxWidth ?? 1);
+  const toks = ph.words.map(({w, i}, k) => {
+    let text = clean(w.w, !!cap.upper, true);
+    if (cap.lower) text = text.toLowerCase();
+    return {text, i, s: w.s, next: ph.words[k + 1]?.w.s ?? ph.e, em: emph.has(i), k};
+  });
+  // auto-fit: the longest word must fit the width
+  const longest = Math.max(...toks.map((x) => x.text.length), 1);
+  const size = Math.min(cap.size, maxW / (longest * font.w * (cap.key?.scale ?? 1)));
+  const shadow = SHADOWS(cap.shadowColor ?? '#000')[cap.shadow ?? 'soft'];
+  const stroke = cap.stroke && cap.stroke.w > 0 ? {WebkitTextStroke: `${cap.stroke.w}px ${sc(cap.stroke.color)}`, paintOrder: 'stroke fill'} : {};
+  const phraseK = ease(t, ph.s - lead, dur, curve);
+  const outK = cap.out && cap.out !== 'none' ? ease(t, ph.e - 0.1, 0.1) : 0;
+  const animate = (k: number): React.CSSProperties => {
+    const from = anim.from ?? (anim.type === 'pop' ? 0.5 : 0.85);
+    switch (anim.type) {
+      case 'pop':
+      case 'scale':
+        return {transform: `scale(${lerp(k, from, 1)})`, opacity: cl(k * 4)};
+      case 'fade':
+        return {opacity: cl(k)};
+      case 'slide':
+        return {transform: `translateY(${(1 - k) * (anim.dy ?? 30)}px)`, opacity: cl(k * 2)};
+      case 'drop':
+        return {transform: `translateY(${-(1 - k) * (anim.dy ?? 30)}px)`, opacity: cl(k * 2)};
+      case 'blur':
+        return {filter: `blur(${(1 - cl(k)) * 10}px)`, opacity: cl(k * 1.5)};
+      default:
+        return {};
+    }
+  };
+  const words = toks.map((x) => {
+    const shown = reveal !== 'word' || t >= x.s - lead;
+    const spoken = t >= x.s - lead;
+    const live = t >= x.s - lead && t < x.next;
+    const hl: Hl = {...(x.em ? cap.key ?? {} : {}), ...(live ? cap.active ?? {} : {})};
+    const color = sc(hl.color) ?? (reveal === 'karaoke' && !spoken ? cap.future?.color ?? cap.color : cap.color);
+    const bg = sc(hl.bg) ?? (cap.box?.scope === 'word' ? sc(cap.box.color) : undefined);
+    let st: React.CSSProperties = {
+      display: 'inline-block', margin: `0 ${bg ? 0.08 : 0.14}em`, whiteSpace: 'nowrap', color,
+      fontFamily: x.em && cap.key?.font ? keyFont.family : font.family, fontStyle: x.em && cap.key?.italic ? 'italic' : undefined,
+      fontWeight: (x.em && cap.key?.weight) || cap.weight || 900,
+      opacity: reveal === 'karaoke' && !spoken ? cap.future?.opacity ?? 1 : 1,
+      ...(bg ? {background: bg, borderRadius: hl.radius ?? cap.box?.radius ?? 10, padding: `${cap.box?.padY ?? 0.04}em ${cap.box?.padX ?? 0.18}em`, textShadow: 'none'} : {}),
+    };
+    const scale = (hl.scale ?? 1);
+    let tf = `scale(${scale})${cap.tilt ? ` rotate(${(x.k % 2 ? 1 : -1) * cap.tilt}deg)` : ''}`;
+    if (anim.scope !== 'phrase' && shown && anim.type !== 'typewriter') {
+      const a = animate(ease(t, (reveal === 'word' ? x.s - lead : ph.s - lead + x.k * (anim.stagger ?? 0)), dur, curve));
+      tf = `${a.transform ?? ''} ${tf}`;
+      st = {...st, opacity: (st.opacity as number) * (a.opacity ?? 1), filter: a.filter};
+    }
+    let text = x.text;
+    if (anim.type === 'typewriter' && reveal === 'word') {
+      const n = Math.ceil(text.length * cl((t - x.s + lead) / Math.max(0.12, Math.min(0.4, x.next - x.s))));
+      text = text.slice(0, Math.max(1, n));
+    }
+    return <span key={x.i} style={{...st, transform: tf, visibility: shown ? 'visible' : 'hidden'}}>{text}</span>;
+  });
+  const pa = anim.scope === 'phrase' ? animate(phraseK) : {};
+  const outT = cap.out === 'pop' ? ` scale(${lerp(outK, 1, 0.6)})` : '';
+  const box = cap.box?.scope === 'phrase' ? {background: sc(cap.box.color), borderRadius: cap.box.radius ?? 18, padding: `${cap.box.padY ?? 0.18}em ${cap.box.padX ?? 0.4}em`} : {};
+  return (
+    <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(-50%) ${pa.transform ?? ''}${outT}`,
+      opacity: (pa.opacity ?? 1) * (1 - (cap.out === 'fade' || cap.out === 'pop' ? outK : 0)), filter: pa.filter, display: 'flex', justifyContent: 'center'}}>
+      <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', maxWidth: maxW,
+        fontFamily: font.family, fontSize: size, lineHeight: cap.lineHeight ?? 1.08, letterSpacing: `${cap.track ?? 0}em`, textShadow: shadow, rowGap: size * 0.06, ...stroke, ...box}}>
+        {words}
+      </div>
+    </div>
+  );
+};
+
 // ---------- hook title ----------
 
 const Hook: React.FC<{text: string; end: number; style: string; accent: string; top: number}> = ({text, end, style, accent, top}) => {
@@ -635,8 +800,8 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
         );
       })}
 
-      {plan.captions && preset.cap.style !== 'scrim' ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
-      {plan.captions ? (preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
+      {plan.captions && preset.cap.style !== 'scrim' && !(preset.cap.style === 'custom' && !(preset.cap as unknown as {shade?: boolean}).shade) ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
+      {plan.captions ? (preset.cap.style === 'custom' ? <CustomCaptions plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
       {showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} /> : null}
 
       {plan.inserts.map((x, i) => {
