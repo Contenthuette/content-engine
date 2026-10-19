@@ -520,7 +520,7 @@ def remap_words(words, intervals):
     for a, b in intervals:
         for w in words:
             if w["s"] >= a - 0.01 and w["e"] <= b + 0.01:
-                out.append({"s": round(w["s"] - a + offset, 3), "e": round(w["e"] - a + offset, 3), "w": w["w"]})
+                out.append({**w, "s": round(w["s"] - a + offset, 3), "e": round(w["e"] - a + offset, 3)})
         offset += b - a
     return out
 
@@ -1245,6 +1245,59 @@ def apply_ops(plan, res, job):
     return plan, changed
 
 
+def apply_direct(plan, ed, job):
+    """Takes what the user changed in the editor (captions, key words, hook, style). Times stay inside the video."""
+    dur = plan["duration"]
+    changed = set()
+    ws = ed.get("words")
+    if isinstance(ws, list) and 0 < len(ws) <= 3000:
+        out = []
+        for w in ws:
+            try:
+                s_, e_, t = float(w["s"]), float(w["e"]), str(w["w"]).strip()[:40]
+            except (KeyError, TypeError, ValueError):
+                continue
+            if t and 0 <= s_ <= e_ <= dur + 0.05:
+                out.append({"s": round(s_, 3), "e": round(min(e_, dur), 3), "w": t, **({"hide": True} if w.get("hide") else {})})
+        if out:
+            plan["words"] = sorted(out, key=lambda x: x["s"])
+    if isinstance(ed.get("emphasis"), list):
+        n = len(plan["words"])
+        plan["emphasis"] = sorted({int(i) for i in ed["emphasis"] if isinstance(i, (int, float)) and 0 <= int(i) < n})
+    if "hook" in ed:
+        h = ed["hook"]
+        if isinstance(h, dict) and str(h.get("text") or "").strip():
+            e_ = h.get("e")
+            plan["hook"] = {"text": str(h["text"]).strip()[:80],
+                            "e": round(min(dur, max(0.8, float(e_))) if isinstance(e_, (int, float)) else min(2.6, dur / 3), 2)}
+        else:
+            plan["hook"] = None
+    if isinstance(ed.get("captions"), bool):
+        plan["captions"] = ed["captions"]
+    st = ed.get("style")
+    if isinstance(ed.get("preset"), str) and (isinstance(st, dict) or ed["preset"] in PRESETS):
+        pr = st if isinstance(st, dict) else PRESETS[ed["preset"]]
+        plan["preset"] = ed["preset"]
+        plan["style"] = {k: v for k, v in pr.items() if k != "about"}
+        acc = pr.get("accents") or []
+        if isinstance(ed.get("accent"), str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", ed["accent"]):
+            plan["accent"] = ed["accent"]
+        elif acc:
+            plan["accent"] = acc[0]
+        if pr.get("depth") and not plan.get("fg"):
+            report(note="Person wird freigestellt (Text hinter dir)…")
+            try:
+                rel = f"{job}/fg.webm"
+                cutout(os.path.join(REPO, "public", plan["video"]), os.path.join(REPO, "public", rel))
+                plan["fg"], plan["outScale"] = rel, 1
+                changed.add(rel)
+            except Exception as e:
+                print("cut-out failed, rendering without it:", e)
+    elif isinstance(ed.get("accent"), str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", ed["accent"]):
+        plan["accent"] = ed["accent"]
+    return plan, changed
+
+
 def run_revision(cfg):
     rv = cfg["revise"]
     report(status="working", note="Korrektur: Schnittplan wird geladen…", runUrl=RUN_URL)
@@ -1261,10 +1314,14 @@ def run_revision(cfg):
             with open(dst, "wb") as fh:
                 for chunk in r.iter_content(1 << 20):
                     fh.write(chunk)
-    report(note="Korrektur: Claude setzt deine Anweisung um…")
-    res = revise_ops(plan, rv["prompt"])
-    note = str(res.get("note") or "Korrektur umgesetzt")[:300]
-    plan, changed = apply_ops(plan, res, job)
+    if isinstance(rv.get("plan"), dict):  # edited by hand in the CLIPPERZ editor: no Claude needed
+        plan, changed = apply_direct(plan, rv["plan"], job)
+        note = "Änderungen aus dem Editor übernommen"
+    else:
+        report(note="Korrektur: Claude setzt deine Anweisung um…")
+        res = revise_ops(plan, rv["prompt"])
+        note = str(res.get("note") or "Korrektur umgesetzt")[:300]
+        plan, changed = apply_ops(plan, res, job)
     print("revision:", note, "| changed files:", changed)
     report(note=f"Korrektur wird gerendert… ({note})")
     final = os.path.join(W, "final.mp4")

@@ -2,13 +2,13 @@
 // Mechanics follow the clean-motion skill (blur-in words, one accent, the camera always lives) and the
 // Dunkelmann Editing Library (full-screen text beats and transitions by code, with their own sounds).
 import React from 'react';
-import {AbsoluteFill, Audio, CalculateMetadataFunction, Easing, Img, interpolate, OffthreadVideo, Sequence, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Audio, CalculateMetadataFunction, Easing, Img, interpolate, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig} from 'remotion';
 import '@fontsource/anton/400.css';
 import '@fontsource/montserrat/800.css';
 import '@fontsource/montserrat/900.css';
 import {byCode} from '../lib/registry';
 import {EntryView, SfxCtx} from '../lib/Catalog';
-import {C, SANS, SERIF} from '../lib/core';
+import {asset, C, SANS, SERIF} from '../lib/core';
 import PRESETS from './presets.json';
 import type {Plan, Word, Zoom} from './types';
 
@@ -85,8 +85,8 @@ const MainVideo: React.FC<{plan: Plan; drift: number; fg?: boolean}> = ({plan, d
     <AbsoluteFill style={{background: fg ? 'transparent' : '#000', overflow: 'hidden'}}>
       <div style={{position: 'absolute', left: 0, top: 0, width: W, height: H, transformOrigin: '0 0', transform: `translate(${tx}px, ${ty}px) scale(${S})`}}>
         {fg && plan.fg
-          ? <OffthreadVideo src={staticFile(plan.fg)} transparent muted style={{width: W, height: H, objectFit: 'cover'}} />
-          : <OffthreadVideo src={staticFile(plan.video)} muted={!!fg} style={{width: W, height: H, objectFit: 'cover'}} />}
+          ? <OffthreadVideo src={asset(plan.fg)} transparent muted style={{width: W, height: H, objectFit: 'cover'}} />
+          : <OffthreadVideo src={asset(plan.video)} muted={!!fg} style={{width: W, height: H, objectFit: 'cover'}} />}
       </div>
     </AbsoluteFill>
   );
@@ -124,8 +124,8 @@ const BrollItem: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; st
     opacity = 1 - kOut;
   }
   const media = kind === 'photo'
-    ? <Img src={staticFile(src)} style={{width: W, height: H, objectFit: 'cover'}} />
-    : <OffthreadVideo src={staticFile(src)} muted style={{width: W, height: H, objectFit: 'cover'}} />;
+    ? <Img src={asset(src)} style={{width: W, height: H, objectFit: 'cover'}} />
+    : <OffthreadVideo src={asset(src)} muted style={{width: W, height: H, objectFit: 'cover'}} />;
   return <AbsoluteFill style={{opacity, filter, transform, overflow: 'hidden'}}>{media}</AbsoluteFill>;
 };
 
@@ -146,12 +146,18 @@ function captionY(plan: Plan, preset: Preset, t: number) {
   return Math.min(H - SAFE.bottom - 80, Math.max(c, chin + 120));
 }
 
-type Phrase = {words: {w: Word; i: number}[]; s: number; e: number};
+export type Phrase = {words: {w: Word; i: number}[]; s: number; e: number};
 
-function phrases(words: Word[], max: number): Phrase[] {
+export function phrases(words: Word[], max: number): Phrase[] {
   const out: Phrase[] = [];
   let cur: {w: Word; i: number}[] = [];
   words.forEach((w, i) => {
+    if (w.hide) {
+      // hidden in the editor: the word is still spoken, it just never shows up
+      if (cur.length) out.push({words: cur, s: cur[0].w.s, e: cur[cur.length - 1].w.e});
+      cur = [];
+      return;
+    }
     const prev = words[i - 1];
     if (cur.length && (cur.length >= max || (prev && w.s - prev.e > 0.3))) {
       out.push({words: cur, s: cur[0].w.s, e: cur[cur.length - 1].w.e});
@@ -237,7 +243,7 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
         return (
           <div key={li} style={{fontFamily: 'Montserrat', fontWeight: cap.weight, fontSize: size, lineHeight: 1.02, letterSpacing: '-0.01em', whiteSpace: 'nowrap', textShadow: shadow}}>
             {ln.toks.map((tk, ti) => {
-              const st: React.CSSProperties = {display: 'inline-block', color: tk.em ? plan.accent : cap.color, marginLeft: ti ? '0.26em' : 0};
+              const st: React.CSSProperties = {display: 'inline-block', color: tk.em ? plan.accent : cap.color, marginLeft: ti ? '0.3em' : 0};
               if (pop) {
                 const kw = ease(t, tk.s - 0.05, tk.em ? 0.26 : 0.2, POP);
                 const live = t >= tk.s - 0.05 && t < tk.next;
@@ -421,7 +427,7 @@ const Hook: React.FC<{text: string; end: number; style: string; accent: string; 
             textShadow: '0 0 18px rgba(0,0,0,.6), 0 4px 14px rgba(0,0,0,.65), 0 0 3px rgba(0,0,0,.7)'}}>
             {l.split(' ').map((w, j) => {
               const k = ease(t, i * 0.1 + j * 0.06, 0.24, POP);
-              return <span key={j} style={{display: 'inline-block', marginLeft: j ? '0.26em' : 0, color: w === longest.toUpperCase() ? accent : '#fff', opacity: cl(k * 4),
+              return <span key={j} style={{display: 'inline-block', marginLeft: j ? '0.3em' : 0, color: w === longest.toUpperCase() ? accent : '#fff', opacity: cl(k * 4),
                 transform: `translateY(${(1 - k) * 26}px) scale(${lerp(k, 0.5, 1)})`}}>{w}</span>;
             })}
           </div>
@@ -650,7 +656,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
       {preset.progress ? <Progress accent={plan.accent} duration={total} /> : null}
 
       {plan.music ? (
-        <Audio src={staticFile(plan.music.src)} loop volume={(f) => {
+        <Audio src={asset(plan.music.src)} loop volume={(f) => {
           const t = f / fps;
           const fade = interpolate(t, [0, 0.15, total - 0.8, total], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
           return plan.music!.vol * fade * 1.6 * duck(t);
@@ -658,7 +664,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
       ) : null}
       {plan.sfx.map((s, i) => (
         <Sequence key={'s' + i} from={fr(s.t)} durationInFrames={fr(1.5)} layout="none">
-          <Audio src={staticFile(`lib/sfx/s_${s.name}.wav`)} volume={(f) => s.vol * (talking(s.t + f / fps) ? 0.6 : 1)} />
+          <Audio src={asset(`lib/sfx/s_${s.name}.wav`)} volume={(f) => s.vol * (talking(s.t + f / fps) ? 0.6 : 1)} />
         </Sequence>
       ))}
     </AbsoluteFill>

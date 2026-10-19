@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:preview": "esbuild src/clipperz/preview.tsx --bundle --minify --format=iife --target=es2020 --outdir=dist/clipperz-preview --entry-names=preview --loader:.woff2=file --loader:.woff=file --loader:.ttf=file --loader:.png=file --loader:.jpg=file --loader:.svg=file --asset-names=fonts/[name]-[hash] --define:process.env.NODE_ENV='\"production\"' --jsx=automatic"
   },
   "keywords": [],
   "author": "",

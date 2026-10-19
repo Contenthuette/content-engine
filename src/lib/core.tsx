@@ -29,7 +29,10 @@ export const p = (t: number, a: number, d: number, e = EXPO) => e(cl((t - a) / d
 export const lerp = (k: number, a: number, b: number) => a + (b - a) * k;
 export const rnd = (s: number) => { const x = Math.sin(s * 9301.17 + 49297.3) * 233280.7; return x - Math.floor(x); };
 export const useT = () => { const f = useCurrentFrame(); const {fps} = useVideoConfig(); return f / fps; };
-export const asset = (f: string) => staticFile(f);
+// The browser preview (CLIPPERZ editor) has no public/ folder: it maps paths to hosted URLs instead.
+let resolveAsset: ((f: string) => string) | null = null;
+export const setAssetResolver = (fn: ((f: string) => string) | null) => { resolveAsset = fn; };
+export const asset = (f: string) => (/^https?:/.test(f) ? f : resolveAsset ? resolveAsset(f) : staticFile(f));
 // Leif 14.10.: kein dumpfer Ton auf jeder Kleinigkeit. Tiefe Hits werden zentral auf helle Akzente umgelenkt.
 // Bewusster tiefer Hit (max. 1x pro Video, größter Moment): Name mit 'deep:' prefixen, z. B. SFX('deep:boom').
 const BRIGHT: Record<string, string> = {sub: 'swish', thump: 'pop2', boom: 'shutter', click: 'tock', whoosh2: 'whoosh'};
