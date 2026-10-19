@@ -433,6 +433,71 @@ def smart_cut_plan(words, duration, target=None):
     return intervals, hook_text
 
 
+def _repeats(words):
+    """Word indices where a 1-4 word sequence is said twice in a row ("und was und was") - the first one is the stumble."""
+    norm = [re.sub(r"[^a-zäöüß0-9]", "", w["w"].lower()) for w in words]
+    hits = []
+    for n in (4, 3, 2, 1):
+        for i in range(len(norm) - 2 * n + 1):
+            a, b = norm[i:i + n], norm[i + n:i + 2 * n]
+            if a == b and all(a) and (n > 1 or len(a[0]) > 3):
+                hits.append((i, i + n - 1))
+    return hits
+
+
+def verify_cut(cut_path, words, duration):
+    """Second pass (after krusemedia reel-recut / cut-video): transcribe the FINISHED rough cut and read it as running
+    text - doubled phrases and false starts only show up once the pieces sit next to each other. Stretched short words
+    (> 0.6 s) often hide a stumble. Claude decides; at most 15 % may go. Returns (path, words, duration)."""
+    global ENV
+    words2 = transcribe(cut_path)
+    if len(words2) < 5:
+        return cut_path, words, duration
+    reps = _repeats(words2)
+    long_short = [i for i, w in enumerate(words2) if len(re.sub(r"\W", "", w["w"])) <= 4 and w["e"] - w["s"] > 0.6]
+    if not reps and not long_short:
+        return cut_path, words2, duration  # fresh timings of the final cut are more exact for captions
+    lines = "\n".join(f"{i} [{w['s']:.2f}-{w['e']:.2f}] {w['w']}" for i, w in enumerate(words2))
+    hints = [f"Doppelung Wörter {a}-{b}" for a, b in reps] + [f"Wort {i} auffällig lang (versteckter Versprecher?)" for i in long_short]
+    try:
+        plan = llm_json([
+            {"role": "system", "content": (
+                "Du prüfst einen fertig geschnittenen Rohschnitt eines deutschen Kurzvideos. Lies das Transkript als Fließtext. "
+                "Markiere NUR eindeutige Fehler, die der Schnitt übrig gelassen hat: doppelt gesagte Wörter/Satzteile (die ERSTE Version raus), "
+                "abgebrochene Satzanfänge, Versprecher. Gewollte Wiederholungen zur Betonung bleiben. Im Zweifel nichts markieren. "
+                "Antworte NUR mit JSON: {\"drop\": [[von_index, bis_index], ...]}"
+            )},
+            {"role": "user", "content": lines + "\n\nAuffälligkeiten (Hinweise, nicht zwingend Fehler):\n" + "\n".join(hints)},
+        ])
+    except EditError:
+        return cut_path, words2, duration
+    drop = set()
+    for rng in plan.get("drop", []) if isinstance(plan, dict) else []:
+        try:
+            a, b = int(rng[0]), int(rng[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        drop.update(range(max(0, a), min(len(words2) - 1, b) + 1))
+    if not drop:
+        return cut_path, words2, duration
+    keep = [w for i, w in enumerate(words2) if i not in drop]
+    lost = sum(words2[i]["e"] - words2[i]["s"] for i in drop)
+    if lost > 0.15 * duration or len(keep) < 3:
+        print("verify cut rejected (too much)")
+        return cut_path, words2, duration
+    prev = ENV
+    try:
+        ENV = energy_env(cut_path)
+        iv = word_intervals(keep, duration)
+    finally:
+        ENV = prev
+    out = os.path.join(W, "cut2.mp4")
+    cut(cut_path, iv, out)
+    d2, _ = probe(out)
+    print(f"verify cut: removed {len(drop)} words ({lost:.1f} s)")
+    return out, remap_words(words2, iv), d2
+
+
 def cut(src, intervals, dst):
     if len(intervals) == 1 and intervals[0][0] < 0.05:
         run(["ffmpeg", "-v", "error", "-y", "-i", src, "-t", str(intervals[0][1]), "-c", "copy", dst])
@@ -679,6 +744,14 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         broll.append({"s": round(s_, 2), "e": round(e_, 2), "src": broll_rel[i], "kind": items[i]["kind"]})
         busy.append((s_, e_))
         used.add(i)
+    # Snap each picture onto the start of the word it belongs to (±0.3 s, a hair early) - ghost-editor / krusemedia.
+    starts = [w["s"] for w in words]
+    for b in broll:
+        near = [x for x in starts if abs(x - b["s"]) <= 0.3]
+        if near:
+            nx = min(near, key=lambda x: abs(x - b["s"]))
+            d = round(max(1.0, nx - 0.07) - b["s"], 2)
+            b["s"], b["e"] = round(b["s"] + d, 2), round(b["e"] + d, 2)
     if items and not broll:  # fallback: spread the photos over the free time
         t = 2.5
         for i in range(len(items)):
@@ -689,6 +762,15 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
             broll.append({"s": round(t, 2), "e": round(t + 1.8, 2), "src": broll_rel[i], "kind": items[i]["kind"]})
             busy.append((t, t + 1.8))
             t += 4.5
+
+    # Budget (ghost-editor reference reels): the speaker stays on screen at least 65 % of the time.
+    cover = sum(x["e"] - x["s"] for x in inserts) if inserts else 0.0
+    kept = []
+    for b in sorted(broll, key=lambda x: x["s"]):
+        if cover + (b["e"] - b["s"]) <= 0.35 * duration:
+            kept.append(b)
+            cover += b["e"] - b["s"]
+    broll = kept
 
     # Zooms: a new framing every 1.5-3.5 s at phrase boundaries (comma, full stop, pause); the hook and
     # phrases with key words go closer, two neighbours never share the same framing.
@@ -859,6 +941,113 @@ def cutout(src, dst):
     print(f"cut-out: {n} frames")
 
 
+# ---------- B-roll colour match (after ghost-editor broll.md §4/§7: the insert follows the speaker, never the reverse) ----------
+
+def _lab(rgb):
+    import numpy as np
+    c = rgb.astype(np.float32) / 255.0
+    c = np.where(c > 0.04045, ((c + 0.055) / 1.055) ** 2.4, c / 12.92)
+    m = np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]], dtype=np.float32)
+    xyz = c @ m.T / np.array([0.95047, 1.0, 1.08883], dtype=np.float32)
+    f = np.where(xyz > 0.008856, np.cbrt(xyz), 7.787 * xyz + 16 / 116)
+    return np.stack([116 * f[..., 1] - 16, 500 * (f[..., 0] - f[..., 1]), 200 * (f[..., 1] - f[..., 2])], -1)
+
+
+def _rgb(lab):
+    import numpy as np
+    fy = (lab[..., 0] + 16) / 116
+    fx, fz = fy + lab[..., 1] / 500, fy - lab[..., 2] / 200
+    f = np.stack([fx, fy, fz], -1)
+    xyz = np.where(f > 0.2069, f ** 3, (f - 16 / 116) / 7.787) * np.array([0.95047, 1.0, 1.08883], dtype=np.float32)
+    m = np.array([[3.2406, -1.5372, -0.4986], [-0.9689, 1.8758, 0.0415], [0.0557, -0.2040, 1.0570]], dtype=np.float32)
+    c = np.clip(xyz @ m.T, 0, 1)
+    c = np.where(c > 0.0031308, 1.055 * c ** (1 / 2.4) - 0.055, 12.92 * c)
+    return (np.clip(c, 0, 1) * 255 + 0.5).astype(np.uint8)
+
+
+def _neutral_stats(lab):
+    import numpy as np
+    chroma = np.hypot(lab[..., 1], lab[..., 2]).ravel()
+    sel = chroma <= np.percentile(chroma, 40)  # the 40 % least colourful pixels carry the white balance
+    flat = lab.reshape(-1, 3)
+    return float(np.median(flat[:, 0])), float(np.median(flat[sel, 1])), float(np.median(flat[sel, 2]))
+
+
+def match_broll(items, ref_video, duration):
+    """Pull white balance and brightness of each photo towards the (graded) speaker: |Δa*,Δb*| ≤ 8, |ΔL*| ≤ 15, 70 % strength."""
+    import numpy as np
+    from PIL import Image
+    frames = []
+    for k in range(5):
+        t = duration * (0.15 + 0.17 * k)
+        r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", ref_video, "-frames:v", "1", "-vf", "scale=270:480",
+                            "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
+        if len(r.stdout) == 270 * 480 * 3:
+            frames.append(np.frombuffer(r.stdout, dtype=np.uint8).reshape(480, 270, 3))
+    if not frames:
+        return
+    L0, a0, b0 = _neutral_stats(_lab(np.concatenate(frames, 0)))
+    cl = lambda x, m: max(-m, min(m, x))
+    for it in items:
+        if it.get("kind") != "photo":
+            continue
+        try:
+            im = Image.open(it["path"]).convert("RGB")
+            arr = np.asarray(im)
+            lab = _lab(arr)
+            L1, a1, b1 = _neutral_stats(lab[::4, ::4])
+            dL, da, db = cl(L0 - L1, 15) * 0.7, cl(a0 - a1, 8) * 0.7, cl(b0 - b1, 8) * 0.7
+            if abs(dL) < 1 and abs(da) < 0.8 and abs(db) < 0.8:
+                continue
+            lab[..., 0] = np.clip(lab[..., 0] + dL, 0, 100)
+            lab[..., 1] += da
+            lab[..., 2] += db
+            Image.fromarray(_rgb(lab)).save(it["path"], quality=93)
+            print(f"b-roll colour match {os.path.basename(it['path'])}: dL {dL:+.1f} da {da:+.1f} db {db:+.1f}")
+        except Exception as e:
+            print("b-roll colour match skipped:", e)
+
+
+# ---------- SFX levels relative to the voice (ghost-editor sound-and-memes.md) ----------
+
+SFX_ROLE = {"impact": ("hit8", "boom", "thump", "stamp", "sub", "power"), "whoosh": ("whoosh", "whoosh2", "whoosh3", "swish", "swipe", "zip", "slide", "slide2", "riser", "rise2")}
+SFX_OFFSET = {"ui": -14.0, "whoosh": -12.0, "impact": -8.0}
+
+
+def _peak_db(samples, sr):
+    import numpy as np
+    hop = max(1, int(sr * 0.05))
+    n = len(samples) // hop
+    if n == 0:
+        return None
+    rms = np.sqrt((samples[: n * hop].reshape(n, hop) ** 2).mean(axis=1))
+    return 20 * np.log10(np.percentile(rms, 95) + 1e-9)
+
+
+def level_sfx(plan, main_video, style_vol):
+    """Each sound sits a fixed distance under the voice peaks (p95 of 50 ms windows): ui −14 dB, whoosh −12, impact −8."""
+    import numpy as np
+    pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", main_video, "-vn", "-ac", "1", "-ar", "16000", "-f", "f32le", "-"], stdout=subprocess.PIPE).stdout
+    voice = _peak_db(np.frombuffer(pcm, dtype=np.float32), 16000)
+    if voice is None or voice < -60:
+        return
+    cache = {}
+    for s_ in plan.get("sfx", []):
+        nm = s_["name"]
+        if nm not in cache:
+            f = os.path.join(REPO, "public", "lib", "sfx", f"s_{nm}.wav")
+            r = subprocess.run(["ffmpeg", "-v", "error", "-i", f, "-ac", "1", "-ar", "16000", "-f", "f32le", "-"], stdout=subprocess.PIPE)
+            a = np.frombuffer(r.stdout, dtype=np.float32)
+            cache[nm] = _peak_db(a[np.abs(a) > 1e-4] if (np.abs(a) > 1e-4).sum() > 1600 else a, 16000)
+        pk = cache[nm]
+        if pk is None:
+            continue
+        role = next((k for k, names in SFX_ROLE.items() if nm in names), "ui")
+        gain = 10 ** ((voice + SFX_OFFSET[role] - pk) / 20) * (style_vol / 0.4)
+        s_["vol"] = round(max(0.03, min(1.0, gain)), 3)
+    print("sfx levelled to voice p95", round(voice, 1), "dBFS")
+
+
 def upload(path):
     r = requests.post(f"{API}/edit-upload?{AUTH}", json={"size": os.path.getsize(path)}, timeout=60)
     if r.status_code != 200:
@@ -942,6 +1131,11 @@ def main():
         cut(base, intervals, cut_path)
         words_cut = remap_words(words, intervals)
         out_dur, _ = probe(cut_path)
+        report(note="Rohschnitt wird gegengeprüft (Doppelungen, Versprecher)…")
+        try:
+            cut_path, words_cut, out_dur = verify_cut(cut_path, words_cut, out_dur)
+        except Exception as e:  # the check must never break an edit
+            print("verify cut failed:", e)
 
     preset_id = register_style(cfg.get("preset"), cfg.get("styleConfig"))
     pr = PRESETS[preset_id]
@@ -958,6 +1152,11 @@ def main():
     pub = os.path.join(REPO, "public", job)
     os.makedirs(pub, exist_ok=True)
     prepare_main(cut_path, os.path.join(pub, "main.mp4"), pr.get("grade"))
+    if items:  # photos follow the graded speaker
+        try:
+            match_broll(items, os.path.join(pub, "main.mp4"), out_dur)
+        except Exception as e:
+            print("b-roll colour match failed:", e)
     broll_rel = []
     for i, it in enumerate(items):
         ext = os.path.splitext(it["path"])[1]
@@ -965,6 +1164,10 @@ def main():
         broll_rel.append(f"{job}/b{i}{ext}")
     plan = build_plan(words_cut, out_dur, items, preset_id, cfg.get("captions", pr["captions"]), focus, res, f"{job}/main.mp4", broll_rel,
                       hi_res=min(src_size(cut_path)) >= 1440, src_min=min(src_size(cut_path)))
+    try:
+        level_sfx(plan, os.path.join(pub, "main.mp4"), pr.get("sfxVol", 0.4))
+    except Exception as e:
+        print("sfx levelling failed:", e)
     if pr.get("depth"):  # text behind the speaker needs the cut-out; without it the style still renders (text in front)
         report(note="Person wird freigestellt (Text hinter dir)…")
         try:
