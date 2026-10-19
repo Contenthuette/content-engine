@@ -93,6 +93,9 @@ def llm_json(messages):
 def run(cmd, **kw):
     r = subprocess.run(cmd, capture_output=True, text=True, **kw)
     if r.returncode:
+        print("command failed:", " ".join(os.path.basename(c) if os.sep in c else c for c in cmd[:4]))
+        print((r.stdout or "")[-3000:])
+        print((r.stderr or "")[-6000:])
         raise StyleError(f"{os.path.basename(cmd[1] if cmd[0] in ('python3', sys.executable) else cmd[0])} fehlgeschlagen: {(r.stderr or r.stdout)[-400:]}")
     return r.stdout
 

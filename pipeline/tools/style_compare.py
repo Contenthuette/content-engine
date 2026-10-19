@@ -27,7 +27,10 @@ norm = lambda x: re.sub(r"[^0-9a-zäöüß]", "", x.lower())
 def sh(cmd):
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode:
-        raise SystemExit(f"{cmd[0]} failed: {(r.stderr or r.stdout)[-800:]}")
+        err = (r.stderr or r.stdout or "")
+        # the useful line of a Remotion error is at the top, the stack trace below
+        head = "\n".join(l for l in err.splitlines() if l.strip() and not l.strip().startswith("at "))[:1500]
+        raise SystemExit(f"{cmd[0]} failed: {head}")
     return r.stdout
 
 
