@@ -73,11 +73,14 @@ def parse_json(text):
 
 def llm_json(messages):
     for _ in range(3):
-        r = requests.post(f"{API}/style-llm?{AUTH}", json={"messages": messages, "maxTokens": 14000}, timeout=600)
+        r = requests.post(f"{API}/style-llm?{AUTH}", json={"messages": messages, "maxTokens": 10000}, timeout=600)
         if r.status_code == 429:
             raise StyleError("KI-Budget für diesen Stil aufgebraucht")
+        if r.status_code == 502 and _ < 2:
+            print("llm 502:", r.text[:300])
+            continue
         if r.status_code != 200:
-            raise StyleError(f"KI nicht erreichbar ({r.status_code})")
+            raise StyleError(f"KI nicht erreichbar ({r.status_code}: {r.text[:160]})")
         text = r.json().get("text", "")
         obj = parse_json(text)
         if isinstance(obj, dict):
@@ -94,7 +97,7 @@ def run(cmd, **kw):
     return r.stdout
 
 
-def small_jpg(src, dst, max_w=1400, max_h=2400):
+def small_jpg(src, dst, max_w=1000, max_h=1600):
     import cv2
     im = cv2.imread(src)
     if im is None:
@@ -293,6 +296,31 @@ def machart(path, outdir):
             "text_on_screen_pct": round(100 * sum(1 for x in txt if x.get("n")) / max(1, len(txt)), 1)}
 
 
+def audio_bed(path, words):
+    """Is there music/atmo under the voice? Level in speech pauses (>= 0.3 s) relative to the voice, in dB."""
+    import numpy as np
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-ac", "1", "-ar", "16000", "-f", "s16le", "-"], capture_output=True).stdout
+    x = np.frombuffer(raw, np.int16).astype(np.float32) / 32768
+    if len(x) < 16000 or not words:
+        return None
+    rms = lambda a, b: float(np.sqrt(np.mean(x[int(a * 16000):int(b * 16000)] ** 2) + 1e-12))
+    sp = [rms(w["s"], w["e"]) for w in words if w["e"] - w["s"] > 0.1]
+    gaps = [rms(a["e"] + 0.05, b["s"] - 0.05) for a, b in zip(words, words[1:]) if b["s"] - a["e"] >= 0.3]
+    if not sp or not gaps:
+        return {"pauses": len(gaps)}
+    db = 20 * np.log10(np.median(gaps) / np.median(sp))
+    return {"pause_vs_voice_db": round(float(db), 1), "pauses": len(gaps),
+            "hint": "> -25 dB: there is a music/sound bed under the voice; < -35 dB: no music"}
+
+
+def hook_title(ocr, words):
+    """Text in the first 2.5 s that is NOT the spoken words = a hook title."""
+    norm = lambda t: re.sub(r"[^0-9a-zäöüß]", "", t.lower())
+    spoken = {norm(w["w"]) for w in words if w["s"] < 4}
+    extra = [b["text"] for x in ocr if x["t"] < 2.5 for b in x["boxes"] if norm(b["text"]) not in spoken and len(norm(b["text"])) > 2]
+    return sorted(set(extra))[:12]
+
+
 def render_demo(style, demo, outdir):
     """The new style on our demo clip (same raw video as every other style example)."""
     plan = requests.get(demo["planUrl"], timeout=60).json()
@@ -385,20 +413,27 @@ def main():
     report(note="Claude baut das Template…")
     ma = os.path.join(out, "machart")
     images = []
-    for k, v in enumerate(refs[:3]):
+    for k, v in enumerate(refs[:2]):
         d = os.path.join(ma, os.path.basename(v))
         images.append(img(f"Video {k + 1}: die ersten 3 s mit 10 Bildern/s (Hook)", os.path.join(d, "hook.png"), out))
         images.append(img(f"Video {k + 1}: jede Einstellung (Mitte), mit Länge", os.path.join(d, "shots.png"), out))
     if p1:
         images.append(img("Untertitel aus allen Videos (Nahaufnahme)", os.path.join(stylelab.LAB, slug, "all_captions.jpg"), out))
         images.append(img("Untertitel-Animation Video 1, JEDES Frame (30 fps) links→rechts, oben→unten", os.path.join(p1, "anim_0.jpg"), out))
-        images.append(img("Untertitel-Animation Video 1, anderer Moment", os.path.join(p1, "anim_2.jpg"), out))
         images.append(img("Schrift-Vergleich: oben Original, darunter Kandidaten (Name rechts unten je Zeile)", os.path.join(stylelab.LAB, slug, "fonts.jpg"), out))
     agg = json.load(open(os.path.join(stylelab.LAB, slug, "aggregate.json"))) if p1 else {}
+    for k, v in enumerate(refs):
+        pd = os.path.join(stylelab.LAB, slug, "probe", os.path.splitext(os.path.basename(v))[0])
+        if k < len(cuts) and os.path.exists(os.path.join(pd, "words.json")):
+            ws = json.load(open(os.path.join(pd, "words.json")))["words"]
+            cuts[k]["sound_bed"] = audio_bed(v, ws)
+            if os.path.exists(os.path.join(pd, "ocr.json")):
+                cuts[k]["hook_title_text_seen"] = hook_title(json.load(open(os.path.join(pd, "ocr.json"))), ws)
     system = ("Du bist ein Weltklasse-Editor und Motion Designer. Aus Referenzvideos baust du ein Template, das deren Machart 1:1 "
               "kopiert – jedes Pixel: Schrift, Größen, Rundungen, Abstände, Farben, Konturen, Animationskurven, Schnitt-Tempo, Zooms, "
               "B-Roll-Layout und Übergänge, Farblook, Musik, Sounds. Messwerte sind Näherungen, die Bilder entscheiden. "
-              "Was der Baukasten nicht kann, schreibst du ehrlich in \"gaps\".\n\n" + schema() + "\n\nAntworte NUR mit dem JSON.")
+              "Was der Baukasten nicht kann, schreibst du ehrlich in \"gaps\". Erfinde nichts dazu: keine Musik, wenn sound_bed keine zeigt; "
+              "kein Hook-Titel (hook \"none\"), wenn am Anfang kein zusätzlicher Titel zu sehen ist; keine Zooms/B-Roll/Sounds, die nicht im Original sind.\n\n" + schema() + "\n\nAntworte NUR mit dem JSON.")
     text = (f"Stilname: {name}\nMachart je Video (Messung): {json.dumps(cuts, ensure_ascii=False)}\n"
             f"Untertitel gesamt: {json.dumps(agg, ensure_ascii=False)}\n"
             f"Basis-Stile: {json.dumps({k: v.get('about', '') for k, v in PRESETS.items()}, ensure_ascii=False)}")
@@ -435,7 +470,8 @@ def main():
             imgs = [img("8 Momente: LINKS Original, RECHTS Nachbau (Original-Untertitel rechts weichgezeichnet)", os.path.join(cdir, "compare.jpg"), cdir),
                     img("Pixel-Test: Original | Nachbau | Abweichung (hell = anders). Der Nachbau liegt dabei exakt über dem Original.", os.path.join(cdir, "pixels.jpg"), cdir),
                     img("Animation Frame für Frame (jedes 2. Frame): links Original, rechts Nachbau", strip, cdir) if strip else None]
-            msg = (f"Pixel-Übereinstimmung jetzt: {sc['pixel_match']} % (Ziel 95+). Aktuelles Template: "
+            msg = (f"Pixel-Übereinstimmung jetzt: {sc['pixel_match']} % (Ziel 95+). Gemessene Abweichung (Geometrie): {json.dumps(sc.get('geometry'), ensure_ascii=False)}. "
+                   "Die Position y ist ein Anteil der Höhe (1920 px): 10 px = 0.0052. Aktuelles Template: "
                    f"{json.dumps({k: v for k, v in style.items() if k in ('cap', 'accents', 'hook')}, ensure_ascii=False)}\n"
                    "Finde JEDEN sichtbaren Unterschied der Untertitel (Schrift, Stärke, Größe, Laufweite, Position, Farben, Kontur, "
                    "Schatten, Kasten, Rundung, Abstände, Wörter pro Einblendung, Animationskurve, Hervorhebung) und gib das korrigierte "

@@ -155,6 +155,7 @@ def main():
     vw = cv2.VideoWriter(tmp, cv2.VideoWriter_fourcc(*"mp4v"), fps, (1080, 960))
     by0, by1 = y0 // 2, y1 // 2
     diffs, sheet_t = [], {round(x["t"] + 0.12, 1) for x in ocr if x["boxes"]}
+    geo, ocr_t = [], [(x["t"], x["boxes"]) for x in ocr if x["boxes"]]
     sheet, heat = [], []
     n = int(dur * fps)
     ref_frame, ref_i = None, -1
@@ -184,6 +185,17 @@ def main():
         ours = (blurred * (1 - alpha) + fg * alpha).astype(np.uint8)
         over = (o * (1 - alpha) + fg * alpha).astype(np.float32)
         m = alpha[..., 0] > 0.6
+        # geometry against the original's OCR boxes at (nearly) the same moment: where and how big
+        t_now = i / fps
+        near = min(ocr_t, key=lambda x: abs(x[0] - t_now)) if ocr_t else None
+        if near and abs(near[0] - t_now) < 0.08 and m.sum() > 200:
+            ys, xs = np.nonzero(m)
+            bx = near[1]
+            oy0, oy1 = min(b["y"] for b in bx) / 2, max(b["y"] + b["h"] for b in bx) / 2
+            ox0, ox1 = min(b["x"] for b in bx) / 2, max(b["x"] + b["w"] for b in bx) / 2
+            rows = sorted({round((b["y"] + b["h"] / 2) / 50) for b in bx})
+            geo.append({"dy": (ys.mean() - (oy0 + oy1) / 2) * 2, "h": (ys.max() - ys.min()) / max(1, oy1 - oy0),
+                        "w": (xs.max() - xs.min()) / max(1, ox1 - ox0), "lines_orig": len(rows)})
         if m.sum() > 200:
             # slight blur forgives video compression / sub-pixel edges; the mask is grown a bit to catch missing strokes
             d = np.abs(cv2.GaussianBlur(over, (0, 0), 1.5) - cv2.GaussianBlur(o.astype(np.float32), (0, 0), 1.5)).mean(axis=2)
@@ -215,7 +227,14 @@ def main():
     # the best quarter of frames says how exact the LOOK is. 100 = identical pixels.
     match = round(max(0.0, 100 - float(np.percentile(diffs, 25))), 1) if diffs else 0.0
     in_sync = round(100 * float(np.mean(np.array(diffs) < 10)), 1) if diffs else 0.0
-    res = {"compare": out, "sheet": os.path.join(a.outdir, "compare.jpg"), "pixels": os.path.join(a.outdir, "pixels.jpg"),
+    g = {}
+    if geo:
+        g = {"ours_minus_original_center_y_px": round(float(np.median([x["dy"] for x in geo]))),
+             "height_ratio_ours_vs_original": round(float(np.median([x["h"] for x in geo])), 2),
+             "width_ratio_ours_vs_original": round(float(np.median([x["w"] for x in geo])), 2),
+             "original_lines": float(np.median([x["lines_orig"] for x in geo])),
+             "note": "positive y = ours lower; ratios > 1 = ours bigger/wider (includes stroke/shadow); widths differ also when other words are shown"}
+    res = {"geometry": g, "compare": out, "sheet": os.path.join(a.outdir, "compare.jpg"), "pixels": os.path.join(a.outdir, "pixels.jpg"),
            "pixel_match": match, "frames_identical_pct": in_sync, "frames_measured": len(diffs), "emphasis": len(plan["emphasis"]), "focus": plan["focus"]}
     json.dump(res, open(os.path.join(a.outdir, "score.json"), "w"))
     print(json.dumps(res))
