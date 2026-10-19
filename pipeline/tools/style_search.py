@@ -344,25 +344,35 @@ class Search:
             return self.best_of(base, vs, label)
 
         def refine(base, base_score, label, ds=0.03, dy=0.006):
-            """Pattern search on size x height: the score is a narrow hill (a few % of size or ~10 px of height
-            cost 10+ points), so step towards the better neighbour and halve the step when none is better."""
+            """Aligns size and height by scanning. The score is a needle in height (10-20 px off costs 15-25 points,
+            the blurred score too), so a step search jumps over it; a dense scan of height, then size, then height
+            again finds it. A wide scan (dy >= 0.008) covers a bigger range."""
             nonlocal budget
             cur, cs = base, base_score
-            while ds >= 0.009 or dy >= 0.0019:
-                c = cur["cap"]
-                s0, y0 = float(c.get("size") or 70), yv(c)
-                nb = []
-                if ds >= 0.009:
-                    nb += [self.vary(cur, lambda c, k=k: c.update(size=round(s0 * k, 1))) for k in (1 - ds, 1 + ds)]
-                if dy >= 0.0019:
-                    nb += [self.vary(cur, lambda c, d=d: c.update(y=round(max(0.2, min(0.88, y0 + d)), 4))) for d in (-dy, dy)]
+
+            def scan(vals, setter):
+                nonlocal cur, cs, budget
+                nb = [self.vary(cur, lambda c, v=v: setter(c, v)) for v in vals]
                 budget -= len(nb)
                 sc = self.evaluate(nb)
                 j = int(np.argmax(sc))
                 if sc[j] > cs + 0.05:
                     cur, cs = nb[j], sc[j]
-                else:
-                    ds, dy = ds / 2, dy / 2
+
+            def ys(rng, stp):
+                y0 = yv(cur["cap"])
+                n = int(round(rng / stp))
+                return [round(max(0.2, min(0.88, y0 + k * stp)), 4) for k in range(-n, n + 1) if k]
+
+            def sizes(fs):
+                s0 = float(cur["cap"].get("size") or 70)
+                return [round(s0 * f, 1) for f in fs]
+
+            wide = dy >= 0.008
+            scan(ys(0.024 if wide else 0.012, 0.004 if wide else 0.003), lambda c, v: c.update(y=v))
+            scan(sizes((0.82, 0.88, 0.94, 1.06, 1.12, 1.18) if wide else (0.94, 0.97, 1.03, 1.06)), lambda c, v: c.update(size=v))
+            scan(ys(0.004, 0.0015), lambda c, v: c.update(y=v))
+            scan(sizes((0.97, 0.985, 1.015, 1.03)), lambda c, v: c.update(size=v))
             self.history.append({"step": label, "best": cs, "base": base_score})
             print(f"{label}: {base_score:.1f} -> {cs:.1f}", flush=True)
             return cur, cs
@@ -411,9 +421,9 @@ class Search:
 
         # geometry first so comparisons are aligned, then the layout (which words are on screen at all),
         # then exact alignment for that layout - only after that is a font comparison meaningful
-        # Far from the right size/height the sharp score is flat (every candidate ~40), so the first alignment uses
-        # the blurred score (a wide hill) and starts from what the probe measured in the original: the caption's
-        # vertical centre and the OCR box height of capitals (cap height + outline).
+        # Far from the right size/height every candidate scores ~40, so the search starts from what the probe
+        # measured in the original: the caption's vertical centre and the OCR box height of capitals (cap height
+        # plus outline). Without measurements a blind grid is the fallback.
         pos = self.rep.get("position") or {}
         box_h = float((self.rep.get("size") or {}).get("box_h_px") or 0)
         f0 = style["cap"]["font"]
@@ -424,14 +434,11 @@ class Search:
             starts.append(self.vary(style, lambda c: c.update(
                 y=round(float(pos.get("y_center", yv(c))), 4),
                 **({"size": round(meas, 1)} if meas and 30 < meas < 200 else {}))))
-        self.mode = "coarse"
-        found = []
-        for i, st in enumerate(starts):
-            b0 = self.evaluate([st])[0]
-            found.append(grid(st, (0.7, 0.82, 1, 1.18, 1.36), (-0.04, -0.02, 0, 0.02, 0.04), f"Größe/Höhe grob {i + 1}")[::-1])
-        cb, style = max(found, key=lambda r: r[0])
-        self.mode = "fine"
-        best = self.evaluate([style])[0]
+        if len(starts) > 1:
+            style = starts[1]
+            best = self.evaluate([style])[0]
+        else:
+            style, best = grid(style, (0.7, 0.82, 1, 1.18, 1.36), (-0.04, -0.02, 0, 0.02, 0.04), "Größe/Höhe grob")
         # which words are on screen at all decides everything else (one word off costs ~30 points even with the
         # right font), and the score only shows it once the text is aligned: so every phrase length is aligned
         # on its own and the best aligned one wins. How the phrase appears (all at once, word by word, karaoke)
@@ -439,11 +446,7 @@ class Search:
         cands = []
         for w in (1, 2, 3, 4, 5):
             st = self.vary(style, lambda c, w=w: c.update(words=w))
-            b0 = self.evaluate([st])[0]
-            self.mode = "coarse"
-            st, _ = refine(st, self.evaluate([st])[0], f"Ausrichten {w} Wörter (grob)", ds=0.06, dy=0.012)
-            self.mode = "fine"
-            cands.append(refine(st, self.evaluate([st])[0], f"Ausrichten {w} Wörter", ds=0.03, dy=0.006))
+            cands.append(refine(st, self.evaluate([st])[0], f"Ausrichten {w} Wörter", ds=0.06, dy=0.012))
         style, best = max(cands, key=lambda r: r[1])
         step("Einblendung", ["phrase", "word", "karaoke"], lambda c, v: c.update(reveal=v))
         font_scan(4, "Schrift")
