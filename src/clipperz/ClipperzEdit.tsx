@@ -63,8 +63,12 @@ export const calcClipperz: CalculateMetadataFunction<Plan> = ({props}) => ({
 
 // ---------- camera (zoom on the face) ----------
 
+/** Learned styles can fix their zoom strengths (style.zoom.levels = [level 1, level 2]); set per render in ClipperzEdit. */
+let ZOOM_LEVELS: number[] | null = null;
+
 function levelScale(level: number, h: number, max = 1.7) {
   if (level <= 0) return 1;
+  if (ZOOM_LEVELS && ZOOM_LEVELS[level - 1]) return Math.min(max, Math.max(1, ZOOM_LEVELS[level - 1]));
   // h = face height / frame height. Level 1 brings the face to ~16 %, level 2 to ~22 % of the frame.
   const known = h > 0.02 && h < 0.6;
   const l1 = known ? Math.min(max * 0.8, Math.max(1.15, 0.16 / h)) : 1.2;
@@ -121,7 +125,56 @@ const MainVideo: React.FC<{plan: Plan; drift: number; fg?: boolean}> = ({plan, d
 
 // ---------- B-roll ----------
 
-const BrollItem: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; style: string}> = ({src, kind, dur, style}) => {
+type BrollSpec = {mode?: 'full' | 'window' | 'split'; in?: string; out?: string; radius?: number; scale?: number; y?: number;
+  border?: {w: number; color: string} | null; shadow?: boolean; kenBurns?: number; dur?: number};
+
+/** Learned b-roll layouts: full screen, a window with rounded corners, or the top half (split). */
+const BrollSpecItem: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; spec: BrollSpec}> = ({src, kind, dur, spec}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const t = f / fps;
+  const d = spec.dur ?? 0.22;
+  const kIn = spec.in === 'cut' ? 1 : ease(t, 0, d, spec.in === 'pop' ? POP : EXPO);
+  const kOut = spec.out === 'cut' ? 0 : ease(t, dur - d, d, Easing.in(Easing.cubic));
+  const kb = 1 + (spec.kenBurns ?? 0.06) * (t / Math.max(dur, 0.5));
+  const mode = spec.mode ?? 'full';
+  const sc = mode === 'window' ? (spec.scale ?? 0.78) : 1;
+  const boxW = mode === 'split' ? W : W * sc;
+  const boxH = mode === 'split' ? H * 0.5 : mode === 'window' ? boxW * (H / W) * (spec.scale ? 1 : 0.62) : H;
+  const cy = mode === 'split' ? H * 0.25 : mode === 'window' ? H * (spec.y ?? 0.4) : H / 2;
+  let tf = '';
+  let op = 1;
+  let blur = 0;
+  const motion = (k: number, kind?: string, sign = 1) => {
+    if (kind === 'slide') tf += ` translateX(${sign * (1 - k) * W}px)`;
+    else if (kind === 'whip') { tf += ` translateX(${sign * (1 - k) * W}px)`; blur += Math.sin(k * Math.PI) * 20; }
+    else if (kind === 'zoom' || kind === 'pop') tf += ` scale(${lerp(k, kind === 'pop' ? 0.6 : 1.15, 1)})`;
+    else if (kind === 'dissolve' || kind === 'fade') { op *= k; blur += (1 - k) * 12; }
+    else if (kind === 'up') tf += ` translateY(${sign * (1 - k) * H * 0.5}px)`;
+  };
+  motion(kIn, spec.in, 1);
+  motion(1 - kOut, spec.out, -1);
+  const media = kind === 'photo'
+    ? <Img src={asset(src)} style={{width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${kb})`}} />
+    : <OffthreadVideo src={asset(src)} muted style={{width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${kb})`}} />;
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', left: (W - boxW) / 2, top: cy - boxH / 2, width: boxW, height: boxH, overflow: 'hidden', opacity: op,
+        filter: blur > 0.3 ? `blur(${blur}px)` : undefined, transform: tf || undefined, borderRadius: mode === 'full' ? 0 : spec.radius ?? 28,
+        border: spec.border && spec.border.w ? `${spec.border.w}px solid ${spec.border.color}` : undefined,
+        boxShadow: spec.shadow ? '0 30px 80px rgba(0,0,0,.45)' : undefined}}>
+        {media}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+const BrollItem: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; style: string | BrollSpec}> = ({src, kind, dur, style}) => {
+  if (typeof style === 'object' && style) return <BrollSpecItem src={src} kind={kind} dur={dur} spec={style} />;
+  return <BrollClassic src={src} kind={kind} dur={dur} style={style as string} />;
+};
+
+const BrollClassic: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; style: string}> = ({src, kind, dur, style}) => {
   const f = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = f / fps;
@@ -425,15 +478,46 @@ export const CAPTION_FONTS: Record<string, {family: string; w: number}> = {
   caveat: {family: 'Caveat', w: 0.5}, serif: {family: 'Instrument Serif', w: 0.55},
 };
 
-type Hl = {color?: string; bg?: string; scale?: number; font?: string; italic?: boolean; weight?: number; radius?: number};
+type Hl = {color?: string; bg?: string; scale?: number; font?: string; italic?: boolean; weight?: number; radius?: number; stroke?: string; y?: number};
+type Key = {t: number; scale?: number; x?: number; y?: number; opacity?: number; rot?: number; blur?: number; ease?: 'linear' | 'in' | 'out' | 'inout'};
+const KEASE = {linear: (x: number) => x, in: Easing.in(Easing.cubic), out: Easing.out(Easing.cubic), inout: Easing.inOut(Easing.cubic)};
+
+/** Value of a keyframe track at time t (seconds since start). Missing props fall back to rest values. */
+function keysAt(keys: Key[], t: number): Required<Omit<Key, 't' | 'ease'>> {
+  const rest = {scale: 1, x: 0, y: 0, opacity: 1, rot: 0, blur: 0};
+  if (!keys?.length) return rest;
+  const ks = [...keys].sort((a, b) => a.t - b.t);
+  const val = (k: Key, p: keyof typeof rest) => (k[p] ?? rest[p]) as number;
+  if (t <= ks[0].t) return Object.fromEntries(Object.keys(rest).map((p) => [p, val(ks[0], p as keyof typeof rest)])) as typeof rest;
+  for (let i = 0; i < ks.length - 1; i++) {
+    const a = ks[i], b = ks[i + 1];
+    if (t <= b.t) {
+      const e = KEASE[b.ease ?? 'out'](cl((t - a.t) / Math.max(1e-3, b.t - a.t)));
+      return Object.fromEntries(Object.keys(rest).map((p) => [p, lerp(e, val(a, p as keyof typeof rest), val(b, p as keyof typeof rest))])) as typeof rest;
+    }
+  }
+  const last = ks[ks.length - 1];
+  return Object.fromEntries(Object.keys(rest).map((p) => [p, val(last, p as keyof typeof rest)])) as typeof rest;
+}
+const keyCss = (v: ReturnType<typeof keysAt>): React.CSSProperties => ({
+  transform: `translate(${v.x}px, ${v.y}px) scale(${v.scale}) rotate(${v.rot}deg)`,
+  opacity: cl(v.opacity),
+  filter: v.blur > 0.2 ? `blur(${v.blur}px)` : undefined,
+});
 export type CustomCap = {
   style: 'custom'; font: string; weight?: number; size: number; upper?: boolean; lower?: boolean; track?: number; lineHeight?: number;
   words: number; y: number | string; color: string; maxWidth?: number;
   stroke?: {w: number; color: string} | null; shadow?: 'none' | 'soft' | 'hard' | 'glow'; shadowColor?: string;
-  box?: {scope: 'phrase' | 'word'; color: string; radius?: number; padX?: number; padY?: number} | null;
+  box?: {scope: 'phrase' | 'word'; color: string; radius?: number; padX?: number; padY?: number; border?: {w: number; color: string} | null} | null;
   active?: Hl | null; key?: Hl | null; future?: {color?: string; opacity?: number} | null;
   reveal?: 'phrase' | 'word' | 'karaoke';
-  anim?: {type: 'none' | 'pop' | 'fade' | 'slide' | 'blur' | 'scale' | 'drop' | 'typewriter'; scope?: 'phrase' | 'word'; dur?: number; from?: number; overshoot?: boolean; dy?: number; stagger?: number} | null;
+  anim?: {type: 'none' | 'pop' | 'fade' | 'slide' | 'blur' | 'scale' | 'drop' | 'typewriter' | 'keys'; scope?: 'phrase' | 'word'; dur?: number; from?: number; overshoot?: boolean; dy?: number; stagger?: number;
+    /** type "keys": measured curve, t in s from the word's/phrase's start; values interpolate between keys */
+    keys?: Key[]} | null;
+  /** exit curve (t in s before the phrase ends, negative = before) */
+  outKeys?: Key[] | null;
+  align?: 'center' | 'left' | 'right'; x?: number;
+  activeDur?: number;
   out?: 'none' | 'fade' | 'pop'; tilt?: number; lead?: number;
 };
 
@@ -521,9 +605,16 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
       opacity: reveal === 'karaoke' && !spoken ? cap.future?.opacity ?? 1 : 1,
       ...(bg ? {background: bg, borderRadius: hl.radius ?? cap.box?.radius ?? 10, padding: `${cap.box?.padY ?? 0.04}em ${cap.box?.padX ?? 0.18}em`, textShadow: 'none'} : {}),
     };
-    const scale = (hl.scale ?? 1);
-    let tf = `scale(${scale})${cap.tilt ? ` rotate(${(x.k % 2 ? 1 : -1) * cap.tilt}deg)` : ''}`;
-    if (anim.scope !== 'phrase' && shown && anim.type !== 'typewriter') {
+    // the highlight of the spoken word can ease in (activeDur) instead of switching hard
+    const ka = live && cap.activeDur ? ease(t, x.s - lead, cap.activeDur) : 1;
+    const scale = live && cap.active?.scale ? lerp(ka, x.em ? cap.key?.scale ?? 1 : 1, cap.active.scale) : (hl.scale ?? 1);
+    if (hl.stroke && cap.stroke) Object.assign(st, {WebkitTextStroke: `${cap.stroke.w}px ${sc(hl.stroke)}`});
+    let tf = `${hl.y ? `translateY(${hl.y}px) ` : ''}scale(${scale})${cap.tilt ? ` rotate(${(x.k % 2 ? 1 : -1) * cap.tilt}deg)` : ''}`;
+    if (anim.type === 'keys' && anim.scope !== 'phrase' && shown) {
+      const v = keyCss(keysAt(anim.keys ?? [], t - (reveal === 'word' ? x.s - lead : ph.s - lead + x.k * (anim.stagger ?? 0))));
+      tf = `${v.transform} ${tf}`;
+      st = {...st, opacity: (st.opacity as number) * (v.opacity as number), filter: v.filter};
+    } else if (anim.scope !== 'phrase' && shown && anim.type !== 'typewriter') {
       const a = animate(ease(t, (reveal === 'word' ? x.s - lead : ph.s - lead + x.k * (anim.stagger ?? 0)), dur, curve));
       tf = `${a.transform ?? ''} ${tf}`;
       st = {...st, opacity: (st.opacity as number) * (a.opacity ?? 1), filter: a.filter};
@@ -535,13 +626,16 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
     }
     return <span key={x.i} style={{...st, transform: tf, visibility: shown ? 'visible' : 'hidden'}}>{text}</span>;
   });
-  const pa = anim.scope === 'phrase' ? animate(phraseK) : {};
-  const outT = cap.out === 'pop' ? ` scale(${lerp(outK, 1, 0.6)})` : '';
-  const box = cap.box?.scope === 'phrase' ? {background: sc(cap.box.color), borderRadius: cap.box.radius ?? 18, padding: `${cap.box.padY ?? 0.18}em ${cap.box.padX ?? 0.4}em`} : {};
+  const pa = anim.scope === 'phrase' ? (anim.type === 'keys' ? keyCss(keysAt(anim.keys ?? [], t - (ph.s - lead))) : animate(phraseK)) : {};
+  const ok = cap.outKeys?.length ? keyCss(keysAt(cap.outKeys, t - ph.e)) : null;
+  const outT = (cap.out === 'pop' ? ` scale(${lerp(outK, 1, 0.6)})` : '') + (ok ? ` ${ok.transform}` : '');
+  const box = cap.box?.scope === 'phrase' ? {background: sc(cap.box.color), borderRadius: cap.box.radius ?? 18, padding: `${cap.box.padY ?? 0.18}em ${cap.box.padX ?? 0.4}em`,
+    border: cap.box.border?.w ? `${cap.box.border.w}px solid ${sc(cap.box.border.color)}` : undefined} : {};
   return (
     <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(-50%) ${pa.transform ?? ''}${outT}`,
-      opacity: (pa.opacity ?? 1) * (1 - (cap.out === 'fade' || cap.out === 'pop' ? outK : 0)), filter: pa.filter, display: 'flex', justifyContent: 'center'}}>
-      <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', maxWidth: maxW,
+      opacity: ((pa.opacity as number) ?? 1) * (1 - (cap.out === 'fade' || cap.out === 'pop' ? outK : 0)) * ((ok?.opacity as number) ?? 1), filter: pa.filter ?? ok?.filter,
+      display: 'flex', justifyContent: cap.align === 'left' ? 'flex-start' : cap.align === 'right' ? 'flex-end' : 'center', marginLeft: cap.x ?? 0}}>
+      <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: cap.align === 'left' ? 'flex-start' : cap.align === 'right' ? 'flex-end' : 'center', alignItems: 'center', textAlign: cap.align ?? 'center', maxWidth: maxW,
         fontFamily: font.family, fontSize: size, lineHeight: cap.lineHeight ?? 1.08, letterSpacing: `${cap.track ?? 0}em`, textShadow: shadow, rowGap: size * 0.06, ...stroke, ...box}}>
         {words}
       </div>
@@ -551,7 +645,7 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
 
 // ---------- hook title ----------
 
-const Hook: React.FC<{text: string; end: number; style: string; accent: string; top: number}> = ({text, end, style, accent, top}) => {
+const Hook: React.FC<{text: string; end: number; style: string; accent: string; top: number; cap?: CustomCap}> = ({text, end, style, accent, top, cap}) => {
   const f = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = f / fps;
@@ -588,11 +682,12 @@ const Hook: React.FC<{text: string; end: number; style: string; accent: string; 
       <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         opacity: 1 - kOut, transform: `translateY(${-kOut * 30}px)`}}>
         {lines.map((l, i) => (
-          <div key={i} style={{fontFamily: 'Montserrat', fontWeight: 900, fontSize: CAPTION_HOOK, lineHeight: 1.0, letterSpacing: '-0.01em', whiteSpace: 'nowrap',
-            textShadow: '0 0 18px rgba(0,0,0,.6), 0 4px 14px rgba(0,0,0,.65), 0 0 3px rgba(0,0,0,.7)'}}>
+          <div key={i} style={{fontFamily: cap ? (CAPTION_FONTS[cap.font] ?? CAPTION_FONTS.montserrat).family : 'Montserrat', fontWeight: cap?.weight ?? 900, fontSize: CAPTION_HOOK, lineHeight: 1.0, letterSpacing: `${cap?.track ?? -0.01}em`, whiteSpace: 'nowrap',
+            textShadow: cap ? SHADOWS(cap.shadowColor ?? '#000')[cap.shadow ?? 'soft'] : '0 0 18px rgba(0,0,0,.6), 0 4px 14px rgba(0,0,0,.65), 0 0 3px rgba(0,0,0,.7)',
+            ...(cap?.stroke?.w ? {WebkitTextStroke: `${cap.stroke.w}px ${cap.stroke.color}`, paintOrder: 'stroke fill'} : {})}}>
             {l.split(' ').map((w, j) => {
               const k = ease(t, i * 0.1 + j * 0.06, 0.24, POP);
-              return <span key={j} style={{display: 'inline-block', marginLeft: j ? '0.3em' : 0, color: w === longest.toUpperCase() ? accent : '#fff', opacity: cl(k * 4),
+              return <span key={j} style={{display: 'inline-block', marginLeft: j ? '0.3em' : 0, color: w === longest.toUpperCase() ? accent : cap?.color ?? '#fff', opacity: cl(k * 4),
                 transform: `translateY(${(1 - k) * 26}px) scale(${lerp(k, 0.5, 1)})`}}>{w}</span>;
             })}
           </div>
@@ -739,6 +834,8 @@ const Progress: React.FC<{accent: string; duration: number}> = ({accent, duratio
 export const ClipperzEdit: React.FC<Plan> = (plan) => {
   const {fps} = useVideoConfig();
   const preset = presetOf(plan);
+  const zl = (preset.zoom as unknown as {levels?: number[]}).levels;
+  ZOOM_LEVELS = Array.isArray(zl) ? zl.map(Number).filter((x) => x >= 1 && x <= 2.5) : null;
   const fr = (s: number) => Math.max(0, Math.round(s * fps));
   const len = (a: number, b: number) => Math.max(1, Math.round((b - a) * fps));
   const speech = React.useMemo(() => {
@@ -779,7 +876,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
 
       {plan.broll.map((b, i) => (
         <Sequence key={'b' + i} from={fr(b.s)} durationInFrames={len(b.s, b.e)}>
-          <BrollItem src={b.src} kind={b.kind} dur={b.e - b.s} style={preset.broll} />
+          <BrollItem src={b.src} kind={b.kind} dur={b.e - b.s} style={preset.broll as unknown as string | BrollSpec} />
         </Sequence>
       ))}
 
@@ -802,7 +899,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
 
       {plan.captions && preset.cap.style !== 'scrim' && !(preset.cap.style === 'custom' && !(preset.cap as unknown as {shade?: boolean}).shade) ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
       {plan.captions ? (preset.cap.style === 'custom' ? <CustomCaptions plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
-      {showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} /> : null}
+      {showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} cap={preset.cap.style === 'custom' ? (preset.cap as unknown as CustomCap) : undefined} /> : null}
 
       {plan.inserts.map((x, i) => {
         const tr = x.tr ? byCode(x.tr) : null;

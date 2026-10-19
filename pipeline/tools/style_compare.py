@@ -54,6 +54,26 @@ def focus_of(path):
     return {"x": round(float(a[0]), 3), "y": round(float(a[1]), 3), "h": round(float(a[2]), 3)}
 
 
+def key_colour(style, accent=None):
+    """Background colour for the alpha render (BGR): the candidate farthest from every colour the style uses."""
+    cols = []
+    def walk(x):
+        if isinstance(x, dict):
+            for v in x.values():
+                walk(v)
+        elif isinstance(x, list):
+            for v in x:
+                walk(v)
+        elif isinstance(x, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", x):
+            cols.append(tuple(int(x[i:i + 2], 16) for i in (5, 3, 1)))
+    walk(style.get("cap"))
+    walk(style.get("accents"))
+    if accent:
+        walk(accent)
+    cands = [(255, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255), (128, 0, 128)]
+    return max(cands, key=lambda c: min([np.linalg.norm(np.subtract(c, k)) for k in cols] or [999]))
+
+
 def emphasis_from_ocr(words, ocr, video):
     """Words the original shows in colour (key words): sample the OCR box of each matched word, saturated = key word."""
     cap = cv2.VideoCapture(video)
@@ -62,7 +82,9 @@ def emphasis_from_ocr(words, ocr, video):
     for x in ocr:
         for b in x["boxes"]:
             n = norm(b["text"])
-            idx = [i for i, w in enumerate(words) if norm(w["w"]) == n and abs(w["s"] - x["t"]) < 2.5]
+            # only while the word is NOT being spoken: colour then means "key word", not "this word is live"
+            idx = [i for i, w in enumerate(words) if norm(w["w"]) == n and abs(w["s"] - x["t"]) < 2.5
+                   and not (w["s"] - 0.12 <= x["t"] <= w["e"] + 0.2)]
             if not idx:
                 continue
             cap.set(cv2.CAP_PROP_POS_FRAMES, int(x["t"] * fps))
@@ -87,6 +109,7 @@ def main():
     ap.add_argument("style")
     ap.add_argument("outdir")
     ap.add_argument("--accent")
+    ap.add_argument("--max-sec", dest="max_sec", type=float, default=15.0)
     ap.add_argument("--browser", default=os.environ.get("CLIPPERZ_BROWSER", "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell"))
     a = ap.parse_args()
     os.makedirs(a.outdir, exist_ok=True)
@@ -95,53 +118,107 @@ def main():
     ocr = json.load(open(os.path.join(a.probe, "ocr.json")))
     style = json.load(open(a.style))
     dur = float(sh(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", a.ref]).strip())
+    dur = min(dur, a.max_sec)  # an excerpt is enough to judge the look, and renders stay quick
+    words = [w for w in words if w["e"] <= dur]
+    ocr = [x for x in ocr if x["t"] <= dur]
 
-    # background for our render: the reference with its caption band blurred away
+    # One render of OUR captions on pure green. From it: the alpha of every pixel we draw. Then, in Python:
+    #  - side by side: original | original with its caption band blurred + ours on top (to look at)
+    #  - overlay test: ours composited onto the ORIGINAL. If the look is identical, nothing changes -> pixel match 100 %.
     pos = rep.get("position") or {"y_p10": 0.4, "y_p90": 0.6}
     y0 = max(0, int((pos["y_p10"] - 0.06) * H)) // 2 * 2
     y1 = min(H, int((pos["y_p90"] + 0.06) * H)) // 2 * 2
     name = re.sub(r"[^A-Za-z0-9_]", "_", os.path.splitext(os.path.basename(a.ref))[0])[:40]
-    rel = f"job/stylelab/{name}.mp4"
+    rel = f"job/stylelab/{name}_green.mp4"
     pub = os.path.join(REPO, "public", rel)
     os.makedirs(os.path.dirname(pub), exist_ok=True)
-    sh(["ffmpeg", "-v", "error", "-y", "-i", a.ref, "-filter_complex",
-        f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1,split[a][b];[b]crop={W}:{y1 - y0}:0:{y0},boxblur=28:3[c];[a][c]overlay=0:{y0}",
-        "-c:v", "libx264", "-crf", "20", "-preset", "veryfast", "-c:a", "aac", pub])
-
+    key = key_colour(style, a.accent)
+    sh(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"color=c=0x{key[2]:02X}{key[1]:02X}{key[0]:02X}:s={W}x{H}:r=30:d={dur:.3f}", "-c:v", "libx264", "-crf", "10", "-pix_fmt", "yuv420p", pub])
     accent = a.accent or (style.get("accents") or ["#FFD45A"])[0]
+    st = json.loads(json.dumps(style))
+    st.setdefault("zoom", {})["drift"] = 0  # the camera must not move the (green) frame
     plan = {"fps": 30, "duration": round(dur, 3), "video": rel, "focus": focus_of(a.ref), "words": words,
             "emphasis": emphasis_from_ocr(words, ocr, a.ref), "zooms": [], "broll": [], "inserts": [], "hook": None,
-            "sfx": [], "music": None, "preset": "lab", "style": style, "accent": accent, "captions": True}
+            "sfx": [], "music": None, "preset": "lab", "style": st, "accent": accent, "captions": True}
     pj = os.path.join(a.outdir, "plan.json")
     json.dump(plan, open(pj, "w"), ensure_ascii=False)
-    ours = os.path.join(a.outdir, "ours.mp4")
-    sh(["npx", "remotion", "render", "src/clipperz/index.ts", "ClipperzEdit", ours, f"--props={pj}", "--scale=0.5",
-        f"--browser-executable={a.browser}", "--concurrency=2", "--log=error"] if os.getcwd() == REPO else
-       ["bash", "-c", f"cd {REPO} && npx remotion render src/clipperz/index.ts ClipperzEdit {ours} --props={pj} --scale=0.5 --browser-executable={a.browser} --concurrency=2 --log=error"])
-    out = os.path.join(a.outdir, "compare.mp4")
-    sh(["ffmpeg", "-v", "error", "-y", "-i", a.ref, "-i", ours, "-filter_complex",
-        "[0:v]scale=540:960:force_original_aspect_ratio=increase,crop=540:960,setsar=1[l];[1:v]scale=540:960,setsar=1[r];[l][r]hstack[v]",
-        "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-crf", "22", "-preset", "veryfast", "-c:a", "aac", "-shortest", out])
+    green = os.path.join(a.outdir, "ours_green.mp4")
+    sh(["bash", "-c", f"cd {REPO} && npx remotion render src/clipperz/index.ts ClipperzEdit {green} --props={pj} --scale=0.5 --muted "
+                      f"--browser-executable={a.browser} --concurrency={max(1, (os.cpu_count() or 2))} --log=error"])
+    os.remove(pub)
 
-    # sheet: caption band at 8 moments where the original shows captions
-    ts = [x["t"] + 0.12 for x in ocr if x["boxes"]]
-    ts = ts[:: max(1, len(ts) // 8)][:8]
-    rows = []
-    cap = cv2.VideoCapture(out)
-    fps = cap.get(cv2.CAP_PROP_FPS) or 30
-    for t in ts:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * fps))
-        ok, fr = cap.read()
-        if ok:
-            rows.append(cv2.resize(fr, (540, 480)))  # original | ours, both full frame
-    cap.release()
+    cr = cv2.VideoCapture(a.ref)
+    cg = cv2.VideoCapture(green)
+    fps = cg.get(cv2.CAP_PROP_FPS) or 30
+    rfps = cr.get(cv2.CAP_PROP_FPS) or 30
+    tmp = os.path.join(a.outdir, "_sbs.mp4")
+    vw = cv2.VideoWriter(tmp, cv2.VideoWriter_fourcc(*"mp4v"), fps, (1080, 960))
+    by0, by1 = y0 // 2, y1 // 2
+    diffs, sheet_t = [], {round(x["t"] + 0.12, 1) for x in ocr if x["boxes"]}
+    sheet, heat = [], []
+    n = int(dur * fps)
+    ref_frame, ref_i = None, -1
+    for i in range(n):
+        ok, g = cg.read()
+        if not ok:
+            break
+        want = int(i / fps * rfps)
+        while ref_i < want:
+            ok2, fr = cr.read()
+            if not ok2:
+                break
+            ref_frame, ref_i = fr, ref_i + 1
+        if ref_frame is None:
+            break
+        o = cv2.resize(ref_frame, (540, 960), interpolation=cv2.INTER_AREA)
+        g = cv2.resize(g, (540, 960))
+        gf = g.astype(np.float32)
+        # alpha from the distance to the key colour: key = 0, anything we drew = 1 (soft at anti-aliased edges)
+        kv = np.array(key, np.float32)
+        dist = np.linalg.norm(gf - kv, axis=2) / 255.0
+        alpha = np.clip((dist - 0.08) / 0.5, 0, 1)[..., None]
+        fg = np.where(alpha > 0.02, (gf - (1 - alpha) * kv) / np.maximum(alpha, 0.02), 0)
+        fg = np.clip(fg, 0, 255)
+        blurred = o.copy()
+        blurred[by0:by1] = cv2.GaussianBlur(o[by0:by1], (0, 0), 14)
+        ours = (blurred * (1 - alpha) + fg * alpha).astype(np.uint8)
+        over = (o * (1 - alpha) + fg * alpha).astype(np.float32)
+        m = alpha[..., 0] > 0.6
+        if m.sum() > 200:
+            # slight blur forgives video compression / sub-pixel edges; the mask is grown a bit to catch missing strokes
+            d = np.abs(cv2.GaussianBlur(over, (0, 0), 1.5) - cv2.GaussianBlur(o.astype(np.float32), (0, 0), 1.5)).mean(axis=2)
+            mm = cv2.dilate(m.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
+            diffs.append(float(np.median(d[mm])))
+            if round(i / fps, 1) in sheet_t and len(heat) < 8:
+                hm = cv2.applyColorMap(np.clip(d * 2, 0, 255).astype(np.uint8), cv2.COLORMAP_INFERNO)
+                heat.append(np.hstack([o[by0:by1], ours[by0:by1], hm[by0:by1]]))
+        frame = np.hstack([o, ours])
+        vw.write(frame)
+        if round(i / fps, 1) in sheet_t and len(sheet) < 8 and (not sheet or i / fps - sheet[-1][0] > 0.8):
+            sheet.append((i / fps, cv2.resize(frame, (540, 480))))
+    vw.release()
+    cr.release()
+    cg.release()
+    out = os.path.join(a.outdir, "compare.mp4")
+    sh(["ffmpeg", "-v", "error", "-y", "-i", tmp, "-i", a.ref, "-t", f"{dur:.3f}", "-map", "0:v", "-map", "1:a?", "-c:v", "libx264", "-crf", "22",
+        "-preset", "veryfast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", out])
+    os.remove(tmp)
+    rows = [f for _, f in sheet]
     if rows:
         while len(rows) % 4:
             rows.append(np.zeros_like(rows[0]))
-        grid = np.vstack([np.hstack(rows[i:i + 4]) for i in range(0, len(rows), 4)])
-        cv2.imwrite(os.path.join(a.outdir, "compare.jpg"), grid, [cv2.IMWRITE_JPEG_QUALITY, 88])
-    os.remove(pub)
-    print(json.dumps({"compare": out, "sheet": os.path.join(a.outdir, "compare.jpg"), "emphasis": len(plan["emphasis"]), "focus": plan["focus"]}))
+        cv2.imwrite(os.path.join(a.outdir, "compare.jpg"), np.vstack([np.hstack(rows[i:i + 4]) for i in range(0, len(rows), 4)]), [cv2.IMWRITE_JPEG_QUALITY, 88])
+    if heat:
+        cv2.imwrite(os.path.join(a.outdir, "pixels.jpg"), np.vstack(heat), [cv2.IMWRITE_JPEG_QUALITY, 85])
+    # pixel match: 100 % = our text pixels are exactly the original's pixels (mean abs diff 0)
+    # Frames where the original shows a different word state (its transcript timing differs from ours) always differ;
+    # the best quarter of frames says how exact the LOOK is. 100 = identical pixels.
+    match = round(max(0.0, 100 - float(np.percentile(diffs, 25))), 1) if diffs else 0.0
+    in_sync = round(100 * float(np.mean(np.array(diffs) < 10)), 1) if diffs else 0.0
+    res = {"compare": out, "sheet": os.path.join(a.outdir, "compare.jpg"), "pixels": os.path.join(a.outdir, "pixels.jpg"),
+           "pixel_match": match, "frames_identical_pct": in_sync, "frames_measured": len(diffs), "emphasis": len(plan["emphasis"]), "focus": plan["focus"]}
+    json.dump(res, open(os.path.join(a.outdir, "score.json"), "w"))
+    print(json.dumps(res))
 
 
 if __name__ == "__main__":

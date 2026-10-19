@@ -821,7 +821,7 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         add(0.05, pr["sfx"]["hook"], vol)
     for b in broll:
         if pr["sfx"]["broll"]:
-            add(b["s"] - (0.02 if pr["broll"] == "slideRight" else 0.12), pr["sfx"]["broll"], vol)
+            add(b["s"] - (0.02 if pr["broll"] in ("slideRight", "cut") or (isinstance(pr["broll"], dict) and pr["broll"].get("in") == "cut") else 0.12), pr["sfx"]["broll"], vol)
         for k2, nm in enumerate(pr["sfx"].get("brollOut", [])):  # every listed sound plays at the exit
             if count.get(nm, 0) < cap_n:
                 count[nm] = count.get(nm, 0) + 1
@@ -884,8 +884,33 @@ def render(plan, dst):
 VOICE_AF = "highpass=f=80,afftdn=nf=-28:tn=1"
 
 
+def grade_filter(g):
+    """Colour look of a style: an ffmpeg filter string (built-ins) or measured parameters (learned styles)."""
+    if isinstance(g, str) or g is None:
+        return g
+    if not isinstance(g, dict):
+        return None
+    num = lambda k, d, lo, hi: max(lo, min(hi, float(g.get(k, d)))) if isinstance(g.get(k, d), (int, float)) else d
+    parts = [f"eq=contrast={num('contrast', 1, 0.6, 1.6):.3f}:saturation={num('saturation', 1, 0, 2):.3f}"
+             f":brightness={num('brightness', 0, -0.2, 0.2):.3f}:gamma={num('gamma', 1, 0.6, 1.6):.3f}"]
+    t, ti = num("temp", 0, -1, 1), num("tint", 0, -1, 1)
+    if t or ti:
+        parts.append(f"colorbalance=rm={0.12 * t:.3f}:bm={-0.12 * t:.3f}:gm={-0.1 * ti:.3f}:rh={0.08 * t:.3f}:bh={-0.08 * t:.3f}")
+    fade = num("fade", 0, 0, 0.3)  # lifted blacks (matte look)
+    if fade:
+        parts.append(f"curves=all='0/{fade:.3f} 1/1'")
+    if num("sharpen", 0, 0, 1.5):
+        parts.append(f"unsharp=5:5:{num('sharpen', 0, 0, 1.5):.2f}:5:5:0")
+    if num("vignette", 0, 0, 1):
+        parts.append(f"vignette=angle={0.2 + 0.5 * num('vignette', 0, 0, 1):.3f}")
+    if num("grain", 0, 0, 30):
+        parts.append(f"noise=alls={int(num('grain', 0, 0, 30))}:allf=t")
+    return ",".join(parts)
+
+
 def prepare_main(src, dst, grade=None):
     """Main video for the renderer: optional colour grade, always the voice clean-up."""
+    grade = grade_filter(grade)
     v = ["-vf", grade, "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"] if grade else ["-c:v", "copy"]
     try:
         run(["ffmpeg", "-v", "error", "-y", "-i", src, *v, "-af", VOICE_AF, "-c:a", "aac", "-b:a", "192k", dst])
@@ -1342,6 +1367,12 @@ def main():
     if cfg.get("revise"):
         return run_revision(cfg)
 
+    # Learned styles bring their own cutting pace (style.cut); set it before the rough cut.
+    _pace = (PRESETS[register_style(cfg.get("preset"), cfg.get("styleConfig"))].get("cut") or {})
+    global CUT_HEAD, CUT_TAIL, KEEP_GAP
+    for name, key, lo, hi in (("CUT_HEAD", "head", 0.0, 0.25), ("CUT_TAIL", "tail", 0.0, 0.3), ("KEEP_GAP", "keepGap", 0.03, 0.6)):
+        if isinstance(_pace.get(key), (int, float)):
+            globals()[name] = max(lo, min(hi, float(_pace[key])))
     raw = drive_file(cfg["videoUrl"], os.path.join(W, "raw"))
 
     report(note="B-Roll wird geladen und mit dem LUT bearbeitet…")

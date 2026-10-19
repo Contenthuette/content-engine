@@ -1,0 +1,47 @@
+# CLIPPERZ "Neuen Stil lernen": reference videos -> measured -> Claude writes the style -> render + compare -> template.
+# Triggered by CLIPPERZ (repository_dispatch "clipperz-style"). Payload (job id, one-time token, callback URL) is read
+# from the event file inside the script, never printed or passed through env.
+name: clipperz-style
+on:
+  repository_dispatch:
+    types: [clipperz-style]
+concurrency:
+  group: clipperz-style-${{ github.event.client_payload.job }}
+jobs:
+  learn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tesseract-ocr tesseract-ocr-deu
+          pip install -q -U requests pillow pytesseract scenedetect "opencv-python-headless<5" "faster-whisper==1.2.1"
+          npm ci --no-audit --no-fund
+          npx remotion browser ensure
+      - name: Cache speech model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-small-v1
+      - name: Learn
+        id: learn
+        run: python3 worker/clipperz_style.py
+      - name: Report setup failure
+        if: failure() && steps.learn.outcome != 'failure'
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          p = json.load(open(os.environ["GITHUB_EVENT_PATH"]))["client_payload"]
+          q = urllib.parse.urlencode({"job": p["job"], "k": p["token"]})
+          body = json.dumps({"status": "failed", "error": "Worker konnte nicht starten – bitte nochmal versuchen."}).encode()
+          req = urllib.request.Request(p["api"].rstrip("/") + "/style-status?" + q, data=body, headers={"Content-Type": "application/json"})
+          try:
+              urllib.request.urlopen(req, timeout=30)
+          except Exception as e:
+              print("status update failed:", type(e).__name__)
+          PY
