@@ -33,7 +33,17 @@ def sh(cmd):
 
 def focus_of(path):
     """Face position for the caption face guard (Haar cascade on a few frames)."""
-    cas = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    import glob as _g
+    xml = None
+    try:
+        xml = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    except AttributeError:  # some opencv builds ship without cv2.data
+        hits = _g.glob(os.path.join(os.path.dirname(cv2.__file__), "**", "haarcascade_frontalface_default.xml"), recursive=True) + \
+            _g.glob("/usr/share/opencv*/**/haarcascade_frontalface_default.xml", recursive=True)
+        xml = hits[0] if hits else None
+    if not xml or not os.path.exists(xml):
+        return {"x": 0.5, "y": 0.3, "h": 0.1}
+    cas = cv2.CascadeClassifier(xml)
     cap = cv2.VideoCapture(path)
     n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
     found = []

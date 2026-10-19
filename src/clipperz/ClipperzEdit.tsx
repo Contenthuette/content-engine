@@ -479,12 +479,12 @@ export const CAPTION_FONTS: Record<string, {family: string; w: number}> = {
 };
 
 type Hl = {color?: string; bg?: string; scale?: number; font?: string; italic?: boolean; weight?: number; radius?: number; stroke?: string; y?: number};
-type Key = {t: number; scale?: number; x?: number; y?: number; opacity?: number; rot?: number; blur?: number; ease?: 'linear' | 'in' | 'out' | 'inout'};
+type Key = {t: number; scale?: number; x?: number; y?: number; opacity?: number; rot?: number; blur?: number; track?: number; ease?: 'linear' | 'in' | 'out' | 'inout'};
 const KEASE = {linear: (x: number) => x, in: Easing.in(Easing.cubic), out: Easing.out(Easing.cubic), inout: Easing.inOut(Easing.cubic)};
 
 /** Value of a keyframe track at time t (seconds since start). Missing props fall back to rest values. */
 function keysAt(keys: Key[], t: number): Required<Omit<Key, 't' | 'ease'>> {
-  const rest = {scale: 1, x: 0, y: 0, opacity: 1, rot: 0, blur: 0};
+  const rest = {scale: 1, x: 0, y: 0, opacity: 1, rot: 0, blur: 0, track: 0};
   if (!keys?.length) return rest;
   const ks = [...keys].sort((a, b) => a.t - b.t);
   const val = (k: Key, p: keyof typeof rest) => (k[p] ?? rest[p]) as number;
@@ -503,6 +503,8 @@ const keyCss = (v: ReturnType<typeof keysAt>): React.CSSProperties => ({
   transform: `translate(${v.x}px, ${v.y}px) scale(${v.scale}) rotate(${v.rot}deg)`,
   opacity: cl(v.opacity),
   filter: v.blur > 0.2 ? `blur(${v.blur}px)` : undefined,
+  // letter-spacing animation (e.g. words squeezed together that open up): em added to the style's tracking
+  ...(v.track ? {letterSpacing: `${v.track}em`} : {}),
 });
 export type CustomCap = {
   style: 'custom'; font: string; weight?: number; size: number; upper?: boolean; lower?: boolean; track?: number; lineHeight?: number;
@@ -613,7 +615,7 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
     if (anim.type === 'keys' && anim.scope !== 'phrase' && shown) {
       const v = keyCss(keysAt(anim.keys ?? [], t - (reveal === 'word' ? x.s - lead : ph.s - lead + x.k * (anim.stagger ?? 0))));
       tf = `${v.transform} ${tf}`;
-      st = {...st, opacity: (st.opacity as number) * (v.opacity as number), filter: v.filter};
+      st = {...st, opacity: (st.opacity as number) * (v.opacity as number), filter: v.filter, ...(v.letterSpacing ? {letterSpacing: v.letterSpacing} : {})};
     } else if (anim.scope !== 'phrase' && shown && anim.type !== 'typewriter') {
       const a = animate(ease(t, (reveal === 'word' ? x.s - lead : ph.s - lead + x.k * (anim.stagger ?? 0)), dur, curve));
       tf = `${a.transform ?? ''} ${tf}`;

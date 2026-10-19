@@ -126,7 +126,7 @@ SCHEMA = """Ein Template ist die KOMPLETTE Machart. Alles als JSON, Größen in 
    "active": gesprochenes Wort {"color"?, "bg"?, "radius"?, "scale"?, "stroke"?, "y"?} | null, "activeDur": s (weiches Umschalten, 0 = hart),
    "key": Schlüsselwort {"color"?, "bg"?, "scale"?, "font"?, "italic"?, "weight"?, "stroke"?} | null,
    "reveal": "word"|"phrase"|"karaoke", "future": {"color"?, "opacity"?},
-   "anim": {"type": "keys", "scope": "word"|"phrase", "stagger": s, "keys": [{"t": s ab Einsatz, "scale", "x", "y", "opacity", "rot", "blur", "ease": "linear"|"in"|"out"|"inout"}]}
+   "anim": {"type": "keys", "scope": "word"|"phrase", "stagger": s, "keys": [{"t": s ab Einsatz, "scale", "x", "y", "opacity", "rot", "blur", "track" (Laufweite em, z. B. -0.15 = zusammengequetscht), "ease": "linear"|"in"|"out"|"inout"}]}
            – die Keys bilden die gemessene Einblend-Kurve Frame für Frame nach (z. B. 0 s scale 0.4 opacity 0, 0.07 s scale 1.15, 0.13 s scale 1);
            einfache Alternativen: "pop"|"fade"|"slide"|"drop"|"blur"|"typewriter"|"none" mit "dur","from","overshoot","dy",
    "outKeys": Ausblend-Kurve, t in s relativ zum Ende der Einblendung (negativ = davor) | null,
@@ -198,7 +198,7 @@ def clean_cap(cap):
         ks = [k for k in (anim.get("keys") or []) if isinstance(k, dict) and isinstance(k.get("t"), (int, float))][:12]
         for k in ks:
             k["t"] = _num(k["t"], -1, 2, 0)
-            for f, lo, hi in (("scale", 0, 3), ("x", -600, 600), ("y", -600, 600), ("opacity", 0, 1), ("rot", -45, 45), ("blur", 0, 40)):
+            for f, lo, hi in (("scale", 0, 3), ("x", -600, 600), ("y", -600, 600), ("opacity", 0, 1), ("rot", -45, 45), ("blur", 0, 40), ("track", -0.3, 0.5)):
                 if f in k:
                     k[f] = _num(k[f], lo, hi, 0)
         anim["keys"] = ks or [{"t": 0, "scale": 0.6, "opacity": 0}, {"t": 0.15, "scale": 1, "opacity": 1}]
