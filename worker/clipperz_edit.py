@@ -122,7 +122,7 @@ def parse_json(text):
     return None
 
 
-def llm_json(messages, max_tokens=4000):
+def llm_json(messages, max_tokens=12000):
     for attempt in range(3):
         text = llm(messages, max_tokens=max_tokens)
         obj = parse_json(text)
@@ -274,7 +274,7 @@ def rough_cut_plan(words, duration):
             "Inhalt nie umstellen, nichts Wichtiges kürzen. Antworte NUR mit JSON: {\"drop\": [[von_index, bis_index], ...]} (inklusive Grenzen)."
         )},
         {"role": "user", "content": lines},
-    ], max_tokens=3000)
+    ], max_tokens=12000)
     drop = set()
     for rng in plan.get("drop", []) if isinstance(plan, dict) else []:
         try:
@@ -402,7 +402,7 @@ def smart_cut_plan(words, duration, target=None):
             "\"funny\": [nummern witziger Sätze], \"why\": \"ein Satz, warum dieser Hook\"}"
         )},
         {"role": "user", "content": lines},
-    ], max_tokens=2000)
+    ], max_tokens=12000)
     try:
         order = [int(x) for x in plan.get("order", [])]
         hook = int(plan.get("hook", order[0] if order else 0))
@@ -516,7 +516,7 @@ def describe_broll(items):
             content.append({"type": "text", "text": f"Bild {start + k}:"})
             content.append({"type": "image", "image": base64.b64encode(buf.getvalue()).decode(), "mediaType": "image/jpeg"})
         try:
-            res = llm_json([{"role": "user", "content": content}], max_tokens=1500)
+            res = llm_json([{"role": "user", "content": content}], max_tokens=6000)
             for row in res if isinstance(res, list) else []:
                 idx = int(row.get("i", -1))
                 if 0 <= idx < len(items):
@@ -614,7 +614,7 @@ def edit_plan(words, duration, items, preset_id, spoken_hook):
     system = "".join(parts)
     user = f"Video-Länge: {duration:.2f} s\nGesprochener Einstieg: {spoken_hook or '-'}\n\nTranskript:\n" + "\n".join(lines) + f"\n\nB-Roll-Bilder:\n{pics}"
     try:
-        res = llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens=3000)
+        res = llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens=12000)
     except EditError as e:
         print("edit plan failed, using defaults:", e)
         res = {}
@@ -748,6 +748,9 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         for prev, cur in zip(zooms, zooms[1:]):
             if cur["mode"] == "cut" and cur["level"] > prev["level"]:
                 add(cur["s"], pr["sfx"]["zoom"], vol * 0.7)
+    if pr["sfx"].get("end") and duration > 4:  # closing sound on the last word
+        last = words[-1]["e"] if words else duration - 0.6
+        sfx.append({"t": round(max(0.0, min(duration - 0.9, last - 0.1)), 3), "name": pr["sfx"]["end"][0], "vol": vol * 0.8})
 
     return {
         "fps": FPS,
@@ -793,6 +796,67 @@ def render(plan, dst):
     # Master: -14 LUFS like the reels.
     run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1:LRA=11",
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", dst])
+
+
+# Voice clean-up for every style: rumble under 80 Hz out, light broadband denoise (stays natural).
+VOICE_AF = "highpass=f=80,afftdn=nf=-28:tn=1"
+
+
+def prepare_main(src, dst, grade=None):
+    """Main video for the renderer: optional colour grade, always the voice clean-up."""
+    v = ["-vf", grade, "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"] if grade else ["-c:v", "copy"]
+    try:
+        run(["ffmpeg", "-v", "error", "-y", "-i", src, *v, "-af", VOICE_AF, "-c:a", "aac", "-b:a", "192k", dst])
+    except Exception as e:  # never fail an edit over the clean-up
+        print("voice clean-up failed, using original audio:", e)
+        run(["ffmpeg", "-v", "error", "-y", "-i", src, *v, "-c:a", "copy", dst])
+
+
+# Cut-out of the speaker for text behind the person: RobustVideoMatting (temporal, stable hair edges).
+# Model: github.com/PeterL1n/RobustVideoMatting (GPL-3.0) – downloaded at run time, only its output is used.
+RVM_URL = "https://github.com/PeterL1n/RobustVideoMatting/releases/download/v1.0.0/rvm_mobilenetv3_fp32.onnx"
+
+
+def cutout(src, dst):
+    """Alpha WebM (VP9, yuva420p) of the speaker at 1080x1920 for Remotion's transparent OffthreadVideo."""
+    import numpy as np
+    import onnxruntime as ort
+    model = os.path.join(W, "rvm.onnx")
+    if not os.path.exists(model):
+        r = requests.get(RVM_URL, timeout=120)
+        r.raise_for_status()
+        with open(model, "wb") as fh:
+            fh.write(r.content)
+    w, h = 1080, 1920
+    fps = FPS
+    sess = ort.InferenceSession(model, providers=["CPUExecutionProvider"])
+    dec = subprocess.Popen(["ffmpeg", "-v", "error", "-i", src, "-vf", f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},fps={fps}",
+                            "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
+    enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y",
+                            "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{w}x{h}", "-r", str(fps), "-i", "-",
+                            "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "6M", "-deadline", "realtime", "-cpu-used", "8",
+                            "-row-mt", "1", "-auto-alt-ref", "0", dst], stdin=subprocess.PIPE)
+    rec = [np.zeros((1, 1, 1, 1), dtype=np.float32)] * 4
+    ds = np.array([0.25], dtype=np.float32)
+    n = 0
+    while True:
+        buf = dec.stdout.read(w * h * 3)
+        if len(buf) < w * h * 3:
+            break
+        rgb = np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 3)
+        x = (rgb.astype(np.float32) / 255.0).transpose(2, 0, 1)[None]
+        fgr, pha, *rec = sess.run(None, {"src": x, "r1i": rec[0], "r2i": rec[1], "r3i": rec[2], "r4i": rec[3], "downsample_ratio": ds})
+        a = np.clip(pha[0, 0], 0, 1)
+        a = np.where(a < 0.04, 0, a)  # no grey haze around the person
+        rgba = np.dstack([rgb, (a * 255).astype(np.uint8)])
+        enc.stdin.write(rgba.tobytes())
+        n += 1
+    enc.stdin.close()
+    enc.wait()
+    dec.wait()
+    if enc.returncode != 0 or n == 0:
+        raise EditError("Freistellen fehlgeschlagen")
+    print(f"cut-out: {n} frames")
 
 
 def upload(path):
@@ -893,11 +957,7 @@ def main():
     job = f"job/{re.sub(r'[^A-Za-z0-9]', '', str(P['edit']))[:40] or 'edit'}"
     pub = os.path.join(REPO, "public", job)
     os.makedirs(pub, exist_ok=True)
-    if pr.get("grade"):  # preset colour grade (e.g. more contrast: darks darker, lights lighter, a bit sharper)
-        run(["ffmpeg", "-v", "error", "-y", "-i", cut_path, "-vf", pr["grade"], "-c:v", "libx264", "-preset", "veryfast", "-crf", "17",
-             "-pix_fmt", "yuv420p", "-c:a", "copy", os.path.join(pub, "main.mp4")])
-    else:
-        shutil.copy(cut_path, os.path.join(pub, "main.mp4"))
+    prepare_main(cut_path, os.path.join(pub, "main.mp4"), pr.get("grade"))
     broll_rel = []
     for i, it in enumerate(items):
         ext = os.path.splitext(it["path"])[1]
@@ -905,6 +965,14 @@ def main():
         broll_rel.append(f"{job}/b{i}{ext}")
     plan = build_plan(words_cut, out_dur, items, preset_id, cfg.get("captions", pr["captions"]), focus, res, f"{job}/main.mp4", broll_rel,
                       hi_res=min(src_size(cut_path)) >= 1440, src_min=min(src_size(cut_path)))
+    if pr.get("depth"):  # text behind the speaker needs the cut-out; without it the style still renders (text in front)
+        report(note="Person wird freigestellt (Text hinter dir)…")
+        try:
+            cutout(os.path.join(pub, "main.mp4"), os.path.join(pub, "fg.webm"))
+            plan["fg"] = f"{job}/fg.webm"
+            plan["outScale"] = 1  # the cut-out is 1080p
+        except Exception as e:
+            print("cut-out failed, rendering without it:", e)
     print(f"plan: {len(plan['zooms'])} zooms, {len(plan['broll'])} b-roll, {len(plan['inserts'])} beats, hook: {plan['hook']}, focus: {focus}")
 
     report(note=f"Video wird gerendert ({pr['label']})…", stats={"inSec": in_dur, "outSec": out_dur, "broll": len(plan["broll"])})

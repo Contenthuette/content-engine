@@ -74,15 +74,18 @@ function camera(t: number, zooms: Zoom[], focus: Plan['focus'], drift: number, m
   return {S, tx: tx + sx, ty: ty + sy};
 }
 
-const MainVideo: React.FC<{plan: Plan; drift: number}> = ({plan, drift}) => {
+/** The speaker. With `fg` it draws the cut-out (alpha video from the worker's matting) on top of the text-behind layer. */
+const MainVideo: React.FC<{plan: Plan; drift: number; fg?: boolean}> = ({plan, drift, fg}) => {
   const f = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = f / fps;
   const {S, tx, ty} = camera(t, plan.zooms, plan.focus, drift, plan.maxZoom ?? 1.7);
   return (
-    <AbsoluteFill style={{background: '#000', overflow: 'hidden'}}>
+    <AbsoluteFill style={{background: fg ? 'transparent' : '#000', overflow: 'hidden'}}>
       <div style={{position: 'absolute', left: 0, top: 0, width: W, height: H, transformOrigin: '0 0', transform: `translate(${tx}px, ${ty}px) scale(${S})`}}>
-        <OffthreadVideo src={staticFile(plan.video)} style={{width: W, height: H, objectFit: 'cover'}} />
+        {fg && plan.fg
+          ? <OffthreadVideo src={staticFile(plan.fg)} transparent muted style={{width: W, height: H, objectFit: 'cover'}} />
+          : <OffthreadVideo src={staticFile(plan.video)} muted={!!fg} style={{width: W, height: H, objectFit: 'cover'}} />}
       </div>
     </AbsoluteFill>
   );
@@ -128,13 +131,18 @@ const BrollItem: React.FC<{src: string; kind: 'photo' | 'video'; dur: number; st
 // ---------- captions ----------
 
 /** Caption centre (px). Number = fraction of the height; "chest" = on the chest of the speaker, follows the zoom. */
+// Instagram/TikTok safe area (5-Pass Reel Kit): nothing important in the top 220 px, bottom 380 px, right 140 px.
+const SAFE = {top: 220, bottom: 380, right: 140, left: 70};
+
 function captionY(plan: Plan, preset: Preset, t: number) {
   const y = preset.cap.y as unknown as number | string;
-  if (typeof y === 'number') return y * H;
   const {S, ty} = camera(t, plan.zooms, plan.focus, preset.zoom.drift, plan.maxZoom ?? 1.7);
   const fh = (plan.focus.h > 0 ? plan.focus.h : 0.12) * H * S;
   const faceY = S * plan.focus.y * H + ty;
-  return Math.max(H * 0.42, Math.min(H * 0.78, faceY + fh * 2.3));
+  const c = typeof y === 'number' ? y * H : Math.max(H * 0.42, Math.min(H * 0.78, faceY + fh * 2.3));
+  // Never over the face: the caption block starts below the chin, and never under the app buttons.
+  const chin = faceY + fh * 0.62;
+  return Math.min(H - SAFE.bottom - 80, Math.max(c, chin + 120));
 }
 
 type Phrase = {words: {w: Word; i: number}[]; s: number; e: number};
@@ -155,8 +163,17 @@ function phrases(words: Word[], max: number): Phrase[] {
     }
   });
   if (cur.length) out.push({words: cur, s: cur[0].w.s, e: cur[cur.length - 1].w.e});
-  // keep each phrase on screen until the next one starts (max 0.6 s gap)
-  return out.map((p, k) => ({...p, e: Math.min(out[k + 1]?.s ?? p.e + 0.4, p.e + 0.6)}));
+  // every caption stays at least 0.4 s: a shorter phrase takes the next one along (one word more than max at most)
+  const merged: Phrase[] = [];
+  for (const p of out) {
+    const prev = merged[merged.length - 1];
+    if (prev && prev.e - prev.s < 0.4 && prev.words.length + p.words.length <= max + 1 && p.s - prev.e < 0.35) {
+      prev.words.push(...p.words);
+      prev.e = p.e;
+    } else merged.push({...p, words: [...p.words]});
+  }
+  // keep each phrase on screen until the next one starts (max 0.6 s gap), but at least 0.4 s
+  return merged.map((p, k) => ({...p, e: Math.min(merged[k + 1]?.s ?? p.e + 0.4, Math.max(p.e + 0.6, p.s + 0.4))}));
 }
 
 const clean = (w: string, upper: boolean, smart = false) => {
@@ -206,12 +223,12 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
   const k = ease(t, ph.s - 0.03, 0.14, SPRING);
   const shadow = '0 0 18px rgba(0,0,0,.55), 0 4px 14px rgba(0,0,0,.6), 0 0 3px rgba(0,0,0,.7)';
   return (
-    <div style={{position: 'absolute', left: 50, right: 50, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${lerp(k, 0.88, 1)})`, opacity: cl(k * 3),
+    <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${lerp(k, 0.88, 1)})`, opacity: cl(k * 3),
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center'}}>
       {lines.map((ln, li) => {
         const size0 = ln.big ? big : base;
         const chars = ln.toks.reduce((n, x) => n + x.text.length, 0) + ln.toks.length - 1;
-        const size = Math.min(size0, 960 / Math.max(1, chars * 0.74)); // never wider than the frame
+        const size = Math.min(size0, (W - SAFE.left - SAFE.right) / Math.max(1, chars * 0.74)); // stays inside the safe area
         return (
           <div key={li} style={{fontFamily: 'Montserrat', fontWeight: cap.weight, fontSize: size, lineHeight: 1.02, letterSpacing: '-0.01em', whiteSpace: 'nowrap', textShadow: shadow}}>
             {ln.toks.map((tk, ti) => (
@@ -307,6 +324,8 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
       // Premium underline: the phrase fades up as a whole; key words get an accent bar that wipes in when spoken.
       const ku = ease(t, w.s, 0.13);
       Object.assign(st, isEm ? {backgroundImage: `linear-gradient(${accent}, ${accent})`, backgroundRepeat: 'no-repeat', backgroundPosition: '0 94%', backgroundSize: `${ku * 100}% 0.17em`, paddingBottom: '0.08em'} : {});
+    } else if (cap.style === 'depth') {
+      Object.assign(st, isEm && plan.fg ? {display: 'none'} : {opacity: spoken ? 1 : 0.55});
     } else if (cap.style === 'pop') {
       Object.assign(st, {
         color: isEm ? accent : cap.color,
@@ -326,13 +345,13 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   const rise = cap.style === 'underline' || cap.style === 'scrim' ? (1 - ease(t, ph.s - 0.03, 0.23)) * 24 : 0;
   if (cap.style === 'scrim') {
     return (
-      <div style={{position: 'absolute', left: 60, right: 60, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px))`, display: 'flex', justifyContent: 'center', opacity}}>
+      <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px))`, display: 'flex', justifyContent: 'center', opacity}}>
         <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'center', background: 'rgba(10,10,10,.62)', borderRadius: 18, padding: '14px 28px', ...base}}>{words}</div>
       </div>
     );
   }
   return (
-    <div style={{position: 'absolute', left: 70, right: 70, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px)) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
+    <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px)) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
       {words}
     </div>
   );
@@ -417,6 +436,60 @@ function hookTop(plan: Plan, preset: Preset) {
   return Math.min(captionY(plan, preset, 1) - tall - 60, bottom + 30);
 }
 
+// ---------- text behind the speaker (needs the cut-out, style "depth") ----------
+
+/** Hook and the key word of each phrase, huge, standing behind the head (5-Pass Reel Kit: "text behind me for hooks and big words"). */
+const BehindText: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boolean}> = ({plan, preset, hidden}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const t = f / fps;
+  const cap = preset.cap;
+  const list = React.useMemo(() => phrases(plan.words, cap.words), [plan.words, cap.words]);
+  if (hidden(t)) return null;
+  const {S, ty} = camera(t, plan.zooms, plan.focus, preset.zoom.drift, plan.maxZoom ?? 1.7);
+  const fh = (plan.focus.h > 0 ? plan.focus.h : 0.12) * H * S;
+  const faceY = S * plan.focus.y * H + ty;
+  let text = '';
+  let start = 0;
+  let end = 0;
+  if (plan.hook && t < plan.hook.e) {
+    text = plan.hook.text.toUpperCase();
+    start = 0;
+    end = plan.hook.e;
+  } else {
+    const emph = new Set(plan.emphasis);
+    const ph = list.find((p) => t >= p.s - 0.03 && t < p.e);
+    const key = ph?.words.find(({i}) => emph.has(i));
+    if (!ph || !key) return null;
+    text = clean(key.w.w, true, true).replace(/[.!?…,]+$/, '');
+    start = key.w.s - 0.05;
+    end = ph.e;
+  }
+  if (!text) return null;
+  // Lines of max ~9 characters, as big as the width allows (Montserrat Black ≈ 0.68 em per capital).
+  const lines = text.split(/\s+/).reduce<string[]>((acc, w) => {
+    const last = acc[acc.length - 1];
+    if (last && (last + ' ' + w).length <= 10) acc[acc.length - 1] = last + ' ' + w;
+    else acc.push(w);
+    return acc;
+  }, []).slice(0, 3);
+  const longest = Math.max(...lines.map((l) => l.length));
+  const size = Math.min(330, (W - 90) / Math.max(1, longest * 0.7));
+  const blockH = lines.length * size * 0.92;
+  const centre = Math.max(SAFE.top + blockH / 2, faceY - fh * 0.55);
+  const k = ease(t, start, 0.3, SPRING);
+  const out = ease(t, end - 0.12, 0.12, Easing.in(Easing.cubic));
+  return (
+    <div style={{position: 'absolute', left: 30, right: 30, top: centre, transform: `translateY(-50%) scale(${lerp(k, 1.12, 1)})`, opacity: cl(k * 2) * (1 - out),
+      display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center'}}>
+      {lines.map((l, i) => (
+        <div key={i} style={{fontFamily: 'Montserrat', fontWeight: 900, fontSize: size, lineHeight: 0.92, letterSpacing: '-0.03em', color: plan.accent || '#fff', whiteSpace: 'nowrap',
+          textShadow: '0 10px 40px rgba(0,0,0,.35)'}}>{l}</div>
+      ))}
+    </div>
+  );
+};
+
 // ---------- progress bar ----------
 
 const Progress: React.FC<{accent: string; duration: number}> = ({accent, duration}) => {
@@ -444,12 +517,28 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
     return out;
   }, [plan.words]);
   const talking = (t: number) => speech.some(([a, b]) => t > a - 0.1 && t < b + 0.08);
+  // Music ducking (5-Pass Reel Kit / claude-youtube-editor): down ~9 dB while talking, 0.15 s attack, 0.45 s release.
+  const duck = (t: number) => {
+    let g = 1;
+    for (const [a, b] of speech) {
+      if (t >= a && t <= b) return 0.35;
+      if (t < a) g = Math.min(g, lerp(cl((a - t) / 0.15), 0.35, 1));
+      else g = Math.min(g, lerp(cl((t - b) / 0.45), 0.35, 1));
+    }
+    return g;
+  };
   const inInsert = (t: number) => plan.inserts.some((x) => t >= x.s && t < x.e);
   const total = plan.duration;
 
   return (
     <AbsoluteFill style={{background: '#000'}}>
       <MainVideo plan={plan} drift={preset.zoom.drift} />
+      {plan.fg ? (
+        <>
+          <BehindText plan={plan} preset={preset} hidden={inInsert} />
+          <MainVideo plan={plan} drift={preset.zoom.drift} fg />
+        </>
+      ) : null}
 
       {plan.broll.map((b, i) => (
         <Sequence key={'b' + i} from={fr(b.s)} durationInFrames={len(b.s, b.e)}>
@@ -476,7 +565,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
 
       {plan.captions && preset.cap.style !== 'scrim' ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
       {plan.captions ? (preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={inInsert} /> : <Captions plan={plan} preset={preset} hidden={inInsert} />) : null}
-      {plan.hook ? <Hook text={plan.hook.text} end={plan.hook.e} style={preset.hook} accent={plan.accent} top={hookTop(plan, preset)} /> : null}
+      {plan.hook && !(plan.fg && preset.hook === 'behind') ? <Hook text={plan.hook.text} end={plan.hook.e} style={preset.hook} accent={plan.accent} top={hookTop(plan, preset)} /> : null}
 
       {plan.inserts.map((x, i) => {
         const tr = x.tr ? byCode(x.tr) : null;
@@ -498,7 +587,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
         <Audio src={staticFile(plan.music.src)} loop volume={(f) => {
           const t = f / fps;
           const fade = interpolate(t, [0, 0.15, total - 0.8, total], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-          return plan.music!.vol * fade * (talking(t) ? 0.75 : 1.25);
+          return plan.music!.vol * fade * 1.6 * duck(t);
         }} />
       ) : null}
       {plan.sfx.map((s, i) => (

@@ -36,6 +36,8 @@ export type Plan = {
   sfx: Sfx[];
   music: {src: string; vol: number} | null;
   preset: PresetId;
+  /** Cut-out of the speaker (alpha WebM) for text behind the person (styles with depth). */
+  fg?: string;
   /** Full style config (worker fills it for every edit; gallery styles depend on it). */
   style?: Record<string, unknown>;
   /** Output scale for the render (2 = 4K when the source is 4K). */
