@@ -1094,7 +1094,9 @@ def revise_ops(plan, prompt):
         "Du korrigierst ein fertig geschnittenes deutsches Kurzvideo nach der Anweisung des Nutzers. Zeitangaben des Nutzers "
         "(\"Sekunde 11\", \"bei 0:11\") beziehen sich auf das fertige Video - nimm das Wort, das zu der Zeit läuft (±1 s). "
         "Ändere NUR, was verlangt ist. Mögliche Änderungen, alle Felder optional:\n"
-        "- words: {\"Index\": \"neuer Text\"} – Untertitel-Wort korrigieren (Satzzeichen behalten, max 3 Wörter pro Index)\n"
+        "- words: {\"Index\": \"neuer Text\"} – Untertitel-Wort korrigieren (Satzzeichen behalten, max 3 Wörter pro Index). "
+        "Ist ein Wort im Transkript auf mehrere Indizes verteilt (z.B. 'WPC' + '-Belag,'), schreib das ganze Wort in den ersten "
+        "Index und setze die übrigen auf \"\" – sonst steht der Rest doppelt im Untertitel\n"
         "- hook: \"neuer Hook-Text\" oder \"\" zum Entfernen\n"
         "- emphasis_add / emphasis_remove: Wort-Indizes der hervorgehobenen Schlüsselwörter (im Transkript mit * markiert)\n"
         "- broll_remove: B-Roll-Nummern entfernen; broll_move: [{\"i\": Nummer, \"start\": s, \"end\": s}]\n"
@@ -1124,9 +1126,18 @@ def apply_ops(plan, res, job):
     words = plan["words"]
     n = len(words)
     changed = set()
-    for k, v in (res.get("words") or {}).items():
-        if str(k).isdigit() and 0 <= int(k) < n and isinstance(v, str) and 0 < len(v.strip()) <= 40 and len(v.split()) <= 3:
-            words[int(k)]["w"] = v.strip()
+    fixes = {int(k): v.strip() for k, v in (res.get("words") or {}).items()
+             if str(k).isdigit() and 0 <= int(k) < n and isinstance(v, str) and len(v.strip()) <= 40 and len(v.split()) <= 3}
+    norm = lambda x: re.sub(r"[^\wäöüß]", "", x.lower())
+    for i, v in sorted(fixes.items()):
+        if not v and i == 0:
+            continue
+        words[i]["w"] = v  # "" = merged into the word before (handled after cuts)
+        # Safety net: "WPC" -> "WPC-Belag," while the next word is still "-Belag," -> merge it, or the caption shows it twice
+        nx = i + 1
+        if v and nx < n and nx not in fixes and norm(words[nx]["w"]) and norm(v).endswith(norm(words[nx]["w"])) \
+                and not norm(v) == norm(words[nx]["w"]):
+            words[nx]["w"] = ""
     if isinstance(res.get("hook"), str):
         t = res["hook"].strip()[:60]
         plan["hook"] = {"text": t, "e": (plan.get("hook") or {}).get("e") or round(min(2.6, plan["duration"] / 3), 2)} if t else None
@@ -1220,6 +1231,17 @@ def apply_ops(plan, res, job):
         if plan.get("fg"):
             cutout(main_path, os.path.join(REPO, "public", plan["fg"]))
             changed.add(plan["fg"])
+    # Merged words: their time goes to the word before, they leave the captions
+    ws, keep, emap = plan["words"], [], {}
+    for k, w in enumerate(ws):
+        if not w["w"].strip() and keep:
+            keep[-1]["e"] = max(keep[-1]["e"], w["e"])
+            emap[k] = len(keep) - 1
+        elif w["w"].strip():
+            emap[k] = len(keep)
+            keep.append(w)
+    plan["words"] = keep
+    plan["emphasis"] = sorted({emap[k] for k in plan.get("emphasis", []) if k in emap})
     return plan, changed
 
 
