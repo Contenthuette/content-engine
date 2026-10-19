@@ -131,7 +131,7 @@ def main():
     ap.add_argument("outdir")
     ap.add_argument("--accent")
     ap.add_argument("--max-sec", dest="max_sec", type=float, default=15.0)
-    ap.add_argument("--browser", default=os.environ.get("CLIPPERZ_BROWSER", "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell"))
+    ap.add_argument("--browser", default=os.environ.get("CLIPPERZ_BROWSER"))
     a = ap.parse_args()
     os.makedirs(a.outdir, exist_ok=True)
     rep = json.load(open(os.path.join(a.probe, "report.json")))
@@ -164,8 +164,9 @@ def main():
     pj = os.path.join(a.outdir, "plan.json")
     json.dump(plan, open(pj, "w"), ensure_ascii=False)
     green = os.path.join(a.outdir, "ours_green.mp4")
+    bro = f"--browser-executable={a.browser} " if a.browser and os.path.exists(a.browser) else ""
     sh(["bash", "-c", f"cd {REPO} && npx remotion render src/clipperz/index.ts ClipperzEdit {green} --props={pj} --scale=0.5 --muted "
-                      f"--browser-executable={a.browser} --concurrency={max(1, (os.cpu_count() or 2))} --log=error"])
+                      f"{bro}--concurrency={max(1, (os.cpu_count() or 2))} --log=error"])
     os.remove(pub)
 
     cr = cv2.VideoCapture(a.ref)
