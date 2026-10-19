@@ -457,7 +457,7 @@ def main():
             sj = os.path.join(out, "style_claude.json")
             json.dump(style, open(sj, "w"), ensure_ascii=False)
             cmd = [sys.executable, os.path.join(REPO, "pipeline", "tools", "style_search.py"), refs[0], p1, sj, os.path.join(out, "search"),
-                   "--budget", "150", "--frames", "10"]
+                   "--budget", "400", "--frames", "8"]
             if BROWSER:
                 cmd += ["--browser", BROWSER]
             run(cmd, cwd=REPO)

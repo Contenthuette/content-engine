@@ -124,6 +124,7 @@ class Search:
         self.n = 0
         self.history = []
         self.cache = {}
+        self.mode = "fine"
         self.geo = {}
         self._clean = {}
 
@@ -145,23 +146,32 @@ class Search:
                 self.n += 1
         if todo:
             jd = os.path.join(self.a.outdir, "stills")
-            job = {"serveUrl": self.bundle, "frames": self.frames, "scale": 0.5, "outDir": jd,
-                   "browser": self.a.browser if self.a.browser and os.path.exists(self.a.browser) else None,
-                   "candidates": [{"id": i, "props": self.plan(s)} for i, _, s in todo]}
-            jp = os.path.join(self.a.outdir, "job.json")
-            json.dump(job, open(jp, "w"))
-            run(["node", os.path.join(TOOLS, "js", "style_stills.mjs"), jp], cwd=REPO)
+            # several browsers side by side: one per spare core, candidates dealt out round-robin
+            par = max(1, min(len(todo), self.a.workers or max(1, (os.cpu_count() or 2) - 1)))
+            procs = []
+            for w in range(par):
+                job = {"serveUrl": self.bundle, "frames": self.frames, "scale": 0.5, "outDir": jd,
+                       "browser": self.a.browser if self.a.browser and os.path.exists(self.a.browser) else None,
+                       "candidates": [{"id": i, "props": self.plan(s)} for i, _, s in todo[w::par]]}
+                jp = os.path.join(self.a.outdir, f"job{w}.json")
+                json.dump(job, open(jp, "w"))
+                procs.append(subprocess.Popen(["node", os.path.join(TOOLS, "js", "style_stills.mjs"), jp], cwd=REPO,
+                                              stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True))
+            for pr in procs:
+                _, err = pr.communicate()
+                if pr.returncode:
+                    raise RuntimeError("style_stills failed: " + (err or "")[-800:])
             for i, k, s in todo:
                 self.cache[k] = self.score(i, jd, s)
                 for f in glob.glob(os.path.join(jd, f"{i}_*.png")):
                     os.remove(f)
-        return [self.cache[json.dumps(s["cap"], sort_keys=True)] for s in styles]
+        return [self.cache[json.dumps(s["cap"], sort_keys=True)][self.mode] for s in styles]
 
     def score(self, cid, jd, style):
         kv = np.array(self.key, np.float32)
         cols = text_colours(style, self.accent)
         y0, y1 = self.band
-        px, cov, geo, rb = [], [], [], []
+        px, cov, geo, rb, rbc, pxc = [], [], [], [], [], []
         for f, o, bx in zip(self.frames, self.orig, self.boxes):
             p = os.path.join(jd, f"{cid}_{f}.png")
             if o is None or not os.path.exists(p):
@@ -177,8 +187,11 @@ class Search:
                 d = np.abs(cv2.GaussianBlur(over, (0, 0), 1.5) - cv2.GaussianBlur(o, (0, 0), 1.5)).mean(axis=2)
                 mm = cv2.dilate(m.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
                 px.append(max(0.0, 100 - float(np.median(d[mm]))))
+                dc = np.abs(cv2.GaussianBlur(over, (0, 0), 6) - cv2.GaussianBlur(o, (0, 0), 6)).mean(axis=2)
+                pxc.append(max(0.0, 100 - float(np.median(dc[mm]))))
             else:
                 px.append(0.0)
+                pxc.append(0.0)
             # coverage: our text-coloured pixels vs the original's text-coloured pixels inside the caption band
             region = np.zeros(o.shape[:2], bool)
             for (bx_, by_, bw_, bh_) in bx:
@@ -193,6 +206,9 @@ class Search:
             rebuilt = clean * (1 - alpha[..., None]) + fg * alpha[..., None]
             dr = np.abs(cv2.GaussianBlur(rebuilt, (0, 0), 1.5) - cv2.GaussianBlur(o, (0, 0), 1.5)).mean(axis=2)
             rb.append(max(0.0, 100 - float(np.mean(dr[rg | m]))) if (rg | m).any() else 0.0)
+            # coarse twin: heavy blur makes the score a smooth hill instead of a needle, so the search can climb it
+            dcr = np.abs(cv2.GaussianBlur(rebuilt, (0, 0), 6) - cv2.GaussianBlur(o, (0, 0), 6)).mean(axis=2)
+            rbc.append(max(0.0, 100 - 2 * float(np.mean(dcr[rg | m]))) if (rg | m).any() else 0.0)
             mo = colour_mask(o[y0:y1], cols) & region[y0:y1]
             mu = colour_mask(fg[y0:y1], cols) & (alpha[y0:y1] > 0.6)
             mo = cv2.morphologyEx(mo.astype(np.uint8), cv2.MORPH_OPEN, np.ones((2, 2), np.uint8)) > 0
@@ -209,7 +225,7 @@ class Search:
                 geo.append({"h": (bo[1] - bo[0]) / max(1.0, bu[1] - bu[0]), "dy": ((bo[0] + bo[1]) - (bu[0] + bu[1])) / 2,
                             "w": (bo[3] - bo[2]) / max(1.0, bu[3] - bu[2])})
         if not px:
-            return 0.0
+            return {"fine": 0.0, "coarse": 0.0}
         # frames where the original shows another word state are noise: judge the better half
         k = max(1, len(px) // 2)
         pxs = sorted(px, reverse=True)[:k]
@@ -218,7 +234,9 @@ class Search:
             "h": float(np.median([g["h"] for g in geo])) if geo else 1.0,
             "dy": float(np.median([g["dy"] for g in geo])) if geo else 0.0}
         rbs = sorted(rb, reverse=True)[:k]
-        return round(0.6 * float(np.mean(rbs)) + 0.2 * float(np.mean(pxs)) + 0.2 * float(np.mean(cvs)), 2)
+        fine = round(0.6 * float(np.mean(rbs)) + 0.2 * float(np.mean(pxs)) + 0.2 * float(np.mean(cvs)), 2)
+        coarse = round(0.7 * float(np.mean(sorted(rbc, reverse=True)[:k])) + 0.3 * float(np.mean(sorted(pxc, reverse=True)[:k])), 2)
+        return {"fine": fine, "coarse": coarse}
 
     def best_of(self, base, variants, label):
         cands = [base] + variants
@@ -233,13 +251,57 @@ class Search:
         fn(s["cap"])
         return s
 
+    def ocr_geometry(self, style):
+        """Same measurement on both sides: tesseract word boxes of OUR render vs the original's (from the probe).
+        Returns (height ratio original/ours, centre offset original-ours in px of 960) or None."""
+        from caption_probe import ocr as tess
+        jd = os.path.join(self.a.outdir, "stills_geo")
+        cid = f"g{self.n}"
+        self.n += 1
+        job = {"serveUrl": self.bundle, "frames": self.frames, "scale": 0.5, "outDir": jd,
+               "browser": self.a.browser if self.a.browser and os.path.exists(self.a.browser) else None,
+               "candidates": [{"id": cid, "props": self.plan(style)}]}
+        jp = os.path.join(self.a.outdir, "job_geo.json")
+        json.dump(job, open(jp, "w"))
+        run(["node", os.path.join(TOOLS, "js", "style_stills.mjs"), jp], cwd=REPO)
+        kv = np.array(self.key, np.float32)
+        if not hasattr(self, "_obox"):  # the original measured with exactly the same pipeline as ours
+            self._obox = []
+            for o in self.orig:
+                ob = tess(cv2.resize(o.astype(np.uint8), (W, H)), "deu+eng") if o is not None else []
+                y0, y1 = self.band
+                self._obox.append([(b["x"] / 2, b["y"] / 2, b["w"] / 2, b["h"] / 2) for b in ob if y0 <= (b["y"] + b["h"] / 2) / 2 <= y1])
+        hs, dys = [], []
+        for f, bx in zip(self.frames, self._obox):
+            p = os.path.join(jd, f"{cid}_{f}.png")
+            if not os.path.exists(p) or not bx:
+                continue
+            g = cv2.imread(p).astype(np.float32)
+            alpha = np.clip((np.linalg.norm(g - kv, axis=2) / 255.0 - 0.08) / 0.5, 0, 1)[..., None]
+            fg = np.clip(np.where(alpha > 0.02, (g - (1 - alpha) * kv) / np.maximum(alpha, 0.02), 0), 0, 255)
+            comp = (np.full_like(fg, 90) * (1 - alpha) + fg * alpha).astype(np.uint8)  # ours on neutral grey
+            ob = tess(cv2.resize(comp, (W, H)), "deu+eng")
+            os.remove(p)
+            if not ob:
+                continue
+            oh = np.median([b[3] for b in bx])
+            oc = (min(b[1] for b in bx) + max(b[1] + b[3] for b in bx)) / 2
+            uh = np.median([b["h"] / 2 for b in ob])
+            uc = (min(b["y"] for b in ob) + max(b["y"] + b["h"] for b in ob)) / 4
+            hs.append(oh / max(1.0, uh))
+            dys.append(oc - uc)
+        if len(hs) < 2:
+            return None
+        return float(np.median(hs)), float(np.median(dys))
+
     def register(self, style, rounds=2):
         """Size and height from measurement: scale the font until the text block is as tall as the original's,
         move it until the centres line up (works for any font, so the font search compares like with like)."""
         for _ in range(rounds):
-            self.evaluate([style])
-            g = self.geo.get(json.dumps(style["cap"], sort_keys=True)) or {}
-            h, dy = g.get("h", 1.0), g.get("dy", 0.0)
+            g = self.ocr_geometry(style)
+            if g is None:
+                break
+            h, dy = g
             if abs(h - 1) < 0.02 and abs(dy) < 3:
                 break
             s = copy.deepcopy(style)
@@ -267,63 +329,100 @@ class Search:
             budget -= len(vs)
             style, best = self.best_of(style, vs, label)
 
-        # 0) geometry first (measured), so every later comparison is aligned
-        style = self.register(style)
-        best = self.evaluate([style])[0]
-        print(f"ausgerichtet: {best:.1f}", flush=True)
-        # 1) font family: each candidate registered (same height/position), then the best one wins
-        fonts = []
-        for f in font_keys():
-            if budget <= 0:
-                break
-            c = self.vary(style, lambda c, v=f: c.update(font=v, weight=900 if v not in SINGLE else 400))
-            fonts.append(self.register(c, rounds=1))
-            budget -= 2
-        sc = self.evaluate(fonts)
-        top_fonts = [fonts[j]["cap"]["font"] for j in np.argsort(sc)[::-1][:6]]
-        i = int(np.argmax(sc))
-        if sc[i] > best:
-            style, best = fonts[i], sc[i]
-        self.history.append({"step": "Schrift", "best": best, "font": style["cap"]["font"]})
-        print(f"Schrift: {style['cap']['font']} {best:.1f}", flush=True)
-        style = self.register(style)
-        best = self.evaluate([style])[0]
-        if style["cap"]["font"] not in SINGLE:
-            step("Stärke", [600, 700, 800, 900], lambda c, v: c.update(weight=v))
-        for rnd in range(2):
+        caps = json.load(open(os.path.join(TOOLS, "js", "cap_heights.json")))
+
+        def yv(c):
+            y = c.get("y")
+            return y if isinstance(y, (int, float)) else (self.rep.get("position") or {}).get("y_center", 0.6)
+
+        def grid(base, sizes, ys, label):
+            nonlocal budget
+            s0, y0 = float(base["cap"].get("size") or 70), yv(base["cap"])
+            vs = [self.vary(base, lambda c, a=a, b=b: c.update(size=round(s0 * a, 1), y=round(max(0.2, min(0.88, y0 + b)), 4)))
+                  for a in sizes for b in ys if not (a == 1 and b == 0)]
+            budget -= len(vs)
+            return self.best_of(base, vs, label)
+
+        def refine(base, base_score, label, ds=0.03, dy=0.006):
+            """Pattern search on size x height: the score is a narrow hill (a few % of size or ~10 px of height
+            cost 10+ points), so step towards the better neighbour and halve the step when none is better."""
+            nonlocal budget
+            cur, cs = base, base_score
+            while ds >= 0.009 or dy >= 0.0019:
+                c = cur["cap"]
+                s0, y0 = float(c.get("size") or 70), yv(c)
+                nb = []
+                if ds >= 0.009:
+                    nb += [self.vary(cur, lambda c, k=k: c.update(size=round(s0 * k, 1))) for k in (1 - ds, 1 + ds)]
+                if dy >= 0.0019:
+                    nb += [self.vary(cur, lambda c, d=d: c.update(y=round(max(0.2, min(0.88, y0 + d)), 4))) for d in (-dy, dy)]
+                budget -= len(nb)
+                sc = self.evaluate(nb)
+                j = int(np.argmax(sc))
+                if sc[j] > cs + 0.05:
+                    cur, cs = nb[j], sc[j]
+                else:
+                    ds, dy = ds / 2, dy / 2
+            self.history.append({"step": label, "best": cs, "base": base_score})
+            print(f"{label}: {base_score:.1f} -> {cs:.1f}", flush=True)
+            return cur, cs
+
+        def font_scan(top, label):
+            # every font at the same cap height (size corrected by the cap-height ratio), tracking reset, ranked by
+            # the smooth (blurred) score that forgives small misalignment; the best few are then aligned exactly
+            # (refine) and compared by the sharp score - a font is never judged while misaligned.
+            nonlocal style, best, budget
+            f0 = style["cap"]["font"]
             s0 = float(style["cap"].get("size") or 70)
-            step(f"Größe {rnd + 1}", [round(s0 * f) for f in ((0.8, 0.88, 0.94, 1.06, 1.12, 1.25) if rnd == 0 else (0.96, 0.98, 1.02, 1.04))],
-                 lambda c, v: c.update(size=v))
-            y = style["cap"].get("y")
-            y = y if isinstance(y, (int, float)) else (self.rep.get("position") or {}).get("y_center", 0.6)
-            d = (0.06, 0.03, 0.015) if rnd == 0 else (0.008, 0.004)
-            step(f"Höhe {rnd + 1}", [round(y + s * x, 3) for x in d for s in (-1, 1)], lambda c, v: c.update(y=v))
+            # the size another font needs is only roughly known (cap height ratio), so each gets three sizes
+            fonts, owner = [], []
+            for f in font_keys():
+                for k in (0.93, 1, 1.07):
+                    fonts.append(self.vary(style, lambda c, v=f, k=k: c.update(font=v, weight=900 if v not in SINGLE else 400, track=0,
+                                                                            size=round(s0 * k * caps.get(f0, 0.7) / caps.get(v, 0.7), 1))))
+                    owner.append(f)
+            budget -= len(fonts)
+            self.mode = "coarse"
+            sc = self.evaluate(fonts)
+            self.mode = "fine"
+            per = {}
+            for f, v, st in zip(owner, sc, fonts):
+                if f not in per or v > per[f][0]:
+                    per[f] = (float(v), st)
+            ranked = sorted(per.items(), key=lambda r: -r[1][0])
+            ranking = [(f, round(v[0], 1)) for f, v in ranked[:8]]
+            results = [(best, style)]
+            for f, (_, st0) in ranked[:top]:
+                b0 = self.evaluate([st0])[0]
+                st, b = refine(st0, b0, f"{label} {f}")
+                results.append((b, st))
+            best, style = max(results, key=lambda r: r[0])
+            self.history.append({"step": label, "best": best, "font": style["cap"]["font"], "ranking": ranking})
+            print(f"{label}: {style['cap']['font']} {best:.1f}  (Vorauswahl: {ranking})", flush=True)
+
+        def looks(n):
+            if style["cap"]["font"] not in SINGLE:
+                step(f"Stärke {n}", [600, 700, 800, 900], lambda c, v: c.update(weight=v))
+            step(f"Laufweite {n}", [-0.04, -0.02, 0, 0.02, 0.04, 0.06], lambda c, v: c.update(track=v))
+            step(f"Kontur {n}", [0, 3, 6, 8, 10, 12, 14], lambda c, v: c.update(stroke={"w": v, "color": (c.get("stroke") or {}).get("color", "#000000")} if v else None))
+            step(f"Schatten {n}", ["none", "soft", "hard", "glow"], lambda c, v: c.update(shadow=v))
+            step(f"Zeilenabstand {n}", [0.9, 1.0, 1.1, 1.2], lambda c, v: c.update(lineHeight=v))
+            step(f"Zeilenbreite {n}", [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], lambda c, v: c.update(maxWidth=v))
+
+        # geometry first so comparisons are aligned, then the layout (which words are on screen at all),
+        # then exact alignment for that layout - only after that is a font comparison meaningful
+        style, best = grid(style, (0.75, 0.88, 1, 1.14, 1.3), (-0.05, -0.025, 0, 0.025, 0.05), "Größe/Höhe grob")
         step("Wörter", [1, 2, 3, 4, 5], lambda c, v: c.update(words=v))
-        step("Zeilenbreite", [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], lambda c, v: c.update(maxWidth=v))
-        step("Laufweite", [-0.04, -0.02, 0, 0.02, 0.04, 0.06], lambda c, v: c.update(track=v))
-        sw = (style["cap"].get("stroke") or {}).get("w", 0)
-        step("Kontur", [0, 3, 6, 8, 10, 12, 14], lambda c, v: c.update(stroke={"w": v, "color": (c.get("stroke") or {}).get("color", "#000000")} if v else None))
-        step("Schatten", ["none", "soft", "hard", "glow"], lambda c, v: c.update(shadow=v))
-        step("Zeilenabstand", [0.9, 1.0, 1.1, 1.2], lambda c, v: c.update(lineHeight=v))
-        # second font round: the best six again, now with the other settings tuned
-        fonts = [self.register(self.vary(style, lambda c, v=f: c.update(font=v, weight=900 if v not in SINGLE else 400)), rounds=1) for f in top_fonts]
-        sc = self.evaluate(fonts)
-        i = int(np.argmax(sc))
-        cur = self.evaluate([style])[0]
-        if sc[i] > cur:
-            style = fonts[i]
-        print(f"Schrift 2: {style['cap']['font']} {max(cur, sc[i]):.1f}", flush=True)
-        if style["cap"]["font"] not in SINGLE:
-            step("Stärke 2", [700, 800, 900], lambda c, v: c.update(weight=v))
-        step("Kontur 2", [0, 4, 6, 8, 10, 12], lambda c, v: c.update(stroke={"w": v, "color": (c.get("stroke") or {}).get("color", "#000000")} if v else None))
-        style = self.register(style)
-        best = max(best, self.evaluate([style])[0])
-        s0 = float(style["cap"].get("size") or 70)
-        step("Größe fein", [round(s0 * f) for f in (0.97, 0.99, 1.01, 1.03)], lambda c, v: c.update(size=v))
-        y = style["cap"].get("y")
-        if isinstance(y, (int, float)):
-            step("Höhe fein", [round(y + d, 4) for d in (-0.004, -0.002, 0.002, 0.004)], lambda c, v: c.update(y=v))
+        style, best = refine(style, best, "Ausrichten")
+        font_scan(4, "Schrift")
+        looks(1)
+        style, best = refine(style, best, "Ausrichten 2", ds=0.02, dy=0.004)
+        # the look parameters are coupled with the font: scan again with everything else tuned
+        font_scan(3, "Schrift 2")
+        looks(2)
+        style, best = refine(style, best, "Ausrichten 3", ds=0.02, dy=0.004)
         step("Wörter 2", [1, 2, 3, 4, 5], lambda c, v: c.update(words=v))
+        shutil.rmtree(self.bundle, ignore_errors=True)
         json.dump(style, open(os.path.join(self.a.outdir, "best_style.json"), "w"), ensure_ascii=False)
         json.dump({"score": best, "history": self.history, "candidates": self.n}, open(os.path.join(self.a.outdir, "search.json"), "w"), ensure_ascii=False)
         os.remove(os.path.join(REPO, "public", self.rel))
@@ -337,10 +436,11 @@ def main():
     ap.add_argument("probe")
     ap.add_argument("style")
     ap.add_argument("outdir")
-    ap.add_argument("--budget", type=int, default=140)
+    ap.add_argument("--budget", type=int, default=400)
     ap.add_argument("--frames", type=int, default=10)
     ap.add_argument("--max-sec", dest="max_sec", type=float, default=15.0)
     ap.add_argument("--browser", default=os.environ.get("CLIPPERZ_BROWSER"))
+    ap.add_argument("--workers", type=int, default=0)
     Search(ap.parse_args()).run()
 
 
