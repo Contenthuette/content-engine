@@ -412,7 +412,13 @@ class Search:
         # geometry first so comparisons are aligned, then the layout (which words are on screen at all),
         # then exact alignment for that layout - only after that is a font comparison meaningful
         style, best = grid(style, (0.75, 0.88, 1, 1.14, 1.3), (-0.05, -0.025, 0, 0.025, 0.05), "Größe/Höhe grob")
-        step("Wörter", [1, 2, 3, 4, 5], lambda c, v: c.update(words=v))
+        # which words are on screen at all: phrase length x how the phrase appears (all at once, word by word,
+        # karaoke). Wrong here means every later comparison compares different text - so it is searched jointly.
+        vs = [self.vary(style, lambda c, w=w, r=r: c.update(words=w, reveal=r))
+              for w in (1, 2, 3, 4, 5) for r in ("phrase", "word", "karaoke")]
+        vs = [v for v in vs if json.dumps(v["cap"], sort_keys=True) != json.dumps(style["cap"], sort_keys=True)]
+        budget -= len(vs)
+        style, best = self.best_of(style, vs, "Wörter/Einblendung")
         style, best = refine(style, best, "Ausrichten")
         font_scan(4, "Schrift")
         looks(1)
@@ -422,6 +428,7 @@ class Search:
         looks(2)
         style, best = refine(style, best, "Ausrichten 3", ds=0.02, dy=0.004)
         step("Wörter 2", [1, 2, 3, 4, 5], lambda c, v: c.update(words=v))
+        step("Einblendung 2", ["phrase", "word", "karaoke"], lambda c, v: c.update(reveal=v))
         shutil.rmtree(self.bundle, ignore_errors=True)
         json.dump(style, open(os.path.join(self.a.outdir, "best_style.json"), "w"), ensure_ascii=False)
         json.dump({"score": best, "history": self.history, "candidates": self.n}, open(os.path.join(self.a.outdir, "search.json"), "w"), ensure_ascii=False)
