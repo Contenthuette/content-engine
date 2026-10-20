@@ -78,8 +78,13 @@ def run(cmd, **kw):
 
 
 def probe(path):
-    out = run(["ffprobe", "-v", "error", "-show_entries", "format=duration:stream=codec_type,width,height",
-               "-of", "json", path])
+    try:
+        out = run(["ffprobe", "-v", "error", "-show_entries", "format=duration:stream=codec_type,width,height",
+                   "-of", "json", path])
+    except EditError:
+        # The raw ffprobe text (runner paths, codec internals) is shown to the customer – say it plainly instead.
+        print("ffprobe failed for", os.path.basename(path))
+        raise EditError("Die Datei ist kein lesbares Video – bitte als MP4 oder MOV neu exportieren und nochmal hochladen")
     j = json.loads(out)
     dur = float(j.get("format", {}).get("duration") or 0)
     has_audio = any(s.get("codec_type") == "audio" for s in j.get("streams", []))
