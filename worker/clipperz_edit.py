@@ -526,7 +526,8 @@ def remap_words(words, intervals):
 
 
 def grade_broll(files, lut, out_dir):
-    """Cover-crop to 9:16 and apply the LUT. Photos -> JPEG, videos -> short silent clip."""
+    """Cover-crop to 9:16 and apply the LUT (if any). Photos -> JPEG, videos -> short silent clip."""
+    look = f"lut3d=file='{lut}'," if lut else ""  # no LUT: B-roll keeps its own colours
     from PIL import Image, ImageOps
     try:
         from pillow_heif import register_heif_opener
@@ -546,7 +547,7 @@ def grade_broll(files, lut, out_dir):
                 tmp = os.path.join(out_dir, f"raw_{i}.png")
                 im.save(tmp)
                 dst = os.path.join(out_dir, f"b{i:03d}.jpg")
-                run(["ffmpeg", "-v", "error", "-y", "-i", tmp, "-vf", f"lut3d=file='{lut}',{PHOTO_FINISH}", "-q:v", "2", dst])
+                run(["ffmpeg", "-v", "error", "-y", "-i", tmp, "-vf", f"{look}{PHOTO_FINISH}", "-q:v", "2", dst])
                 os.remove(tmp)
                 items.append({"kind": "photo", "path": dst, "name": os.path.basename(f)})
             elif low.endswith(VID_EXT):
@@ -556,7 +557,7 @@ def grade_broll(files, lut, out_dir):
                 start = max(0.0, dur / 2 - 1.5)
                 dst = os.path.join(out_dir, f"b{i:03d}.mp4")
                 vf = (f"{rotate_filter(ROTATE.get(f, 0))}scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,crop={OUT_W}:{OUT_H},fps={FPS},"
-                      f"lut3d=file='{lut}',{PHOTO_FINISH},setsar=1")
+                      f"{look}{PHOTO_FINISH},setsar=1")
                 run(["ffmpeg", "-v", "error", "-y", "-ss", f"{start:.2f}", "-i", f, "-t", "3", "-an", "-vf", vf,
                      "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", dst])
                 thumb = dst[:-4] + ".jpg"
@@ -1375,7 +1376,7 @@ def main():
             globals()[name] = max(lo, min(hi, float(_pace[key])))
     raw = drive_file(cfg["videoUrl"], os.path.join(W, "raw"))
 
-    report(note="B-Roll wird geladen und mit dem LUT bearbeitet…")
+    report(note="B-Roll wird geladen" + (" und mit deinem Farblook bearbeitet…" if cfg.get("lutUrl") else "…"))
     files = []
     for k, f in enumerate((cfg.get("brollFiles") or [])[:MAX_BROLL_FILES]):  # uploaded with this video
         try:
@@ -1400,14 +1401,14 @@ def main():
     files = [f for f in files if f.lower().endswith(IMG_EXT + VID_EXT)][:MAX_BROLL_FILES]
     items = []
     if files:
-        if not cfg.get("lutUrl"):
-            raise EditError("LUT fehlt (TEAM → LUT hochladen)")
-        lut = drive_file(cfg["lutUrl"], os.path.join(W, "lut"))
-        if lut.lower().endswith((".png", ".tif", ".tiff")):
-            lut = hald_to_cube(lut, os.path.join(W, "lut", "look.cube"))
-        with open(lut, "rb") as fh:
-            if b"LUT_3D_SIZE" not in fh.read(20000):
-                raise EditError("Die LUT-Datei ist keine .cube-Datei")
+        lut = None  # the LUT is optional (CLIPPERZ Pro: per workspace); without it B-roll keeps its own colours
+        if cfg.get("lutUrl"):
+            lut = drive_file(cfg["lutUrl"], os.path.join(W, "lut"))
+            if lut.lower().endswith((".png", ".tif", ".tiff")):
+                lut = hald_to_cube(lut, os.path.join(W, "lut", "look.cube"))
+            with open(lut, "rb") as fh:
+                if b"LUT_3D_SIZE" not in fh.read(20000):
+                    raise EditError("Die LUT-Datei ist keine .cube-Datei – bitte den Farblook neu hochladen")
         items = grade_broll(files, lut, os.path.join(W, "broll"))
 
     report(note="Rohschnitt: Sprache wird erkannt…")
