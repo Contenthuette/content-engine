@@ -1,0 +1,36 @@
+# CLIPPERZ Pro "Abläufe": joins the AI shots of a recipe run into one video (ffmpeg, hard cuts) and uploads it to R2.
+# Triggered by CLIPPERZ (repository_dispatch "clipperz-recipe"). The payload (run id, one-time token, callback URL)
+# is read from the event file inside the script, never printed or passed through env – this repo is public.
+name: clipperz-recipe
+on:
+  repository_dispatch:
+    types: [clipperz-recipe]
+concurrency:
+  group: clipperz-recipe-${{ github.event.client_payload.run }}
+jobs:
+  join:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: worker
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Join
+        id: join
+        run: python3 worker/clipperz_recipe.py
+      - name: Report setup failure
+        if: failure() && steps.join.outcome != 'failure'
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          p = json.load(open(os.environ["GITHUB_EVENT_PATH"]))["client_payload"]
+          q = urllib.parse.urlencode({"run": p["run"], "k": p["token"]})
+          body = json.dumps({"status": "failed", "error": "Worker konnte nicht starten – bitte nochmal versuchen."}).encode()
+          req = urllib.request.Request(p["api"].rstrip("/") + "/recipe-status?" + q, data=body, headers={"Content-Type": "application/json"})
+          try:
+              urllib.request.urlopen(req, timeout=30)
+          except Exception as e:
+              print("status update failed:", type(e).__name__)
+          PY
