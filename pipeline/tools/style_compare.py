@@ -43,7 +43,7 @@ def focus_of(path):
         return {"x": 0.5, "y": 0.3, "h": 0.1}
 
 
-def _focus_of(path):
+def _cascade():
     import glob as _g
     xml = None
     try:
@@ -53,13 +53,20 @@ def _focus_of(path):
             _g.glob("/usr/share/opencv*/**/haarcascade_frontalface_default.xml", recursive=True)
         xml = hits[0] if hits else None
     if not xml or not os.path.exists(xml):
-        return {"x": 0.5, "y": 0.3, "h": 0.1}
-    cas = cv2.CascadeClassifier(xml)
+        return None
+    return cv2.CascadeClassifier(xml)
+
+
+def face_track(path, samples=8):
+    """Largest face in `samples` evenly spread frames: [(x, y, h) as shares of 540x960]. Empty without a cascade."""
+    cas = _cascade()
+    if cas is None:
+        return []
     cap = cv2.VideoCapture(path)
     n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
     found = []
-    for k in range(8):
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(n * (k + 0.5) / 8))
+    for k in range(samples):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(n * (k + 0.5) / samples))
         ok, fr = cap.read()
         if not ok:
             continue
@@ -69,6 +76,11 @@ def _focus_of(path):
             x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
             found.append(((x + w / 2) / 540, (y + h / 2) / 960, h / 960))
     cap.release()
+    return found
+
+
+def _focus_of(path):
+    found = face_track(path, 8)
     if not found:
         return {"x": 0.5, "y": 0.3, "h": 0.1}
     a = np.median(np.array(found), axis=0)

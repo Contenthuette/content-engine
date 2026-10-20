@@ -221,6 +221,8 @@ function captionY(plan: Plan, preset: Preset, t: number) {
   const fh = (plan.focus.h > 0 ? plan.focus.h : 0.12) * H * S;
   const faceY = S * plan.focus.y * H + ty;
   const c = typeof y === 'number' ? y * H : Math.max(H * 0.42, Math.min(H * 0.78, faceY + fh * 2.3));
+  // A learned style whose original sits on the face (measured) keeps its height: overFace skips the face guard.
+  if (typeof y === 'number' && (preset.cap as unknown as {overFace?: boolean}).overFace) return Math.min(H - SAFE.bottom - 80, c);
   // Never over the face: the caption block starts below the chin, and never under the app buttons.
   const chin = faceY + fh * 0.62;
   return Math.min(H - SAFE.bottom - 80, Math.max(c, chin + 120));
@@ -521,6 +523,8 @@ export type CustomCap = {
   align?: 'center' | 'left' | 'right'; x?: number;
   activeDur?: number;
   out?: 'none' | 'fade' | 'pop'; tilt?: number; lead?: number;
+  /** learned from an original whose captions sit on the face: no face guard for a numeric y */
+  overFace?: boolean;
 };
 
 const SHADOWS = (c = '#000') => ({

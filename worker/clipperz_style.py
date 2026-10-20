@@ -48,12 +48,14 @@ def report(**kw):
 def upload(path, ext):
     r = requests.post(f"{API}/style-upload?{AUTH}", json={"ext": ext}, timeout=60)
     if r.status_code != 200:
-        raise StyleError(f"Upload-Freigabe fehlt ({r.status_code})")
+        print("upload grant failed:", r.status_code)
+        raise StyleError("Das Ergebnis konnte nicht hochgeladen werden – bitte nochmal versuchen")
     g = r.json()
     with open(path, "rb") as fh:
         put = requests.put(g["uploadUrl"], data=fh, headers=g.get("headers") or {}, timeout=900)
     if put.status_code >= 300:
-        raise StyleError(f"Upload fehlgeschlagen ({put.status_code})")
+        print("upload failed:", put.status_code)
+        raise StyleError("Das Ergebnis konnte nicht hochgeladen werden – bitte nochmal versuchen")
     return g["url"]
 
 
@@ -80,24 +82,39 @@ def llm_json(messages):
             print("llm 502:", r.text[:300])
             continue
         if r.status_code != 200:
-            raise StyleError(f"KI nicht erreichbar ({r.status_code}: {r.text[:160]})")
+            print("llm error:", r.status_code, r.text[:300])
+            raise StyleError("Die KI ist gerade nicht erreichbar – bitte in ein paar Minuten nochmal versuchen")
         text = r.json().get("text", "")
         obj = parse_json(text)
         if isinstance(obj, dict):
             return obj
         print("no JSON:", text[:300].replace("\n", " "))
         messages = messages + [{"role": "assistant", "content": text}, {"role": "user", "content": "Bitte NUR gültiges JSON."}]
-    raise StyleError("KI-Antwort war kein JSON")
+    raise StyleError("Die KI-Antwort war unbrauchbar – bitte nochmal versuchen")
+
+
+STEPS = {"style_search.py": "Die Feinabstimmung der Untertitel", "style_compare.py": "Der Pixel-Vergleich mit dem Original",
+         "npx": "Das Rendern des Beispielvideos", "ffmpeg": "Die Videoverarbeitung", "analyze.py": "Die Video-Analyse",
+         "ffprobe": "Das Lesen eines Videos"}
 
 
 def run(cmd, **kw):
     r = subprocess.run(cmd, capture_output=True, text=True, **kw)
     if r.returncode:
+        tool = os.path.basename(cmd[1] if cmd[0] in ("python3", sys.executable) else cmd[0])
         print("command failed:", " ".join(os.path.basename(c) if os.sep in c else c for c in cmd[:4]))
         print((r.stdout or "")[-3000:])
         print((r.stderr or "")[-6000:])
-        raise StyleError(f"{os.path.basename(cmd[1] if cmd[0] in ('python3', sys.executable) else cmd[0])} fehlgeschlagen: {(r.stderr or r.stdout)[-400:]}")
+        # the customer sees this text: no stderr (runner paths, stack traces), the details are in the run log
+        raise StyleError(f"{STEPS.get(tool, 'Ein Verarbeitungsschritt')} ist fehlgeschlagen – bitte nochmal versuchen. "
+                         "Passiert es wieder, die Referenzvideos als MP4 neu exportieren und erneut hochladen.")
     return r.stdout
+
+
+def readable(path):
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", path],
+                       capture_output=True, text=True)
+    return r.returncode == 0 and bool(r.stdout.strip())
 
 
 def small_jpg(src, dst, max_w=1000, max_h=1600):
@@ -196,7 +213,8 @@ def clean_cap(cap):
         cap["y"] = "chest"
     if not isinstance(cap.get("color"), str):
         cap["color"] = "#FFFFFF"
-    anim = cap.get("anim") if isinstance(cap.get("anim"), dict) else {"type": "pop"}
+    # no animation unless one was seen: a default pop is an invented effect
+    anim = cap.get("anim") if isinstance(cap.get("anim"), dict) else {"type": "none"}
     if anim.get("type") == "keys":
         ks = [k for k in (anim.get("keys") or []) if isinstance(k, dict) and isinstance(k.get("t"), (int, float))][:12]
         for k in ks:
@@ -262,6 +280,61 @@ def build_style(ans, name):
     return st, base_id
 
 
+def face_zoom(path):
+    """Does the framing change (zoom cuts / push-ins)? Ratio of large to small face height over 24 frames; ~1.0-1.06
+    is detector noise = no zoom. None without enough faces."""
+    try:
+        from style_compare import face_track
+        import numpy as np
+        hs = [f[2] for f in face_track(path, 24)]
+    except Exception as e:
+        print("face track failed:", type(e).__name__)
+        return None
+    if len(hs) < 8:
+        return None
+    return round(float(np.percentile(hs, 90) / max(1e-6, np.percentile(hs, 10))), 3)
+
+
+def measured(style, cuts):
+    """Measurements beat guesses: whatever the references show NOT to exist is switched off, even when Claude
+    (or the base preset) set it. Nothing is switched on here. 20.10.: pop curve, music bed, vignette, zoom push and a
+    hook title were added to a plain original; lieber neutral als falsch."""
+    fixed = []
+    beds = [(c.get("sound_bed") or {}).get("music") for c in cuts]
+    if beds and all(b is False for b in beds) and style.get("music"):
+        style["music"], style["musicVol"] = None, 0
+        fixed.append("keine Musik (gemessen)")
+    hooks = [c.get("hook_title_text_seen") for c in cuts]
+    if hooks and all(h == [] for h in hooks) and style.get("hook") not in (None, "none"):
+        style["hook"] = "none"
+        fixed.append("kein Hook-Titel (gemessen)")
+    if style.get("hook") == "none" and isinstance(style.get("sfx"), dict):
+        style["sfx"]["hook"] = []
+    fz = [c.get("face_zoom") for c in cuts if c.get("face_zoom")]
+    z = style.get("zoom") or {}
+    if fz and max(fz) < 1.08 and (z.get("maxLevel") or z.get("drift") or z.get("shake")):
+        style["zoom"] = {**z, "maxLevel": 0, "drift": 0, "shake": False}
+        if isinstance(style.get("sfx"), dict):
+            style["sfx"]["zoom"] = []
+        fixed.append("keine Zooms (Gesichtsgröße konstant)")
+    g = style.get("grade")
+    if isinstance(g, dict):
+        # a finished video carries its lighting: a dark studio background or soft edges are the set, not a grade.
+        # Only an unmistakable look survives; subtle guesses go back to neutral.
+        strong = {"contrast": 0.2, "saturation": 0.3, "gamma": 0.2, "brightness": 0.1, "temp": 0.3, "tint": 0.3, "fade": 0.12, "grain": 12}
+        neutral = {"contrast": 1, "saturation": 1, "gamma": 1, "brightness": 0, "temp": 0, "tint": 0, "fade": 0, "grain": 0}
+        still = cuts and all(((c.get("motion") or {}).get("still_pct") or 0) >= 80 for c in cuts)
+        keep = {k: v for k, v in g.items() if k in strong and abs(v - neutral[k]) >= strong[k]}
+        if g.get("vignette") and (g["vignette"] >= 0.6 and not still):
+            keep["vignette"] = g["vignette"]
+        if g.get("sharpen") and keep:
+            keep["sharpen"] = g["sharpen"]
+        if keep != g:
+            style["grade"] = keep or None
+            fixed.append("Farblook neutral (nicht eindeutig messbar)" if not keep else "Farblook nur Eindeutiges")
+    return fixed
+
+
 def strip_from_compare(compare_mp4, t0, band, out):
     """Original | ours, every 2nd frame from 0.35 s before to 0.55 s after t0, caption band only."""
     import cv2
@@ -300,7 +373,9 @@ def machart(path, outdir):
 
 
 def audio_bed(path, words):
-    """Is there music/atmo under the voice? Level in speech pauses (>= 0.3 s) relative to the voice, in dB."""
+    """Is there music/atmo under the voice? Level in speech pauses (>= 0.3 s) relative to the voice, in dB.
+    Measured in 50 ms windows, the quiet part of each pause counts: word ends from the transcript are a bit early,
+    so the whole-pause RMS was dominated by the voice's tail (-22 dB on pure digital silence -> "Musikbett")."""
     import numpy as np
     raw = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-ac", "1", "-ar", "16000", "-f", "s16le", "-"], capture_output=True).stdout
     x = np.frombuffer(raw, np.int16).astype(np.float32) / 32768
@@ -308,20 +383,44 @@ def audio_bed(path, words):
         return None
     rms = lambda a, b: float(np.sqrt(np.mean(x[int(a * 16000):int(b * 16000)] ** 2) + 1e-12))
     sp = [rms(w["s"], w["e"]) for w in words if w["e"] - w["s"] > 0.1]
-    gaps = [rms(a["e"] + 0.05, b["s"] - 0.05) for a, b in zip(words, words[1:]) if b["s"] - a["e"] >= 0.3]
+    gaps = []
+    for a, b in zip(words, words[1:]):
+        if b["s"] - a["e"] < 0.3:
+            continue
+        seg = x[int((a["e"] + 0.05) * 16000):int((b["s"] - 0.05) * 16000)]
+        win = [float(np.sqrt(np.mean(seg[i:i + 800] ** 2) + 1e-12)) for i in range(0, len(seg) - 799, 800)]
+        if win:
+            gaps.append(float(np.percentile(win, 30)))
     if not sp or not gaps:
-        return {"pauses": len(gaps)}
-    db = 20 * np.log10(np.median(gaps) / np.median(sp))
-    return {"pause_vs_voice_db": round(float(db), 1), "pauses": len(gaps),
-            "hint": "> -25 dB: there is a music/sound bed under the voice; < -35 dB: no music"}
+        return {"pauses": len(gaps), "music": None}
+    # a bed raises the floor everywhere: the quietest 5 % of the whole clip must be loud too (transcript gaps
+    # can still hold a word the transcript timed badly)
+    allw = np.array([float(np.sqrt(np.mean(x[i:i + 800] ** 2) + 1e-12)) for i in range(0, len(x) - 799, 800)])
+    db = 20 * np.log10(min(np.median(gaps), float(np.percentile(allw, 5)) + 1e-9) / np.median(sp))
+    return {"pause_vs_voice_db": round(float(max(db, -90)), 1), "pauses": len(gaps), "music": bool(db > -30) if db > -30 or db < -38 else None,
+            "hint": "> -30 dB: there is a music/sound bed under the voice; < -38 dB: no music (music false = keine Musik)"}
 
 
-def hook_title(ocr, words):
-    """Text in the first 2.5 s that is NOT the spoken words = a hook title."""
+def hook_title(ocr, words, pos=None):
+    """Text in the first 2.5 s that is NOT the spoken words = a hook title. OCR misreads the captions themselves
+    ("UMMERI5O" for "NUMMER 50"), so a text only counts when it does not fuzzily match the spoken words and does
+    not sit in the caption band (pos = probe position, OCR boxes are in 1080x1920 space)."""
+    from difflib import SequenceMatcher
     norm = lambda t: re.sub(r"[^0-9a-zäöüß]", "", t.lower())
+    stream = "".join(norm(w["w"]) for w in words if w["s"] < 5)
     spoken = {norm(w["w"]) for w in words if w["s"] < 4}
-    extra = [b["text"] for x in ocr if x["t"] < 2.5 for b in x["boxes"] if norm(b["text"]) not in spoken and len(norm(b["text"])) > 2]
-    return sorted(set(extra))[:12]
+
+    def said(t):
+        if t in spoken or t in stream:
+            return True
+        n = len(t)
+        return any(SequenceMatcher(None, t, stream[i:i + m]).ratio() >= 0.7
+                   for m in range(max(1, n - 2), n + 3) for i in range(0, max(1, len(stream) - m + 1)))
+    lo, hi = ((pos["y_p10"] - 0.04) * 1920, (pos["y_p90"] + 0.04) * 1920) if pos and "y_p10" in pos else (-1, -1)
+    extra = {b["text"] for x in ocr if x["t"] < 2.5 for b in x["boxes"]
+             if len(norm(b["text"])) > 3 and b.get("conf", 100) >= 60 and not said(norm(b["text"]))
+             and not (lo <= b.get("y", -99) + b.get("h", 0) / 2 <= hi)}
+    return sorted(extra)[:12]
 
 
 def render_demo(style, demo, outdir):
@@ -371,7 +470,8 @@ def main():
     report(status="working", note="Videos werden geladen…", runUrl=RUN_URL)
     cfg = requests.get(f"{API}/style-job?{AUTH}", timeout=30)
     if cfg.status_code != 200:
-        raise StyleError(f"Auftrag nicht abrufbar ({cfg.status_code})")
+        print("style-job:", cfg.status_code)
+        raise StyleError("Der Auftrag konnte nicht geladen werden – bitte nochmal starten")
     cfg = cfg.json()
     name = cfg["name"]
     slug = stylelab.slug(name)
@@ -393,6 +493,13 @@ def main():
             if r.ok:
                 open(os.path.join(fontdir, re.sub(r"[^\w.\-]", "_", f["name"])), "wb").write(r.content)
     refs = sorted(glob.glob(os.path.join(refdir, "*")))
+    bad = [k + 1 for k, v in enumerate(refs) if not readable(v)]
+    for k in bad:
+        print("unreadable reference", k)
+        os.remove(refs[k - 1])
+    refs = [v for v in refs if os.path.exists(v)]
+    if not refs:
+        raise StyleError("Die Dateien sind keine lesbaren Videos – bitte als MP4 oder MOV neu exportieren und nochmal hochladen")
     out = os.path.join(W, "out")
     os.makedirs(out, exist_ok=True)
 
@@ -400,9 +507,9 @@ def main():
     report(note=f"{len(refs)} Videos werden zerlegt: Schnitt, Zooms, Sound, Farben…")
     cuts = []
     for v in refs:
-        m = machart(v, os.path.join(out, "machart", os.path.basename(v)))
-        if m:
-            cuts.append(m)
+        m = machart(v, os.path.join(out, "machart", os.path.basename(v))) or {"analysis": "failed"}
+        m["face_zoom"] = face_zoom(v)
+        cuts.append(m)  # one entry per reference, so cuts[k] stays reference k
     report(note="Untertitel und Grafiken werden vermessen…")
     stylelab.probe(slug)
     probes = sorted(glob.glob(os.path.join(stylelab.LAB, slug, "probe", "*", "report.json")))
@@ -431,21 +538,29 @@ def main():
             ws = json.load(open(os.path.join(pd, "words.json")))["words"]
             cuts[k]["sound_bed"] = audio_bed(v, ws)
             if os.path.exists(os.path.join(pd, "ocr.json")):
-                cuts[k]["hook_title_text_seen"] = hook_title(json.load(open(os.path.join(pd, "ocr.json"))), ws)
+                prep = json.load(open(os.path.join(pd, "report.json"))) if os.path.exists(os.path.join(pd, "report.json")) else {}
+                cuts[k]["hook_title_text_seen"] = hook_title(json.load(open(os.path.join(pd, "ocr.json"))), ws, prep.get("position"))
     system = ("Du bist ein Weltklasse-Editor und Motion Designer. Aus Referenzvideos baust du ein Template, das deren Machart 1:1 "
               "kopiert – jedes Pixel: Schrift, Größen, Rundungen, Abstände, Farben, Konturen, Animationskurven, Schnitt-Tempo, Zooms, "
               "B-Roll-Layout und Übergänge, Farblook, Musik, Sounds. Messwerte sind Näherungen, die Bilder entscheiden. "
               "Was der Baukasten nicht kann, schreibst du ehrlich in \"gaps\". Erfinde nichts dazu: keine Musik, wenn sound_bed keine zeigt; "
-              "kein Hook-Titel (hook \"none\"), wenn am Anfang kein zusätzlicher Titel zu sehen ist; keine Zooms/B-Roll/Sounds, die nicht im Original sind.\n\n" + schema() + "\n\nAntworte NUR mit dem JSON.")
+              "kein Hook-Titel (hook \"none\"), wenn am Anfang kein zusätzlicher Titel zu sehen ist; keine Zooms/B-Roll/Sounds, die nicht im Original sind "
+              "(face_zoom ≈ 1.0 = Bildausschnitt ändert sich nie = keine Zooms); keine Einblend-Animation (anim {\"type\": \"none\"}), wenn die Untertitel "
+              "im Animations-Bild von einem Frame auf den nächsten fertig dastehen; grade null, wenn kein eindeutiger Farblook zu sehen ist – Licht, "
+              "dunkler Studio-Hintergrund oder abgedunkelte Ränder gehören zum Drehort, nicht zum Grade (keine Vignette dafür). Lieber neutral als falsch.\n\n" + schema() + "\n\nAntworte NUR mit dem JSON.")
     text = (f"Stilname: {name}\nMachart je Video (Messung): {json.dumps(cuts, ensure_ascii=False)}\n"
             f"Untertitel gesamt: {json.dumps(agg, ensure_ascii=False)}\n"
             f"Basis-Stile: {json.dumps({k: v.get('about', '') for k, v in PRESETS.items()}, ensure_ascii=False)}")
     ans = llm_json([{"role": "system", "content": system}, {"role": "user", "content": as_content(text, images)}])
     style, base_id = build_style(ans, name)
+    if isinstance(style.get("grade"), str):  # inherited from the base preset, never seen in the references
+        style["grade"] = None
+    print("measured:", measured(style, cuts))
     print("first template:", json.dumps({k: style.get(k) for k in ("cap", "zoom", "broll", "cut", "grade", "music", "sfx", "hook")}, ensure_ascii=False)[:2000])
 
     # 3) pixel loop on the captions: render on the original, compare, correct (until >= 95 % or 3 rounds)
     score, history, best = None, [], None
+    locked = {}
     if p1 and style.get("captions", True):
         rep1 = json.load(open(probes[0]))
         pos = rep1.get("position") or {"y_p10": 0.4, "y_p90": 0.6}
@@ -458,11 +573,25 @@ def main():
             json.dump(style, open(sj, "w"), ensure_ascii=False)
             cmd = [sys.executable, os.path.join(REPO, "pipeline", "tools", "style_search.py"), refs[0], p1, sj, os.path.join(out, "search"),
                    "--budget", "400", "--frames", "8"]
+            for v in refs[1:3]:  # the moments are spread over up to 3 references
+                pd = os.path.join(stylelab.LAB, slug, "probe", os.path.splitext(os.path.basename(v))[0])
+                if os.path.exists(os.path.join(pd, "report.json")):
+                    cmd += ["--more", v, pd]
             if BROWSER:
                 cmd += ["--browser", BROWSER]
             run(cmd, cwd=REPO)
             tuned = json.load(open(os.path.join(out, "search", "best_style.json")))
             style["cap"] = tuned["cap"]
+            # measured by the search, kept through Claude's correction rounds
+            # geometry and type are measured; the pixel percentage of the correction rounds rewards less ink (a tiny
+            # thin text scored 83 % on 20.10., the right one ~60 %), so Claude's rounds may not change them
+            locked = {k: tuned["cap"][k] for k in ("overFace", "font", "weight", "size", "y", "x", "words", "stroke", "track", "lineHeight", "maxWidth")
+                      if k in tuned["cap"]}
+            ap = next((h for h in json.load(open(os.path.join(out, "search", "search.json")))["history"] if h.get("step") == "Einblend-Messung"), {})
+            if ap.get("in") is True:
+                locked["anim"] = {"type": "none"}
+            if ap.get("out") is True:
+                locked.update(outKeys=None, out="none")
             print("search:", json.dumps(json.load(open(os.path.join(out, "search", "search.json")))["history"], ensure_ascii=False)[:1500])
         except Exception as e:
             print("search failed, keeping Claude's settings:", e)
@@ -491,20 +620,21 @@ def main():
             msg = (f"Pixel-Übereinstimmung jetzt: {sc['pixel_match']} % (Ziel 95+). Gemessene Abweichung (Geometrie): {json.dumps(sc.get('geometry'), ensure_ascii=False)}. "
                    "Die Position y ist ein Anteil der Höhe (1920 px): 10 px = 0.0052. Aktuelles Template: "
                    f"{json.dumps({k: v for k, v in style.items() if k in ('cap', 'accents', 'hook')}, ensure_ascii=False)}\n"
-                   "Schrift, Größe, Position, Laufweite, Kontur und Wörter pro Einblendung sind bereits per Messung optimiert – ändere sie nur, "
-                   "wenn du dir sehr sicher bist. Konzentriere dich auf Farben, Hervorhebung (gesprochenes Wort/Schlüsselwort), Kasten, "
+                   "Schrift, Größe, Position, Laufweite, Kontur und Wörter pro Einblendung sind gemessen und bleiben fest. Konzentriere dich auf Farben, Hervorhebung (gesprochenes Wort/Schlüsselwort), Kasten, "
                    "Rundungen, Schatten und vor allem die Animationskurve (Frame für Frame). Gib das korrigierte "
-                   "Template im selben JSON-Format zurück (nur cap, accents, hook, notes). Hinweis: Wenn das Original andere Wörter "
-                   "gleichzeitig zeigt, liegt das an der Wortaufteilung – dann \"words\" anpassen.")
+                   "Template im selben JSON-Format zurück (nur cap, accents, hook, notes). Andere Wörter als im Original nebeneinander "
+                   "kommen von der Transkription, nicht vom Stil.")
             fix = llm_json([{"role": "system", "content": system}, {"role": "user", "content": as_content(msg, imgs)}])
             history.append(str(fix.get("notes") or "korrigiert")[:160])
             if not isinstance(fix.get("cap"), dict):
                 break
-            merged = {**{k: style[k] for k in ("zoom", "broll", "cut", "grade", "sfx", "progress") if k in style}, **ans, **fix,
+            # a partial answer must not reset the rest of the caption to defaults
+            fix["cap"] = {**style["cap"], **fix["cap"], **locked}
+            merged = {**ans, **{k: style[k] for k in ("zoom", "broll", "cut", "grade", "sfx", "progress") if k in style}, **fix,
                       "base": base_id, "about": style["about"], "gaps": style.get("gaps")}
-            if isinstance(style.get("music"), str):
-                merged["music"] = style["music"].split("/", 1)[1]
+            merged["music"] = style["music"].split("/", 1)[1] if isinstance(style.get("music"), str) else None
             style, base_id = build_style(merged, name)
+            measured(style, cuts)
         score, style, best_dir = best
     final_cmp = os.path.join(best_dir, "compare.mp4") if score is not None else None
 
@@ -533,6 +663,8 @@ if __name__ == "__main__":
     except StyleError as e:
         report(status="failed", error=str(e)[:400])
         sys.exit(1)
-    except Exception as e:
-        report(status="failed", error=f"Fehler: {type(e).__name__}: {str(e)[:300]}")
+    except Exception:
+        # details (traceback) go to the run log only; the customer gets a sentence
+        report(status="failed", error="Beim Lernen des Stils ist ein interner Fehler aufgetreten – bitte nochmal versuchen. "
+                                      "Wenn es wieder passiert, melde dich beim Support.")
         raise
