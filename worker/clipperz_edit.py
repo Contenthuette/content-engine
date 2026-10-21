@@ -633,8 +633,10 @@ def detect_focus(path, duration):
 
 # ---------- Claude: edit plan ----------
 
-def edit_plan(words, duration, items, preset_id, spoken_hook):
-    """Claude decides content (hook title, key words, text beats, B-roll); code enforces timing rules."""
+def edit_plan(words, duration, items, preset_id, spoken_hook, emojis=None):
+    """Claude decides content (hook title, key words, text beats, B-roll); code enforces timing rules.
+    emojis (CLIPPERZ Pro clips only): list of allowed emojis -> Claude also picks caption emojis ("emojis" in the answer).
+    None = the prompt stays exactly as before."""
     pr = PRESETS[preset_id]
     sents = sentences_of(words)
     idx, lines = 0, []
@@ -682,6 +684,16 @@ def edit_plan(words, duration, items, preset_id, spoken_hook):
         "Antworte NUR mit JSON: {\"hook\": \"…\", \"accent\": \"#…\", \"emphasis\": [..], "
         "\"inserts\": [{\"code\": \"…\", \"start\": Wortindex, \"props\": {…}}], \"fixes\": {}, \"broll\": [{\"bild\": Nummer, \"start\": Sekunden, \"ende\": Sekunden}]}"
     )
+    if emojis:
+        n_emo = max(1, round(duration / 4))
+        last = parts[-1]
+        k = last.index("Antworte NUR")
+        parts[-1] = (last[:k] +
+                     f"7. emojis: höchstens {n_emo} Emojis für die Untertitel (wie Submagic/Vizard) – nur an emotionalen Stellen und Schlüsselwörtern "
+                     "(Lachen, Pointe, Schock, Geld, Liebe, Stärke, Essen, Warnung …), etwa eins alle 3–5 Sekunden, nie zwei kurz hintereinander, "
+                     "keins in den ersten 2 Sekunden, keins bei neutralen Sätzen (lieber weniger). i = Index des Wortes, zu dem das Emoji erscheint; "
+                     f"das Emoji passt zum Wort und zur Stimmung. Nur aus dieser Liste: {' '.join(emojis)}\n" +
+                     last[k:].replace("\"ende\": Sekunden}]}", "\"ende\": Sekunden}], \"emojis\": [{\"i\": Wortindex, \"emoji\": \"…\"}]}"))
     system = "".join(parts)
     user = f"Video-Länge: {duration:.2f} s\nGesprochener Einstieg: {spoken_hook or '-'}\n\nTranskript:\n" + "\n".join(lines) + f"\n\nB-Roll-Bilder:\n{pics}"
     try:

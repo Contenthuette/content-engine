@@ -472,6 +472,61 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   );
 };
 
+// ---------- caption emojis (CLIPPERZ Pro, 22.10.2026 – like Vizard/Submagic) ----------
+
+/** One emoji per marked word: pops in with the word (~6 frames, overshoot), sways gently while its caption stands,
+ * then shrinks away. Placed above the caption block when there is room below the chin, else below it (inside the
+ * bottom safe zone), else next to it on the right – never over the face. Pictures: Fluent Emoji 3D (MIT). */
+const EmojiPops: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boolean}> = ({plan, preset, hidden}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const t = f / fps;
+  const cap = preset.cap as unknown as {words?: number; size?: number; upper?: boolean; style?: string};
+  const list = React.useMemo(() => phrases(plan.words, Math.max(1, cap.words || 3)), [plan.words, cap.words]);
+  const items = React.useMemo(() => {
+    const em = (plan.emojis ?? []).filter((x) => plan.words[x.i] && x.src);
+    return em.map((x, k) => {
+      const s = plan.words[x.i].s - 0.04;
+      const ph = list.find((p) => p.words.some((w) => w.i === x.i));
+      const next = em[k + 1] ? plan.words[em[k + 1].i].s - 0.1 : Infinity;
+      return {...x, s, e: Math.min(next, Math.max(s + 1.1, Math.min(s + 2.2, ph?.e ?? s + 1.4))), ph};
+    });
+  }, [plan.emojis, plan.words, list]);
+  const it = items.find((x) => t >= x.s && t < x.e);
+  if (!it || hidden(t)) return null;
+  const size = Math.max(150, Math.min(210, (cap.size ?? 84) * 1.9));
+  // caption block: centre from captionY, height from the phrase that stands now (rough line count)
+  const capY = captionY(plan, preset, t);
+  const ph = list.find((p) => t >= p.s - 0.03 && t < p.e) ?? it.ph;
+  const fs = cap.size ?? 84;
+  const chars = ph ? ph.words.reduce((n, w) => n + w.w.w.length + 1, 0) : 12;
+  const lines = cap.style === 'stack' ? 2 : Math.min(3, Math.max(1, Math.ceil((chars * fs * (cap.upper ? 0.66 : 0.56)) / (W - SAFE.left - SAFE.right))));
+  const half = (lines * fs * 1.1) / 2 + 8;
+  const {S, ty} = camera(t, plan.zooms, plan.focus, preset.zoom.drift, plan.maxZoom ?? 1.7);
+  const chin = plan.focus.h > 0 ? S * plan.focus.y * H + ty + plan.focus.h * H * S * 0.62 : -Infinity;
+  let cx = W / 2;
+  let cy = capY - half - 14 - size / 2; // above the caption
+  if (cy - size / 2 < Math.max(SAFE.top, chin + 12)) {
+    const below = capY + half + 14 + size / 2;
+    if (below + size / 2 <= H - SAFE.bottom + 70) cy = below;
+    else {
+      cy = capY - half * 0.4; // next to the caption, right edge of the safe area
+      cx = W - SAFE.right - size / 2;
+    }
+  }
+  const age = t - it.s;
+  const kin = ease(t, it.s, 0.2, POP); // ~6 frames at 30 fps
+  const kout = ease(t, it.e - 0.16, 0.16, Easing.in(Easing.cubic));
+  const sway = Math.sin(age * Math.PI * 2 * 1.1) * 5 * cl(age / 0.3);
+  const bob = Math.sin(age * Math.PI * 2 * 0.9) * 6 * cl(age / 0.3);
+  const sc = lerp(kin, 0.2, 1) * (1 - 0.6 * kout);
+  return (
+    <Img src={asset(it.src)} style={{position: 'absolute', left: cx - size / 2, top: cy - size / 2 + bob, width: size, height: size,
+      opacity: cl(kin * 3) * (1 - kout), transform: `scale(${sc}) rotate(${lerp(kin, -18, 0) + sway}deg)`,
+      filter: 'drop-shadow(0 10px 18px rgba(0,0,0,.35))'}} />
+  );
+};
+
 /** Draws its children only while hidden(t) is false (plan.cleanInserts: no caption shade over full-screen text beats). */
 const HideDuring: React.FC<{hidden: (t: number) => boolean; children: React.ReactNode}> = ({hidden, children}) => {
   const f = useCurrentFrame();
@@ -974,6 +1029,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
           : <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} />
       ) : null}
       {plan.captions ? (preset.cap.style === 'custom' ? <CustomCaptions plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
+      {plan.captions && plan.pro && plan.emojis?.length ? <EmojiPops plan={plan} preset={preset} hidden={capHidden} /> : null}
       {showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} cap={preset.cap.style === 'custom' ? (preset.cap as unknown as CustomCap) : undefined} /> : null}
 
       {plan.inserts.map((x, i) => {

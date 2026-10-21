@@ -53,4 +53,7 @@ export type Plan = {
   cleanInserts?: boolean;
   /** CLIPPERZ Pro clips: overlap-free "pop" captions, hook always on screen. Without it the old behaviour. */
   pro?: boolean;
+  /** CLIPPERZ Pro "Emojis in Untertiteln": an emoji pops up with word i (picture src, e.g. lib/emoji/fire.webp) above /
+   * below / next to the caption, never over the face. Without it no emojis (old behaviour). */
+  emojis?: {i: number; e: string; src: string}[];
 };

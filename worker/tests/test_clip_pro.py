@@ -187,6 +187,59 @@ def test_max_five_any_source():
         assert len(t) <= 5 and len(set(t)) == len(t) and t.count("#fyp") <= 1, (src, t)
 
 
+# ---------- 3. emojis in captions ----------
+
+def words_at(texts, step=0.5):
+    return [{"w": w, "s": round(k * step, 3), "e": round(k * step + step * 0.8, 3)} for k, w in enumerate(texts)]
+
+
+def test_emojis_only_allowed_and_mapped_to_pictures():
+    ws = words_at(["Wort"] * 40)  # 20 s
+    got = cc.pick_emojis([{"i": 6, "emoji": "😂"}, {"i": 14, "emoji": "❤️"}, {"i": 24, "emoji": "🦄🦄"}, {"i": 99, "emoji": "🔥"},
+                          {"i": "x", "emoji": "🔥"}, "kaputt"], ws, 20.0)
+    assert [(x["i"], x["e"]) for x in got] == [(6, "😂"), (14, "❤")]  # ❤️ with variation selector is the same heart
+    for x in got:
+        assert os.path.exists(os.path.join(cc.REPO, "public", x["src"])), x
+
+
+def test_emojis_rare_and_apart():
+    ws = words_at(["Wort"] * 60)  # 30 s, the AI asks for an emoji on every second word
+    got = cc.pick_emojis([{"i": i, "emoji": "🔥"} for i in range(0, 60, 2)], ws, 30.0, hook_end=2.0)
+    times = [ws[x["i"]]["s"] for x in got]
+    assert len(got) <= round(30 / cc.EMOJI_EVERY)            # ~1 per 4 s at most
+    assert all(b - a >= cc.EMOJI_GAP for a, b in zip(times, times[1:]))
+    assert times and times[0] >= 2.0                          # not while the hook covers the captions
+    assert cc.pick_emojis([], ws, 30.0) == []                 # the AI chose none: none (no fallback)
+
+
+def test_emoji_fallback_from_key_words_when_plan_failed():
+    ws = words_at("Ich habe so gelacht haha und dann kam das Geld rein Wahnsinn echt so viel Liebe".split(), step=0.6)
+    got = cc.pick_emojis(None, ws, ws[-1]["e"])
+    assert got and {x["e"] for x in got} <= {"😂", "💰", "🤯", "❤"}
+    assert all(ws[x["i"]]["s"] >= 0.8 for x in got)
+
+
+def test_edit_plan_prompt_unchanged_without_emojis():
+    seen = []
+    old_llm = cc.ce.llm_json
+    cc.ce.llm_json = lambda messages, max_tokens=0: seen.append(messages[0]["content"]) or {}
+    try:
+        pid = cc.pro_preset("clean")
+        ws = words_at(["Hallo", "Welt."] * 10)
+        cc.ce.edit_plan(ws, 10.0, [], pid, "Hook")
+        cc.ce.edit_plan(ws, 10.0, [], pid, "Hook", list(cc.EMOJI))
+    finally:
+        cc.ce.llm_json = old_llm
+    plain, emo = seen
+    assert "emojis" not in plain and "7. emojis" in emo and "😂" in emo
+    assert emo.replace(emo[emo.index("7. emojis"):emo.index("Antworte NUR")], "").replace(
+        ", \"emojis\": [{\"i\": Wortindex, \"emoji\": \"…\"}]", "") == plain
+
+
+def test_emojis_off_for_internal_jobs():
+    assert cc.EMOJIS is False   # set only in main() for Pro jobs with clip-config "emojis": true
+
+
 # ---------- optional: a real transcript excerpt from a local run ----------
 
 def test_real_transcript_if_available():

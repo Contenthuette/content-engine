@@ -1063,6 +1063,83 @@ def accent_ink(hex_):
 
 ACCENT = None  # set in main() from clip-config; None keeps the old behaviour exactly
 
+# ---------- Pro: emojis in the captions (clip-config "emojis": true, 22.10.2026 "wie Vizard/Submagic") ----------
+# Claude picks them in the edit plan it writes anyway (word index + emoji, no extra AI call); code keeps them rare.
+# Pictures: Microsoft Fluent Emoji 3D (MIT licence, public/lib/emoji/LICENSE-fluentui-emoji.txt) – the renderer shows
+# them as images, so no emoji font is needed in the render browser.
+EMOJIS = False
+EMOJI = {
+    "😂": "face_with_tears_of_joy", "🤣": "rolling_on_the_floor_laughing", "😅": "grinning_face_with_sweat", "🔥": "fire",
+    "💰": "money_bag", "💸": "money_with_wings", "😱": "face_screaming_in_fear", "❤": "red_heart", "👀": "eyes",
+    "💪": "flexed_biceps", "🤯": "exploding_head", "😍": "smiling_face_with_heart_eyes", "🥰": "smiling_face_with_hearts",
+    "😭": "loudly_crying_face", "😳": "flushed_face", "😬": "grimacing_face", "🙄": "face_with_rolling_eyes",
+    "😮": "face_with_open_mouth", "🤭": "face_with_hand_over_mouth", "🥺": "pleading_face", "😤": "face_with_steam_from_nose",
+    "😡": "pouting_face", "🤔": "thinking_face", "😎": "smiling_face_with_sunglasses", "🤪": "zany_face", "🥳": "partying_face",
+    "💀": "skull", "👏": "clapping_hands", "🙏": "folded_hands", "💯": "hundred_points", "🚀": "rocket", "✅": "check_mark_button",
+    "❌": "cross_mark", "🎉": "party_popper", "⚠": "warning", "🧠": "brain", "🤝": "handshake", "👑": "crown", "💥": "collision",
+    "⚡": "high_voltage", "🏆": "trophy", "👍": "thumbs_up", "👎": "thumbs_down", "💡": "light_bulb", "✨": "sparkles",
+    "🌶": "hot_pepper", "🍝": "spaghetti", "❓": "red_question_mark", "❗": "red_exclamation_mark", "🎁": "wrapped_gift",
+}
+EMOJI_GAP = 2.5    # s between two emojis at least
+EMOJI_EVERY = 4.0  # at most one emoji per this many seconds of clip
+# fallback when the edit plan failed (no "emojis" in the answer at all): key words -> emoji (word starts, lower case)
+EMOJI_WORDS = [
+    ("😂", ("haha", "hihi", "lach", "witzig", "lustig", "lol", "lmao")), ("🤯", ("krass", "wahnsinn", "unglaublich", "verrückt", "crazy", "insane")),
+    ("💰", ("geld", "euro", "million", "reich", "kohle", "money", "cash", "dollar")), ("💸", ("teuer", "pleite", "expensive")),
+    ("😱", ("angst", "schock", "horror", "panik", "gefährlich", "scary")), ("❤", ("liebe", "verliebt", "herz", "love")),
+    ("👀", ("guck", "schau", "look")), ("💪", ("stark", "gym", "training", "muskel", "kraft", "strong")),
+    ("🔥", ("geil", "heiß", "feuer", "hot", "fire")), ("🌶", ("scharf", "chili", "spicy")), ("🍝", ("pasta", "nudel", "spaghetti")),
+    ("😭", ("weinen", "traurig", "heulen", "cry")), ("🤔", ("warum", "wieso", "eigentlich", "why")),
+]
+
+
+def _emoji_key(e):
+    return e.replace("\ufe0f", "").strip() if isinstance(e, str) else ""
+
+
+def emoji_src(e):
+    name = EMOJI.get(_emoji_key(e))
+    return f"lib/emoji/{name}.webp" if name else None
+
+
+def keyword_emojis(words):
+    """[(word index, emoji)] from key words – only used when the AI gave no emoji answer at all."""
+    out = []
+    for i, w in enumerate(words):
+        n = norm(w["w"])
+        for e, stems in EMOJI_WORDS:
+            if any(n.startswith(s) for s in stems):
+                out.append((i, e))
+                break
+    return out
+
+
+def pick_emojis(ai, words, dur, hook_end=0.0):
+    """Caption emojis for the plan: [{"i": word index, "e": emoji, "src": picture}] – allowed emojis only, at most one per
+    EMOJI_EVERY s, EMOJI_GAP s apart, none while the hook covers the captions. ai: the edit plan's "emojis" list, or None
+    when the plan had none (failed call) -> key-word fallback."""
+    if ai is None:
+        cand = keyword_emojis(words)
+    else:
+        cand = []
+        for x in ai if isinstance(ai, list) else []:
+            if not isinstance(x, dict):
+                continue
+            i = _int(x.get("i"))
+            if i is not None and 0 <= i < len(words) and emoji_src(x.get("emoji")):
+                cand.append((i, _emoji_key(x["emoji"])))
+    top = max(1, int(dur / EMOJI_EVERY + 0.5)) if dur >= 3 else 0
+    out, last = [], -99.0
+    for i, e in sorted(set(cand)):
+        t = words[i]["s"]
+        if t < max(0.8, hook_end + 0.15) or t > dur - 0.6 or t - last < EMOJI_GAP or words[i].get("hide"):
+            continue
+        out.append({"i": i, "e": e, "src": emoji_src(e)})
+        last = t
+        if len(out) >= top:
+            break
+    return out
+
 
 def clip_order(c):
     return ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"]]
@@ -1228,7 +1305,7 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
         # Pro: the AI edit plan runs while the frame is reframed (both take ~30-60 s); no full-screen text beats in
         # clips – the picture IS the moment (21.10.2026: beats hid the reactions and one showed an invented number).
         pid = pro_preset(preset_id)
-        pending = POOL.submit(ce.edit_plan, words, dur, [], pid, c["hook"])
+        pending = POOL.submit(ce.edit_plan, words, dur, [], pid, c["hook"], list(EMOJI) if EMOJIS and captions else None)
         try:
             import clipperz_reframe
             sw, sh = ce.src_size(cutp)
@@ -1265,6 +1342,11 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
             plan["accentInk"] = ink
     if PRO:
         plan["pro"] = True
+        if EMOJIS and captions:  # caption emojis (Claude's picks from the edit plan, kept rare)
+            plan["emojis"] = pick_emojis(res.get("emojis") if "emojis" in res else None, plan["words"], dur,
+                                         (plan.get("hook") or {}).get("e") or 0.0)
+            print(f"clip {i}: emojis " + (" ".join(f"{x['e']}@{plan['words'][x['i']]['s']:.1f}s({plan['words'][x['i']]['w']})" for x in plan["emojis"]) or "-")
+                  + ("" if "emojis" in res else " (key words, edit plan without emojis)"), flush=True)
         if layout not in ("track", "vertical") or not focus.get("h"):  # zooms would crop the layout / the group
             plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
         else:  # the 9:16 window is already upscaled from 1080p: gentle zooms (below 1.25 the renderer's level 1 would
@@ -1372,7 +1454,7 @@ DURATION = 0.0
 
 
 def main():
-    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS, PRO, POOL, FORMAT_TAGS, HARD_LEN
+    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS, PRO, POOL, FORMAT_TAGS, HARD_LEN, EMOJIS
     t_run = time.time()
     report(status="downloading", note="Video wird geladen…", **({"runUrl": RUN_URL} if RUN_URL else {}))
     r = requests.get(f"{API}/clip-config?{AUTH}", timeout=30)
@@ -1387,11 +1469,12 @@ def main():
     if FALLBACK:
         LLM_ATTEMPTS = 2
     PRO = cfg.get("pro") is True
+    EMOJIS = PRO and cfg.get("emojis") is True  # Pro option "Emojis in Untertiteln"
     if PRO:
         lo, hi = HARD_LEN = pro_len_bounds(lo, hi)
         from concurrent.futures import ThreadPoolExecutor
         POOL = ThreadPoolExecutor(max_workers=2)
-        print("CLIPPERZ Pro clipping", flush=True)
+        print("CLIPPERZ Pro clipping" + (" (emojis in captions)" if EMOJIS else ""), flush=True)
     pace = ce.PRESETS[preset_id].get("cut") or {}
     ce.CUT_HEAD, ce.CUT_TAIL = 0.06, 0.08  # a bit more air than a talking-head edit: streams are less clean
     ce.KEEP_GAP = 0.3                       # natural rhythm, only longer pauses are tightened
