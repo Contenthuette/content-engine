@@ -1363,6 +1363,36 @@ def run_revision(cfg):
     report(status="done", resultUrl=url, planUrl=plan_url, assets=keep + new_assets, note=note)
 
 
+HEX = re.compile(r"#[0-9A-Fa-f]{6}")
+
+
+def custom_accent(cfg):
+    """Optional highlight colour chosen by the customer (edit-config "accent", #RRGGBB). None = the style decides as before."""
+    a = cfg.get("accent") if isinstance(cfg, dict) else None
+    a = a.strip() if isinstance(a, str) else ""
+    return a.upper() if HEX.fullmatch(a) else None
+
+
+def accent_ink(hex_):
+    """Dark text on a light accent fill (e.g. the key-word pill of Clean Motion), else None (renderer keeps white)."""
+    r, g, b = (int(hex_[k:k + 2], 16) / 255 for k in (1, 3, 5))
+    lin = lambda c: c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    return "#0B0B0F" if 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) > 0.4 else None
+
+
+def apply_customer_look(plan, cfg):
+    """Optional edit-config extras (CLIPPERZ Pro). Without them the plan stays exactly as before.
+    accent: customer colour wins over the style's accent list; cleanInserts: no caption shade over full-screen text beats."""
+    acc = custom_accent(cfg)
+    if acc:
+        plan["accent"] = acc
+        ink = accent_ink(acc)
+        if ink:
+            plan["accentInk"] = ink
+    if isinstance(cfg, dict) and cfg.get("cleanInserts") is True:
+        plan["cleanInserts"] = True
+
+
 def main():
     report(status="working", note="Video wird geladen…", runUrl=RUN_URL)
     cfg = requests.get(f"{API}/edit-config?{AUTH}", timeout=30)
@@ -1475,6 +1505,7 @@ def main():
         broll_rel.append(f"{job}/b{i}{ext}")
     plan = build_plan(words_cut, out_dur, items, preset_id, cfg.get("captions", pr["captions"]), focus, res, f"{job}/main.mp4", broll_rel,
                       hi_res=min(src_size(cut_path)) >= 1440, src_min=min(src_size(cut_path)))
+    apply_customer_look(plan, cfg)
     try:
         level_sfx(plan, os.path.join(pub, "main.mp4"), pr.get("sfxVol", 0.4))
     except Exception as e:

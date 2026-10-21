@@ -49,4 +49,6 @@ export type Plan = {
    * would make white text unreadable. Without it the old white is used. */
   accentInk?: string;
   captions: boolean;
+  /** CLIPPERZ Pro: no caption shade band over full-screen text beats. Without it the old behaviour (shade stays). */
+  cleanInserts?: boolean;
 };

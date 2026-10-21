@@ -461,6 +461,13 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   );
 };
 
+/** Draws its children only while hidden(t) is false (plan.cleanInserts: no caption shade over full-screen text beats). */
+const HideDuring: React.FC<{hidden: (t: number) => boolean; children: React.ReactNode}> = ({hidden, children}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  return hidden(f / fps) ? null : <>{children}</>;
+};
+
 /** Soft dark band behind the captions so white text stays readable on bright walls and sky. */
 const Shade: React.FC<{y: number}> = ({y}) => (
   <AbsoluteFill style={{background: `linear-gradient(to bottom, rgba(0,0,0,0) ${(y - 0.13) * 100}%, rgba(0,0,0,.32) ${(y - 0.03) * 100}%, rgba(0,0,0,.32) ${(y + 0.04) * 100}%, rgba(0,0,0,0) ${(y + 0.14) * 100}%)`}} />
@@ -523,6 +530,8 @@ export type CustomCap = {
   align?: 'center' | 'left' | 'right'; x?: number;
   activeDur?: number;
   out?: 'none' | 'fade' | 'pop'; tilt?: number; lead?: number;
+  /** space left and right of each word in em (default 0.14, 0.08 on word boxes) */
+  gap?: number;
   /** learned from an original whose captions sit on the face: no face guard for a numeric y */
   overFace?: boolean;
 };
@@ -605,7 +614,7 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
     const color = sc(hl.color) ?? (reveal === 'karaoke' && !spoken ? cap.future?.color ?? cap.color : cap.color);
     const bg = sc(hl.bg) ?? (cap.box?.scope === 'word' ? sc(cap.box.color) : undefined);
     let st: React.CSSProperties = {
-      display: 'inline-block', margin: `0 ${bg ? 0.08 : 0.14}em`, whiteSpace: 'nowrap', color,
+      display: 'inline-block', margin: `0 ${cap.gap ?? (bg ? 0.08 : 0.14)}em`, whiteSpace: 'nowrap', color,
       fontFamily: x.em && cap.key?.font ? keyFont.family : font.family, fontStyle: x.em && cap.key?.italic ? 'italic' : undefined,
       fontWeight: (x.em && cap.key?.weight) || cap.weight || 900,
       opacity: reveal === 'karaoke' && !spoken ? cap.future?.opacity ?? 1 : 1,
@@ -701,6 +710,35 @@ const Hook: React.FC<{text: string; end: number; style: string; accent: string; 
       </div>
     );
   }
+  if (style === 'karaoke') {
+    // Karaoke hook: the title stands on a dark glass card, a highlight runs through it word by word
+    // (not yet: dim, now: accent + slight lift, done: white) – the captions' reading rhythm, in big.
+    const lines = karaokeLines(text, KARAOKE_HOOK_CHARS);
+    const n = lines.reduce((k, l) => k + l.length, 0);
+    const step = Math.min(0.3, Math.max(0.12, (end - 0.75) / Math.max(1, n)));
+    const family = cap ? (CAPTION_FONTS[cap.font] ?? CAPTION_FONTS.montserrat).family : 'Montserrat';
+    let idx = 0;
+    return (
+      <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top, display: 'flex', justifyContent: 'center',
+        opacity: cl(kIn * 1.6) * (1 - kOut), filter: `blur(${(1 - kIn) * 12 + kOut * 10}px)`, transform: `scale(${lerp(kIn, 0.94, 1) * lerp(kOut, 1, 1.04)})`}}>
+        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '26px 38px 30px', borderRadius: 40,
+          background: 'rgba(10,10,14,.58)', backdropFilter: 'blur(18px)', boxShadow: '0 30px 70px rgba(0,0,0,.35)'}}>
+          {lines.map((l, li) => (
+            <div key={li} style={{fontFamily: family, fontWeight: 800, fontSize: KARAOKE_HOOK, lineHeight: 1.08, letterSpacing: '-0.02em', whiteSpace: 'nowrap'}}>
+              {l.map((w, j) => {
+                const a = 0.18 + idx++ * step;
+                const kOn = ease(t, a - 0.04, 0.12);
+                const kDone = ease(t, a + step - 0.02, 0.14);
+                const color = t < a - 0.04 ? 'rgba(255,255,255,.34)' : kDone > 0.5 ? '#fff' : accent;
+                return <span key={j} style={{display: 'inline-block', marginLeft: j ? '0.26em' : 0, color,
+                  transform: `translateY(${-6 * kOn * (1 - kDone)}px) scale(${1 + 0.06 * kOn * (1 - kDone)})`}}>{w}</span>;
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (style === 'story') {
     return (
       <div style={{position: 'absolute', left: 70, right: 70, top, textAlign: 'center', fontFamily: SERIF, fontStyle: 'italic', fontSize: 104, lineHeight: 1.02, color: '#fff',
@@ -725,6 +763,18 @@ const Hook: React.FC<{text: string; end: number; style: string; accent: string; 
 };
 
 const CAPTION_HOOK = 92;
+const KARAOKE_HOOK = 84;
+const KARAOKE_HOOK_CHARS = 15;
+
+/** Words of the karaoke hook in lines of max `max` characters (normal case, at most 3 lines). */
+function karaokeLines(text: string, max: number) {
+  return text.split(/\s+/).filter(Boolean).reduce<string[][]>((acc, w) => {
+    const last = acc[acc.length - 1];
+    if (last && [...last, w].join(' ').length <= max) last.push(w);
+    else acc.push([w]);
+    return acc;
+  }, []).slice(0, 3);
+}
 
 function hookLines(text: string, max: number) {
   return text.toUpperCase().split(/\s+/).reduce<string[]>((acc, w) => {
@@ -739,6 +789,7 @@ function hookLines(text: string, max: number) {
 function hookHeight(text: string, style: string) {
   if (style === 'kleinecke' || style === 'handwerk') return Math.min(3, hookLines(text, 14).length) * 124;
   if (style === 'story') return Math.ceil(text.length / 18) * 106 + 20;
+  if (style === 'karaoke') return karaokeLines(text, KARAOKE_HOOK_CHARS).length * Math.round(KARAOKE_HOOK * 1.08 + 2) + 56;
   if (style === 'none' || style === 'stack' || style === 'caption') return hookLines(text, 14).length * (CAPTION_HOOK + 4);
   return Math.ceil(text.length / 20) * 84 + 64; // clean pill
 }
@@ -903,7 +954,11 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
         );
       })}
 
-      {plan.captions && preset.cap.style !== 'scrim' && !(preset.cap.style === 'custom' && !(preset.cap as unknown as {shade?: boolean}).shade) ? <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /> : null}
+      {plan.captions && preset.cap.style !== 'scrim' && !(preset.cap.style === 'custom' && !(preset.cap as unknown as {shade?: boolean}).shade) ? (
+        plan.cleanInserts
+          ? <HideDuring hidden={inInsert}><Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /></HideDuring>
+          : <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} />
+      ) : null}
       {plan.captions ? (preset.cap.style === 'custom' ? <CustomCaptions plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
       {showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} cap={preset.cap.style === 'custom' ? (preset.cap as unknown as CustomCap) : undefined} /> : null}
 
