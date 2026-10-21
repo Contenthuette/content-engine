@@ -32,7 +32,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: whisper-clip-v1
+          # v2: + large-v3-turbo (CLIPPERZ Pro re-transcribes the picked clips with it); restores v1 (small/medium) first
+          key: whisper-clip-v2
+          restore-keys: whisper-clip-
       # The payload (stream token, callback URL) is read from the event file inside the script,
       # never passed through env or arguments here – this repo is public and step env values appear in the logs.
       - name: Clip

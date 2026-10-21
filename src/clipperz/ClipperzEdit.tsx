@@ -430,6 +430,17 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
       Object.assign(st, isEm ? {backgroundImage: `linear-gradient(${accent}, ${accent})`, backgroundRepeat: 'no-repeat', backgroundPosition: '0 94%', backgroundSize: `${ku * 100}% 0.17em`, paddingBottom: '0.08em'} : {});
     } else if (cap.style === 'depth') {
       Object.assign(st, isEm && plan.fg ? {display: 'none'} : {opacity: spoken ? 1 : 0.55});
+    } else if (cap.style === 'pop' && plan.pro) {
+      // CLIPPERZ Pro (21.10.2026): the slam from 1.45x ran into the neighbour word ("SAYOKAY", "TAGUND") in ~40 % of
+      // the frames. Now each word pops up from 0.7x with a small overshoot – the same punch, no overlap.
+      const kp = ease(t, w.s - 0.04, 0.2, POP);
+      Object.assign(st, {
+        color: isEm ? accent : cap.color,
+        WebkitTextStroke: '12px #0B0B0F',
+        paintOrder: 'stroke fill',
+        opacity: shown ? 1 : 0,
+        transform: `scale(${lerp(kp, 0.7, 1) * (isEm && active ? 1.06 : 1)}) rotate(${(i % 2 ? 1 : -1) * 2}deg)`,
+      });
     } else if (cap.style === 'pop') {
       Object.assign(st, {
         color: isEm ? accent : cap.color,
@@ -817,6 +828,10 @@ function hookLayout(plan: Plan, preset: Preset): {top: number; takeover: boolean
   const capTop = plan.captions ? capY - 110 : H - SAFE.bottom - 40;
   if (bottom + 40 + tall <= capTop - 30) return {top: bottom + 40, takeover: false};
   // no room: the hook sits where the captions are, captions wait until it is gone
+  // CLIPPERZ Pro: a big close-up face pushed the hook below the screen (21.10.2026: no hook and no captions for the
+  // first 2.6 s). Pro puts it at the top of the safe area instead (over hair/forehead, like OpusClip titles) and the
+  // captions keep running.
+  if (plan.pro) return {top: above, takeover: false};
   return {top: Math.max(bottom + 40, Math.min(H - SAFE.bottom - tall - 20, capY - tall / 2)), takeover: true};
 }
 

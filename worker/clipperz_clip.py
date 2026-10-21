@@ -107,6 +107,26 @@ def post(path, body, timeout=60):
 
 FALLBACK = False   # clip-config "fallback" (CLIPPERZ Pro): always deliver clips when there is enough speech. False = old behaviour.
 LLM_ATTEMPTS = 3   # fallback runs use 2: a hanging AI call must not eat the whole run
+# clip-config "pro" (CLIPPERZ Pro, 21.10.2026 – "Clipping wie OpusClip"): YuNet reframe with layouts per scene, second
+# speech pass with a bigger model for the captions, no full-screen text beats, overlap-free captions, post caption +
+# hashtags from the check pass, two-pass loudness (-14 LUFS), parallel AI calls. False = the old behaviour exactly.
+PRO = False
+
+TIMES = {}  # phase -> seconds (printed at the end: where the run spends its time)
+
+
+class phase:
+    def __init__(self, name):
+        self.name = name
+
+    def __enter__(self):
+        self.t = time.time()
+        return self
+
+    def __exit__(self, *exc):
+        TIMES[self.name] = TIMES.get(self.name, 0.0) + time.time() - self.t
+        print(f"[time] {self.name}: {time.time() - self.t:.1f}s", flush=True)
+        return False
 
 
 def llm(messages, max_tokens=8000, temperature=0.2):
@@ -244,8 +264,13 @@ def transcribe(audio, duration, language):
     from faster_whisper import WhisperModel
     size = os.environ.get("CLIPPERZ_WHISPER") or ("medium" if duration <= 30 * 60 else "small")
     model = WhisperModel(size, device="cpu", compute_type="int8", cpu_threads=os.cpu_count() or 2)
-    segs, info = model.transcribe(audio, language=None if language == "auto" else language, word_timestamps=True, vad_filter=True,
-                                  condition_on_previous_text=False)
+    if PRO:  # batched over speech chunks: ~1.7x faster on CPU, same words (local test 21.10.2026: 50 s -> 29 s for 2 min)
+        from faster_whisper import BatchedInferencePipeline
+        segs, info = BatchedInferencePipeline(model).transcribe(audio, language=None if language == "auto" else language,
+                                                                word_timestamps=True, batch_size=8)
+    else:
+        segs, info = model.transcribe(audio, language=None if language == "auto" else language, word_timestamps=True, vad_filter=True,
+                                      condition_on_previous_text=False)
     words, last = [], -5
     for s in segs:
         for w in s.words or []:
@@ -258,6 +283,88 @@ def transcribe(audio, duration, language):
             report(note=f"Spracherkennung… {min(99, pct)} %")
     print(f"transcript: {len(words)} words, model {size}, language {info.language}")
     return words, info.language or language
+
+
+# Whisper invents these on silence/music (training data: TV subtitles). Pro drops them when they stand alone.
+HALLUCINATIONS = [
+    "danke fürs zuschauen", "vielen dank fürs zuschauen", "danke fürs zusehen", "vielen dank fürs zusehen",
+    "untertitel im auftrag des zdf", "untertitel der amaraorgcommunity", "untertitel von stephanie geiges",
+    "untertitelung des zdf", "thanks for watching", "thank you for watching", "bis zum nächsten mal",
+]
+
+
+def drop_hallucinations(words):
+    """Pro: removes the typical Whisper inventions when they stand alone (pause >= 0.5 s before, or start/end)."""
+    keys = [norm(w["w"]) for w in words]
+    kill = set()
+    for ph in HALLUCINATIONS:
+        toks = ph.split()
+        n = len(toks)
+        for i in range(len(words) - n + 1):
+            if "".join(keys[i:i + n]) != "".join(toks):
+                continue
+            alone_before = i == 0 or words[i]["s"] - words[i - 1]["e"] >= 0.5
+            alone_after = i + n >= len(words) or words[i + n]["s"] - words[i + n - 1]["e"] >= 0.5
+            if alone_before or alone_after:
+                kill.update(range(i, i + n))
+    if kill:
+        print(f"dropped {len(kill)} hallucinated words", flush=True)
+    return [w for k, w in enumerate(words) if k not in kill]
+
+
+_CLIP_MODEL = None
+
+
+def refine_words(picks, sents, audio, lang):
+    """Pro: transcribes only the picked clips again with a bigger model (captions are read by every viewer: names,
+    jokes, numbers must be right; 21.10.2026 the small model wrote „Pasta“ for „Pass“ in the punchline). The words of
+    each sentence of a clip are replaced by the new words in the same time span. Keeps the old words when the new pass
+    looks wrong (much fewer words) or fails. Returns {sentence index: words}."""
+    global _CLIP_MODEL
+    size = os.environ.get("CLIPPERZ_WHISPER_CLIP") or "large-v3-turbo"
+    if size == "off" or audio is None:
+        return {}
+    try:
+        from faster_whisper import WhisperModel
+        if _CLIP_MODEL is None:
+            _CLIP_MODEL = WhisperModel(size, device="cpu", compute_type="int8", cpu_threads=os.cpu_count() or 2)
+    except Exception as e:
+        print("clip speech model unavailable:", type(e).__name__, str(e)[:200], flush=True)
+        return {}
+    out = {}
+    for c in picks:
+        ks = list(range(c["start"], c["end"] + 1))
+        a = max(0.0, sents[ks[0]][0]["s"] - 0.6)
+        b = min(len(audio) / 16000, sents[ks[-1]][-1]["e"] + 0.6)
+        try:
+            segs, _ = _CLIP_MODEL.transcribe(audio[int(a * 16000):int(b * 16000)], language=None if lang == "auto" else lang,
+                                             word_timestamps=True, vad_filter=False, condition_on_previous_text=False, beam_size=5)
+            new = [{"s": round(a + w.start, 3), "e": round(a + w.end, 3), "w": w.word.strip().lstrip("-").strip()} for s in segs
+                   for w in (s.words or []) if re.search(r"\w", w.word)]  # no lone "-" / "…" tokens in the captions
+        except Exception as e:
+            print("clip re-transcription failed:", type(e).__name__, flush=True)
+            continue
+        new = drop_hallucinations(new)
+        old_n = sum(len(sents[k]) for k in ks)
+        if len(new) < 0.6 * old_n:
+            print(f"clip re-transcription kept old words ({len(new)} vs {old_n})", flush=True)
+            continue
+        # every new word goes to the clip sentence whose time span is nearest to its middle
+        spans = [(k, sents[k][0]["s"], sents[k][-1]["e"]) for k in ks]
+        first, last = spans[0][1], spans[-1][2]
+        got = {k: [] for k in ks}
+        for w in new:
+            m = (w["s"] + w["e"]) / 2
+            if m < first - 0.12 or m > last + 0.12:  # outside the clip: the neighbour sentences stay out
+                continue
+            k, s0, s1 = min(spans, key=lambda sp: 0 if sp[1] <= m <= sp[2] else min(abs(m - sp[1]), abs(m - sp[2])))
+            if s0 - 0.45 <= m <= s1 + 0.45:
+                got[k].append(w)
+        for k in ks:
+            if got[k]:
+                out[k] = got[k]
+        print(f"clip {c['start']}-{c['end']}: re-transcribed {old_n} -> {len(new)} words", flush=True)
+    return out
 
 
 def sentences(words):
@@ -311,6 +418,18 @@ RULES = (
     "Die Sätze stammen aus einer Spracherkennung (Fehler bei Namen möglich). Satznummern (#) und Zeiten sind verbindlich."
 )
 
+# CLIPPERZ Pro (21.10.2026, review of a 79-min IRL stream: clips started on a half sentence, ran on after the punchline,
+# one ended on a Whisper "Danke fürs Zusehen"). Scores follow the OpusClip logic (hook / flow / value / trend).
+PRO_RULES = (
+    "\n\nZusätzlich (Pro, Maßstab OpusClip):\n"
+    "10. ERSTER SATZ: ein vollständiger Satz, der allein Sinn ergibt – nie ein Satzrest wie „Geht, möchte ich auch …“ oder eine Antwort ohne Frage.\n"
+    "11. PAYOFF: Gespräche mit mehreren Personen (Streams, Podcasts): Setup und Pointe/Reaktion gehören in den Clip. Der Clip endet direkt nach "
+    "der Pointe, der Auflösung oder der stärksten Reaktion (Lachen, Ausruf) – kein Nachgerede, kein neues Thema, keine Verabschiedung.\n"
+    "12. why: ein konkreter Satz nach dem Muster „Hook: … – Payoff: …“ (was fesselt in Sekunde 1, was ist die Auflösung).\n"
+    "13. scores: hook = Sekunde 1–3 hält den Daumen an; story = Flow (logischer Bogen bis zur Auflösung); emotion = Wert für den Zuschauer "
+    "(Witz, Emotion, Nutzen, Überraschung); shareability = Trend/Teilbarkeit (würde man es schicken, kommentieren?)."
+)
+
 
 def selection_windows(sents, lines, max_chars):
     windows, cur, size = [], [], 0
@@ -335,7 +454,7 @@ def pick_moments(sents, lang, lo, hi, want, fallback=False):
     lines = [sent_line(i, s) for i, s in enumerate(sents)]
     windows = selection_windows(sents, lines, 20000 if fallback else 45000)  # 45k ~ 35-45 min of speech
     per = max(4, min(12, math.ceil(want * 2 / len(windows)) + 2))
-    system = RULES.format(lo=lo, hi=hi, lang=lang)
+    system = RULES.format(lo=lo, hi=hi, lang=lang) + (PRO_RULES if PRO else "")
     if fallback:  # 21.10.2026: without this the model reasoned through the whole token budget (>120 s, empty answer)
         system += "\n\nDenk nicht lange nach: antworte direkt mit dem JSON."
     ask = ("Finde bis zu {n} Clips (nur echte Treffer – lieber weniger als schwache)." if not fallback else
@@ -352,6 +471,40 @@ def pick_moments(sents, lang, lo, hi, want, fallback=False):
                   "\"scores\": {\"hook\": 0-100, \"story\": 0-100, \"emotion\": 0-100, \"shareability\": 0-100}}]} – sortiert nach score.")
         res = ce.llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens=16000 if fallback else 12000)
         return [c for c in ((res.get("clips") if isinstance(res, dict) else res) or []) if isinstance(c, dict)]
+
+    if PRO and len(windows) > 1:
+        # Pro: up to 3 windows at once (21.10.2026: 7 windows one after another took 9 min). Same rules per window:
+        # a failed window is tried again as two halves; nothing new starts after 25 min.
+        from concurrent.futures import ThreadPoolExecutor
+        done = [0]
+
+        def one(n_win):
+            n, win = n_win
+            if time.time() - t_start > 25 * 60:
+                return []
+            label = f" (Teil {n + 1} von {len(windows)})"
+            got = []
+            try:
+                got = ask_llm(win, label, per)
+            except ClipError as e:
+                print("selection window failed:", e, flush=True)
+                if len(win) >= 20:
+                    half = len(win) // 2
+                    for part in (win[:half], win[half:]):
+                        try:
+                            got += ask_llm(part, label, max(3, per // 2 + 1))
+                        except ClipError as e2:
+                            print("selection half window failed:", e2, flush=True)
+            done[0] += 1
+            report(note=f"Die besten Momente werden gesucht… ({done[0]}/{len(windows)})")
+            print(f"selection window {n + 1}/{len(windows)}: {len(got)} candidates", flush=True)
+            return got
+
+        report(note=f"Die besten Momente werden gesucht… (0/{len(windows)})")
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            for got in ex.map(one, list(enumerate(windows))):
+                out += got
+        return out
 
     for n, win in enumerate(windows):
         if fallback and (time.time() - t_start > 25 * 60 or (dead >= 2 and not ok_any)):
@@ -391,6 +544,20 @@ def _int(x):
         return int(x)
     except (TypeError, ValueError):
         return None
+
+
+def clean_caption(c):
+    """Pro post text: trimmed, max. 5 hashtags (lower case, no doubles), max. 600 characters."""
+    c = str(c or "").replace("\r", "").strip()
+    tags = []
+    for t in re.findall(r"#[\wäöüÄÖÜß]+", c):
+        t = t.lower()
+        if t not in tags:
+            tags.append(t)
+    text = re.sub(r"#[\wäöüÄÖÜß]+", "", c)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n\s*\n+", "\n\n", text).strip()
+    return ((text + ("\n\n" if text and tags else "") + " ".join(tags[:5])).strip())[:600]
 
 
 def short_hook(h):
@@ -457,6 +624,18 @@ def review(chosen, sents, lo, hi, lang):
         "Antworte NUR mit JSON: {\"clips\": [{\"i\": Nummer, \"ok\": true/false, \"start\": Satznummer (optional), \"end\": Satznummer (optional), "
         "\"title\": \"…\" (optional), \"hook\": \"…\" (optional), \"reason\": \"kurz, deutsch\"}]}"
     )
+    if PRO:
+        system = system.replace(
+            "Antworte NUR mit JSON:",
+            "- Beginnt der erste Satz mitten in einem Gedanken (Satzrest)? Läuft der Clip nach der Pointe/Reaktion noch weiter (Nachgerede, "
+            "Verabschiedung, „Danke fürs Zuschauen“)? Dann Start/Ende verschieben.\n"
+            "- Schreib für JEDEN Clip, der bleibt, den Post-Text: caption = 1–2 kurze, neugierig machende Sätze in der Sprache des Videos "
+            "(nur was im Clip passiert, keine erfundenen Fakten, kein Clickbait-Versprechen) + Leerzeile + 3–5 passende Hashtags "
+            "(Thema/Format/Nische, klein geschrieben, keine Fantasie-Tags). hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, "
+            "packend, nur was gesagt wird. why = „Hook: … – Payoff: …“ in einem Satz.\n"
+            "Antworte NUR mit JSON:").replace(
+            "\"reason\": \"kurz, deutsch\"}]}",
+            "\"reason\": \"kurz, deutsch\", \"caption\": \"…\", \"why\": \"…\"}]} – hook und caption für jeden Clip, der bleibt.")
     try:
         res = ce.llm_json([{"role": "system", "content": system}, {"role": "user", "content": "\n\n".join(blocks)}], max_tokens=10000)
     except ClipError as e:
@@ -485,6 +664,10 @@ def review(chosen, sents, lo, hi, lang):
             fixed["title"] = r["title"].strip()[:90]
         if isinstance(r.get("hook"), str) and r["hook"].strip():
             fixed["hook"] = short_hook(r["hook"]) or fixed["hook"]
+        if PRO and isinstance(r.get("caption"), str) and r["caption"].strip():
+            fixed["caption"] = clean_caption(r["caption"])
+        if PRO and isinstance(r.get("why"), str) and len(r["why"].strip()) > 10:
+            fixed["why"] = r["why"].strip()[:400]
         if r.get("reason"):
             print(f"review clip {i}: {'ok' if r.get('ok', True) else 'fixed'} – {str(r['reason'])[:160]}")
         out.append(fixed)
@@ -795,14 +978,38 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
         words[0] = {**words[0], "w": words[0]["w"][:1].upper() + words[0]["w"][1:]}
     dur, _ = ce.probe(cutp)
     vert = os.path.join(W, f"vert{i}.mp4")
-    focus, layout, crop_h = reframe(cutp, vert, dur)
+    pending = None
+    if PRO:
+        # Pro: the AI edit plan runs while the frame is reframed (both take ~30-60 s); no full-screen text beats in
+        # clips – the picture IS the moment (21.10.2026: beats hid the reactions and one showed an invented number).
+        pid = pro_preset(preset_id)
+        pending = POOL.submit(ce.edit_plan, words, dur, [], pid, c["hook"])
+        try:
+            import clipperz_reframe
+            sw, sh = ce.src_size(cutp)
+            if sh >= sw * 1.3:  # already vertical: as before
+                (focus, layout, crop_h), scenes = reframe(cutp, vert, dur), []
+            else:
+                focus, layout, crop_h, scenes = clipperz_reframe.reframe(cutp, vert, dur, ce.FPS, run, os.path.join(W, f"rf{i}"))
+        except Exception as e:
+            print("pro reframe failed, using the old one:", type(e).__name__, str(e)[:300], flush=True)
+            (focus, layout, crop_h), scenes = reframe(cutp, vert, dur), []
+        preset_id = pid
+    else:
+        focus, layout, crop_h = reframe(cutp, vert, dur)
 
     job = f"job/{re.sub(r'[^A-Za-z0-9]', '', STREAM)[:30] or 'clip'}c{i}"
     pub = os.path.join(W, "public", job)
     os.makedirs(pub, exist_ok=True)
     pr = ce.PRESETS[preset_id]
     ce.prepare_main(vert, os.path.join(pub, "main.mp4"), pr.get("grade"))
-    res = ce.edit_plan(words, dur, [], preset_id, c["hook"])
+    try:
+        res = pending.result() if pending else ce.edit_plan(words, dur, [], preset_id, c["hook"])
+    except Exception as e:
+        print("edit plan failed, using defaults:", type(e).__name__, e)
+        res = {}
+    if PRO:
+        res["inserts"], res["broll"] = [], []
     if c["hook"]:
         res["hook"] = c["hook"]  # the checked hook (only what is said) wins over a new idea
     plan = ce.build_plan(words, dur, [], preset_id, captions, focus, res, f"{job}/main.mp4", [], hi_res=False, src_min=1080)
@@ -811,7 +1018,16 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
         ink = accent_ink(ACCENT)
         if ink:
             plan["accentInk"] = ink
-    if layout in ("stack", "fit"):  # zooms would crop the layout
+    if PRO:
+        plan["pro"] = True
+        if layout not in ("track", "vertical") or not focus.get("h"):  # zooms would crop the layout / the group
+            plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
+        else:  # the 9:16 window is already upscaled from 1080p: gentle zooms, a close face hardly at all
+            plan["maxZoom"] = 1.12 if focus["h"] >= 0.2 else 1.25
+        cap = plan.get("style", {}).get("cap") if isinstance(plan.get("style"), dict) else None
+        if layout == "fit" and isinstance(cap, dict) and isinstance(cap.get("y"), (int, float)):
+            plan["style"]["cap"] = {**cap, "y": 0.75}  # below the 16:9 picture, not on its edge
+    elif layout in ("stack", "fit"):  # zooms would crop the layout
         plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
     elif crop_h < 1600:  # the 9:16 window was already upscaled: only gentle zooms
         plan["maxZoom"] = 1.3
@@ -822,7 +1038,24 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     meta = {"index": i, "title": c["title"] or c["hook"] or f"Clip {i + 1}", "hook": c["hook"], "why": c["why"], "score": round(c["score"]),
             "scores": c["scores"], "start": round(sents[c["start"]][0]["s"], 2), "end": round(sents[c["end"]][-1]["e"], 2),
             "duration": round(dur, 2), "transcript": " ".join(w["w"] for w in plan["words"])[:4000], "layout": layout}
+    if PRO:
+        meta["caption"] = c.get("caption") or ""
+        meta["scenes"] = scenes
     return plan, meta
+
+
+POOL = None  # Pro: thread pool for AI calls that can run next to ffmpeg work
+
+
+def pro_preset(preset_id):
+    """The style for Pro clips: same look, but no full-screen text beats (inserts) and no b-roll."""
+    pid = f"{preset_id}:pro"
+    if pid not in ce.PRESETS:
+        pr = json.loads(json.dumps(ce.PRESETS[preset_id]))
+        if isinstance(pr.get("inserts"), dict):
+            pr["inserts"]["perMin"] = 0
+        ce.PRESETS[pid] = pr
+    return pid
 
 
 def link_tree(src, dst):
@@ -863,8 +1096,28 @@ def render(serve, plan, dst):
     if r.returncode != 0:
         print((r.stderr or r.stdout)[-3000:])
         raise ClipError("Rendern fehlgeschlagen")
-    run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1:LRA=11",
+    af = "loudnorm=I=-14:TP=-1:LRA=11"
+    if PRO:  # two passes: every clip really lands on -14 LUFS (one pass left them between -13.8 and -18.0 on 21.10.2026)
+        af = loudnorm_2pass(raw) or af
+    run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-c:v", "copy", "-af", af,
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", dst])
+
+
+def loudnorm_2pass(path):
+    """Measures the clip, returns a linear loudnorm filter to -14 LUFS / -1 dBTP (None when the measurement fails)."""
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-vn", "-af", "loudnorm=I=-14:TP=-1:LRA=11:print_format=json",
+                        "-f", "null", "-"], capture_output=True, text=True)
+    m = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", r.stderr or "")
+    if not m:
+        return None
+    try:
+        j = json.loads(m.group(0))
+        if float(j["input_i"]) < -70:  # silence
+            return None
+        return (f"loudnorm=I=-14:TP=-1:LRA=11:measured_I={j['input_i']}:measured_TP={j['input_tp']}:measured_LRA={j['input_lra']}"
+                f":measured_thresh={j['input_thresh']}:offset={j['target_offset']}:linear=true")
+    except (KeyError, ValueError):
+        return None
 
 
 # ---------- main ----------
@@ -873,7 +1126,8 @@ DURATION = 0.0
 
 
 def main():
-    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS
+    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS, PRO, POOL
+    t_run = time.time()
     report(status="downloading", note="Video wird geladen…", **({"runUrl": RUN_URL} if RUN_URL else {}))
     r = requests.get(f"{API}/clip-config?{AUTH}", timeout=30)
     if r.status_code != 200:
@@ -886,6 +1140,11 @@ def main():
     FALLBACK = cfg.get("fallback") is True
     if FALLBACK:
         LLM_ATTEMPTS = 2
+    PRO = cfg.get("pro") is True
+    if PRO:
+        from concurrent.futures import ThreadPoolExecutor
+        POOL = ThreadPoolExecutor(max_workers=2)
+        print("CLIPPERZ Pro clipping", flush=True)
     pace = ce.PRESETS[preset_id].get("cut") or {}
     ce.CUT_HEAD, ce.CUT_TAIL = 0.06, 0.08  # a bit more air than a talking-head edit: streams are less clean
     ce.KEEP_GAP = 0.3                       # natural rhythm, only longer pauses are tightened
@@ -893,7 +1152,8 @@ def main():
         if isinstance(pace.get(key), (int, float)):
             setattr(ce, attr, max(lo_, min(hi_, float(pace[key]))))
 
-    src = download(cfg)
+    with phase("download"):
+        src = download(cfg)
     DURATION, has_audio = ce.probe(src)
     if not has_audio:
         raise ClipError("Das Video hat keinen Ton – ohne Sprache kann Claude keine Momente finden")
@@ -903,10 +1163,14 @@ def main():
     want = max(1, min(want, int(j.get("maxClips") or want)))
 
     report(status="transcribing", note=f"Spracherkennung läuft ({round(DURATION / 60)} Min. Video)…")
-    audio = decode_pcm(src)
-    ce.ENV = envelope(audio)
-    words, lang = transcribe(audio, DURATION, cfg.get("language") or "de")
-    del audio
+    with phase("transcribe"):
+        audio = decode_pcm(src)
+        ce.ENV = envelope(audio)
+        words, lang = transcribe(audio, DURATION, cfg.get("language") or "de")
+    if PRO:
+        words = drop_hallucinations(words)
+    else:
+        del audio
     with open(os.path.join(W, "words.json"), "w", encoding="utf-8") as fh:
         json.dump({"words": words, "language": lang}, fh, ensure_ascii=False)
     if len(words) < 30:
@@ -914,15 +1178,25 @@ def main():
     sents = sentences(words)
 
     report(status="selecting", note="Die besten Momente werden gesucht…" if FALLBACK else "Claude sucht die besten Momente…")
-    cands = pick_moments(sents, lang, lo, hi, want, fallback=FALLBACK)
-    picks = choose(cands, sents, want, lo, hi, lang, fallback=FALLBACK)
+    with phase("select"):
+        cands = pick_moments(sents, lang, lo, hi, want, fallback=FALLBACK)
+    with phase("review"):
+        picks = choose(cands, sents, want, lo, hi, lang, fallback=FALLBACK)
     with open(os.path.join(W, "picks.json"), "w", encoding="utf-8") as fh:
         json.dump({"candidates": cands, "picks": picks, "texts": [clip_text(c, sents) for c in picks]}, fh, ensure_ascii=False, indent=1)
     if not picks and FALLBACK:  # even the speech-based picks found no stretch with enough talking
         raise ClipError("Im Video wird zu wenig am Stück gesprochen – daraus lassen sich keine Clips machen")
     if not picks:
         raise ClipError("Claude hat keinen Moment gefunden, der allein als Clip funktioniert")
-    print(f"{len(cands)} candidates -> {len(picks)} clips")
+    print(f"{len(cands)} candidates -> {len(picks)} clips", flush=True)
+    clip_sents = sents
+    if PRO:
+        report(note="Untertitel werden genau erkannt…")
+        with phase("transcribe clips"):
+            better = refine_words(picks, sents, audio, lang)
+        del audio
+        if better:
+            clip_sents = [better.get(k, s_) for k, s_ in enumerate(sents)]
 
     report(status="rendering", note=f"{len(picks)} Clips werden geschnitten…", progress={"done": 0, "total": len(picks)})
     prepared = []
@@ -934,7 +1208,8 @@ def main():
             break
         try:
             report(note=f"Clip {i + 1}/{len(picks)}: schneiden und hochkant ausrichten…")
-            prepared.append(prepare_clip(i, c, sents, src, preset_id, cfg.get("captions", True), lang))
+            with phase("prepare clips"):
+                prepared.append(prepare_clip(i, c, clip_sents, src, preset_id, cfg.get("captions", True), lang))
         except Exception as e:
             print(f"clip {i} prepare failed:", type(e).__name__, e)
             post("clip-result", {"ok": False, "index": i})
@@ -942,19 +1217,21 @@ def main():
         raise ClipError("Kein Clip konnte vorbereitet werden")
 
     report(note="Renderer wird vorbereitet…")
-    serve = bundle()
+    with phase("bundle"):
+        serve = bundle()
     ok = 0
     for n, (plan, meta) in enumerate(prepared):
         i = meta["index"]
         try:
             report(note=f"Clip {n + 1}/{len(prepared)} wird gerendert…", progress={"done": n, "total": len(prepared)})
             final = os.path.join(W, f"clip{i}.mp4")
-            render(serve, plan, final)
+            with phase("render"):
+                render(serve, plan, final)
             poster = os.path.join(W, f"clip{i}.jpg")
             run(["ffmpeg", "-v", "error", "-y", "-ss", f"{min(0.8, meta['duration'] / 3):.2f}", "-i", final, "-frames:v", "1", "-q:v", "3", poster])
             url = upload(final, "mp4")
             poster_url = upload(poster, "jpg")
-            body = {"ok": True, **{k: v for k, v in meta.items() if k != "layout"}, "url": url, "posterUrl": poster_url}
+            body = {"ok": True, **{k: v for k, v in meta.items() if k != "scenes" and (PRO or k != "layout")}, "url": url, "posterUrl": poster_url}
             if ARGS.no_upload:  # tests: keep what would have gone to CLIPPERZ (local URLs are refused there)
                 with open(os.path.join(ARGS.no_upload, "results.jsonl"), "a", encoding="utf-8") as fh:
                     fh.write(json.dumps(body, ensure_ascii=False) + "\n")
@@ -962,11 +1239,13 @@ def main():
             if code != 200:
                 raise ClipError(f"Clip nicht angenommen ({code}: {j.get('error')})")
             ok += 1
-            print(f"clip {i} done: {meta['duration']:.1f}s score {meta['score']} [{meta['layout']}] {meta['title']}")
+            print(f"clip {i} done: {meta['duration']:.1f}s score {meta['score']} [{meta['layout']}] {meta['title']}", flush=True)
         except Exception as e:
             print(f"clip {i} failed:", type(e).__name__, e)
             post("clip-result", {"ok": False, "index": i})
     report(progress={"done": len(prepared), "total": len(prepared)})
+    TIMES["total"] = time.time() - t_run
+    print("[time] summary: " + ", ".join(f"{k} {v / 60:.1f} min" for k, v in TIMES.items()), flush=True)
     if not ok:
         raise ClipError("Kein Clip konnte fertig gerendert werden")
     report(status="done")

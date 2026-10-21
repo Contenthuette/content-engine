@@ -51,4 +51,6 @@ export type Plan = {
   captions: boolean;
   /** CLIPPERZ Pro: no caption shade band over full-screen text beats. Without it the old behaviour (shade stays). */
   cleanInserts?: boolean;
+  /** CLIPPERZ Pro clips: overlap-free "pop" captions, hook always on screen. Without it the old behaviour. */
+  pro?: boolean;
 };
