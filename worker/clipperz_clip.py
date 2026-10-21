@@ -111,7 +111,10 @@ LLM_ATTEMPTS = 3   # fallback runs use 2: a hanging AI call must not eat the who
 # speech pass with a bigger model for the captions, no full-screen text beats, overlap-free captions, post caption +
 # hashtags from the check pass, two-pass loudness (-14 LUFS), parallel AI calls. False = the old behaviour exactly.
 PRO = False
-SOURCE_TAG = "#clips"  # Pro: format hashtag hint for the post text (set from clip-config "source")
+FORMAT_TAGS = []   # Pro: fixed format hashtags of the source (set in main(), see format_tags())
+HARD_LEN = None    # Pro: (min, max) seconds – no clip leaves this range, in no tier (set in main())
+LEN_SAFETY = 0.2   # s below the maximum: the encoded clip may come out a frame longer than the cut plan
+SOURCE_INFO = ""   # title / channel / categories of the downloaded video (podcast detection for the hashtags)
 
 TIMES = {}  # phase -> seconds (printed at the end: where the run spends its time)
 
@@ -214,6 +217,8 @@ def download(cfg):
         raise ClipError(f"Das Video ist länger als {(cfg.get('maxMinutes') or 240) // 60} Stunden – bitte in Teilen hochladen.")
     if meta.get("duration"):
         report(note=f"Video wird geladen ({round(meta['duration'] / 60)} Min.)…")
+    global SOURCE_INFO
+    SOURCE_INFO = " ".join(str(x) for x in [meta.get("title"), meta.get("channel") or meta.get("uploader"), *(meta.get("categories") or [])] if x)
     proc = subprocess.Popen(
         ["yt-dlp", "--newline", "-N", "8", "-f", "bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b", "--merge-output-format", "mp4",
          "-o", out + ".%(ext)s", url],
@@ -556,18 +561,111 @@ def _int(x):
         return None
 
 
-def clean_caption(c):
-    """Pro post text: trimmed, max. 5 hashtags (lower case, no doubles), max. 600 characters."""
+# Pro hashtags (21.10.2026): the format tag comes from the source, fixed in code (the AI wrote "#podcast" under stream
+# clips); the AI only adds 2-3 tags about the content. Max. 5 in total, no doubles, "#fyp" at most once.
+TAG_RE = r"#[\wäöüÄÖÜß]+"
+FORMAT_LIKE = {"#podcast", "#podcasts", "#podcastclips", "#stream", "#streams", "#streamer", "#streamclips", "#streamhighlights",
+               "#twitch", "#twitchclips", "#twitchstreamer", "#kick", "#kickstreamer", "#kickclips", "#youtube", "#youtuber",
+               "#youtubeshorts", "#clips", "#clip", "#highlights", "#shorts", "#reels", "#tiktok"}
+FILLER_TAGS = {"#fyp", "#foryou", "#foryoupage", "#fy", "#fürdich", "#fuerdich", "#viral", "#trending", "#explore", "#xyzbca"}
+TAG_STOP = set("""
+aber alle allem allen aller alles also anders andere anderen auch bevor bisschen bist bitte bloß damit dann darauf darum
+dass davon dazu deine deinen deiner denen denn deren dich diese diesem diesen dieser dieses doch dort durch eben eigentlich
+einem einen einer eines einfach einmal etwas euch euer eure gegen genau gerade gesagt gibt ging gleich habe haben hallo halt
+hast hatte hätte heute hier hinter immer irgendwie jede jedem jeden jeder jetzt kann kannst keine keinen kommt können könnte
+leute machen macht mache mal manchmal mehr meine meinen meiner mich mir mit muss müssen nach nein nicht nichts noch oder ohne
+okay schon sehr sein seine seinen selbst sich sind sollte sondern sowas über ganz unser unsere unter viel viele vielleicht
+voll vom von vor wann warum was weil weiß welche wenn werden wieder wird wirklich wollen wurde würde zwar zwei drei
+dein ihr ihre ihren eure ehrlich danke folge gast freue einladung willkommen herzlich sache kurz mega krass digga alter bruder
+about after again also always another because been before being cause could didn't doesn't don't every going gonna great
+have here just know like little maybe more much need never only other people pretty really right should since some something
+still that their them then there these they thing things think this those through very want wanna well were what when where
+which while will with would yeah your you're youre okay thank thanks
+""".split())
+END_MARKS = (".", "!", "?", "…")
+
+
+def format_tags(source, info=""):
+    """Format hashtags from the source, fixed in code: Twitch/Kick stream -> #stream #streamclips #twitch|#kick,
+    YouTube video -> #youtube, #podcast only when the source really is a podcast (title/channel/category says so)."""
+    pod = ["#podcast"] if re.search(r"podcast", str(info or ""), re.I) else []
+    if source in ("twitch", "kick"):
+        return ["#stream", "#streamclips", f"#{source}"]
+    if source == "youtube":
+        return pod + ["#youtube"]
+    return pod
+
+
+def _tag(t):
+    t = "#" + re.sub(r"[^\wäöüß]", "", str(t).lower().lstrip("#"))
+    return t if 3 <= len(t) <= 31 and not t[1:].isdigit() else ""
+
+
+def topic_tags(text, n=3):
+    """Content hashtags without the AI: the words that carry the topic (German nouns are capitalised: those first)."""
+    toks = re.findall(r"[A-Za-zÄÖÜäöüß][\wäöüÄÖÜß-]*[.!?…]?", str(text or ""))
+    count, first_at, prev_end = {}, {}, True
+    for i, raw in enumerate(toks):
+        w = raw.rstrip(".!?…")
+        low = re.sub(r"[^\wäöüß]", "", w.lower())
+        noun = w[:1].isupper() and not prev_end and not w.isupper()
+        prev_end = raw.endswith(END_MARKS)
+        if len(low) < 4 or low in TAG_STOP or low.isdigit():
+            continue
+        count.setdefault(low, [0, 0])
+        count[low][0] += 1
+        count[low][1] += 1 if noun else 0
+        first_at.setdefault(low, i)
+    ranked = sorted(count, key=lambda k: (-(count[k][1] > 0), -count[k][0], -len(k), first_at[k]))
+    out = []
+    for k in ranked:
+        t = _tag(k)
+        if t and t not in out:
+            out.append(t)
+        if len(out) >= n:
+            break
+    return out
+
+
+def clip_hashtags(ai_tags, content="", fmt=None):
+    """Format tags of the source + 2-3 content tags (from the AI, topped up from the clip text), max. 5, no doubles,
+    "#fyp" at most once (only when a slot is left)."""
+    fmt = list(FORMAT_TAGS if fmt is None else fmt)[:3]
+    room = min(3, 5 - len(fmt))
+    theme, fyp = [], False
+    for t in ai_tags or []:
+        t = _tag(t)
+        if not t or t in fmt or t in theme:
+            continue
+        if t == "#fyp":
+            fyp = True
+            continue
+        if t in FORMAT_LIKE or t in FILLER_TAGS:
+            continue
+        theme.append(t)
+    theme = theme[:room]
+    if len(theme) < min(2, room):
+        for t in topic_tags(content, 6):
+            if len(theme) >= min(3, room):
+                break
+            if t not in theme and t not in fmt and t not in FORMAT_LIKE:
+                theme.append(t)
+    tags = fmt + theme
+    if fyp and len(tags) < 5:
+        tags.append("#fyp")
+    return tags[:5]
+
+
+def clean_caption(c, content="", fmt=None):
+    """Pro post text: trimmed, hashtags rebuilt by clip_hashtags() (format tag from the source + content tags, max. 5),
+    max. 600 characters. `content` = what is said in the clip (fallback for the content tags)."""
     c = str(c or "").replace("\r", "").strip()
-    tags = []
-    for t in re.findall(r"#[\wäöüÄÖÜß]+", c):
-        t = t.lower()
-        if t not in tags:
-            tags.append(t)
-    text = re.sub(r"#[\wäöüÄÖÜß]+", "", c)
+    tags = clip_hashtags(re.findall(TAG_RE, c), content, fmt)
+    text = re.sub(TAG_RE, "", c)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n\s*\n+", "\n\n", text).strip()
-    return ((text + ("\n\n" if text and tags else "") + " ".join(tags[:5])).strip())[:600]
+    tail = " ".join(tags)
+    return (text[:600 - len(tail) - 2].rstrip() + ("\n\n" if text and tags else "") + tail).strip()
 
 
 def short_hook(h):
@@ -588,7 +686,7 @@ def clean_candidate(c, sents, lo, hi):
         t = None
     num = lambda x: max(0.0, min(100.0, float(x))) if isinstance(x, (int, float)) else 0.0
     sc = c.get("scores") if isinstance(c.get("scores"), dict) else {}
-    return {
+    out = {
         "start": a, "end": b, "teaser": t, "dur": dur,
         "title": str(c.get("title") or "").strip()[:90],
         "hook": short_hook(c.get("hook")),
@@ -596,6 +694,9 @@ def clean_candidate(c, sents, lo, hi):
         "score": num(c.get("score")),
         "scores": {k: num(sc.get(k)) for k in ("hook", "story", "emotion", "shareability")},
     }
+    if HARD_LEN:  # Pro: trimmed / extended to the chosen length at sentence borders, or dropped
+        return fit_length(out, sents, *HARD_LEN)
+    return out
 
 
 def overlap(x, y, sents):
@@ -640,8 +741,9 @@ def review(chosen, sents, lo, hi, lang):
             "- Beginnt der erste Satz mitten in einem Gedanken (Satzrest)? Läuft der Clip nach der Pointe/Reaktion noch weiter (Nachgerede, "
             "Verabschiedung, „Danke fürs Zuschauen“)? Dann Start/Ende verschieben.\n"
             "- Schreib für JEDEN Clip, der bleibt, den Post-Text: caption = 1–2 kurze, neugierig machende Sätze in der Sprache des Videos "
-            "(nur was im Clip passiert, keine erfundenen Fakten, kein Clickbait-Versprechen) + Leerzeile + 3–5 passende Hashtags "
-            "(Thema/Format/Nische, klein geschrieben, keine Fantasie-Tags; das Format-Tag passt zur Quelle: " + SOURCE_TAG + "). hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, "
+            "(nur was im Clip passiert, keine erfundenen Fakten, kein Clickbait-Versprechen) + Leerzeile + 2–3 Hashtags zum THEMA des Clips "
+            "(worum es inhaltlich geht, klein geschrieben, deutsch oder englisch, keine Fantasie-Tags; KEINE Format-Tags wie #podcast, #stream, "
+            "#twitch, #youtube, #clips, #fyp – die setzt das System passend zur Quelle). hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, "
             "packend, nur was gesagt wird. why = „Hook: … – Payoff: …“ in einem Satz.\n"
             "Antworte NUR mit JSON:").replace(
             "\"reason\": \"kurz, deutsch\"}]}",
@@ -675,7 +777,7 @@ def review(chosen, sents, lo, hi, lang):
         if isinstance(r.get("hook"), str) and r["hook"].strip():
             fixed["hook"] = short_hook(r["hook"]) or fixed["hook"]
         if PRO and isinstance(r.get("caption"), str) and r["caption"].strip():
-            fixed["caption"] = clean_caption(r["caption"])
+            fixed["caption"] = clean_caption(r["caption"], clip_text(fixed, sents))
         if PRO and isinstance(r.get("why"), str) and len(r["why"].strip()) > 10:
             fixed["why"] = r["why"].strip()[:400]
         if r.get("reason"):
@@ -709,7 +811,8 @@ def choose(cands, sents, want, lo, hi, lang, fallback=False):
 
 
 def relaxed_bounds(lo, hi):
-    """Slightly looser clip length for the fallback tiers, always inside 15-60 s."""
+    """Slightly looser clip length for the fallback tiers, always inside 15-60 s. Pro: only which AI proposals are
+    taken – clean_candidate() then trims/extends them to the chosen length (HARD_LEN), the tier never exceeds it."""
     return max(15, lo - max(3, lo // 4)), min(60, hi + max(10, hi // 3))
 
 
@@ -795,9 +898,13 @@ def speech_picks(sents, lo, hi, need, taken):
         if len(picks) >= need:
             break
         c = {"start": a, "end": b, "teaser": None, "dur": dur}
+        if HARD_LEN:  # Pro: exactly inside the chosen length
+            c = fit_length(c, sents, *HARD_LEN)
+            if not c:
+                continue
         if any(overlap(c, o, sents) > 0 for o in list(taken) + picks):
             continue
-        words = [w["w"] for w in sents[a]]
+        words = [w["w"] for w in sents[c["start"]]]
         title = " ".join(words[:8]) + ("…" if len(words) > 8 else "")
         score = max(20.0, min(44.0, 20 + raw / 3))  # always below the AI picks
         c.update({"title": title[:90], "hook": "", "score": score,
@@ -957,25 +1064,151 @@ def accent_ink(hex_):
 ACCENT = None  # set in main() from clip-config; None keeps the old behaviour exactly
 
 
+def clip_order(c):
+    return ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"]]
+
+
+def sent_intervals(s, opener):
+    """Cut intervals of one sentence exactly as the clip plays it: fillers out; the first sentence of the clip never
+    starts on "Und …", "Also …", "Ja, …" – those words carry no meaning on their own."""
+    ws = [w for w in s if norm(w["w"]) not in ce.FILLERS] or s
+    if not opener:
+        return ce.word_intervals(ws, DURATION)
+    dropped = None
+    while len(ws) > 4 and norm(ws[0]["w"]) in WEAK_OPENERS:
+        dropped, ws = ws[0], ws[1:]
+    part = ce.word_intervals(ws, DURATION)
+    if dropped and part:  # the breathy in-point must not reach back into the dropped word
+        part[0] = (round(max(part[0][0], dropped["e"] + 0.01), 3), part[0][1])
+    return part
+
+
+def order_intervals(order, sents):
+    ivs = []
+    for n, k in enumerate(order):
+        ivs += sent_intervals(sents[k], n == 0)
+    return ivs
+
+
+_LEN_CACHE = {}
+
+
+def _sent_len(sents, k, opener):
+    ref, cache = _LEN_CACHE.get(id(sents), (None, None))
+    if ref is not sents:
+        cache = {}
+        _LEN_CACHE[id(sents)] = (sents, cache)
+    key = (k, opener)
+    if key not in cache:
+        cache[key] = sum(b - a for a, b in sent_intervals(sents[k], opener)) if sents[k] else 0.0
+    return cache[key]
+
+
+def played_len(c, sents):
+    """Seconds the clip will really run (the cut keeps only these intervals) – the length the viewer sees."""
+    order = [k for k in clip_order(c) if sents[k]]
+    return sum(_sent_len(sents, k, n == 0) for n, k in enumerate(order))
+
+
+def fit_length(c, sents, lo, hi):
+    """CLIPPERZ Pro: hard length (21.10.2026: clips ran over the chosen maximum, the fallback tier allowed +10 s).
+    Returns c inside lo..hi (played length, `LEN_SAFETY` below hi), moved only at sentence/pause borders, or None.
+    Too long: trimmed from the FRONT first (the payoff sits at the end, rule 11) – keeping the pulled-forward teaser –,
+    only then from the back (ending on a complete sentence if possible), then on both sides. Of the lengths that fit,
+    the longest wins (the last border before the maximum); a clean sentence border wins when it keeps >= 75 % of that.
+    Too short: earlier sentences are added first (setup), then later ones, as few as needed; None when that is impossible."""
+    top = hi - LEN_SAFETY
+    a, b, t = c["start"], c["end"], c.get("teaser")
+    if t is not None and not (a < t <= b):
+        t = None
+    teaser_of = lambda a2, b2: t if t is not None and a2 < t <= b2 else None
+    length = lambda a2, b2: played_len({"start": a2, "end": b2, "teaser": teaser_of(a2, b2)}, sents)
+    cur = length(a, b)
+    if lo <= cur <= top:
+        return c
+    starts_clean = lambda k: k == 0 or not sents[k - 1] or sents[k - 1][-1]["w"].rstrip().endswith(END_MARKS)
+    ends_clean = lambda k: bool(sents[k]) and sents[k][-1]["w"].rstrip().endswith(END_MARKS)
+    pick = None
+    if cur > top:
+        opts = []
+        for a2 in range(a, b + 1):
+            for b2 in range(b, a2 - 1, -1):
+                n = length(a2, b2)
+                if lo <= n <= top:
+                    keeps_t = t is None or a2 <= t <= b2
+                    rank = (keeps_t, b2 == b, a2 == a)
+                    opts.append((rank, n, a2, b2))
+        if opts:
+            best_rank = max(o[0] for o in opts)
+            same = [o for o in opts if o[0] == best_rank]
+            longest = max(o[1] for o in same)
+            clean = [o for o in same if starts_clean(o[2]) and ends_clean(o[3]) and o[1] >= 0.75 * longest]
+            pick = max(clean or same, key=lambda o: o[1])
+    else:
+        opts = []
+        for add_back in range(0, 7):
+            b2 = b + add_back
+            if b2 >= len(sents) or (add_back and sents[b2][0]["s"] - sents[b2 - 1][-1]["e"] > 3.0):
+                break
+            for add_front in range(0, 7):
+                a2 = a - add_front
+                if a2 < 0 or (add_front and sents[a2 + 1][0]["s"] - sents[a2][-1]["e"] > 3.0):
+                    break
+                n = length(a2, b2)
+                if lo <= n <= top:
+                    opts.append(((-add_back, -n), n, a2, b2))
+                    break  # more sentences in front only make it longer
+        if opts:
+            pick = max(opts, key=lambda o: o[0])
+    if not pick:
+        print(f"length: clip #{a}-#{b} ({cur:.1f}s) cannot be fitted into {lo}-{hi}s, dropped", flush=True)
+        return None
+    _, n, a2, b2 = pick
+    print(f"length: clip #{a}-#{b} {cur:.1f}s -> #{a2}-#{b2} {n:.1f}s (limit {lo}-{hi}s)", flush=True)
+    return {**c, "start": a2, "end": b2, "teaser": teaser_of(a2, b2),
+            "dur": sum(s[-1]["e"] - s[0]["s"] for s in sents[a2:b2 + 1] if s)}
+
+
+def pro_len_bounds(lo, hi):
+    """Pro: the chosen min/max length; "egal" (or anything above) = max. 60 s; the minimum stays below the maximum."""
+    hi = max(15, min(60, int(hi or 60)))
+    lo = max(1, min(int(lo or 15), hi - 5 if hi >= 20 else hi))
+    return lo, hi
+
+
+def cap_order(order, ivs, sents, teaser, top, i=0):
+    """Pro, last guard in prepare_clip (the words of the second speech pass can shift a little): drop sentences from
+    the front (the pulled-forward teaser stays) until the clip fits; a single too-long sentence ends at the last pause
+    before the maximum."""
+    total = lambda iv: sum(b - a for a, b in iv)
+    before = total(ivs)
+    while total(ivs) > top and len(order) > 1:
+        k = order[1] if teaser is not None and order[0] == teaser and len(order) > 2 else order[0]
+        order = [x for x in order if x != k]
+        ivs = order_intervals(order, sents)
+    if total(ivs) > top:
+        keep, acc = [], 0.0
+        for a, b in ivs:
+            if acc + (b - a) > top:
+                if not keep:
+                    keep.append((a, round(a + top, 3)))
+                break
+            keep.append((a, b))
+            acc += b - a
+        ivs = keep
+    if total(ivs) < before:
+        print(f"clip {i}: {before:.1f}s -> {total(ivs):.1f}s (maximum {top + LEN_SAFETY:.0f}s)", flush=True)
+    return order, ivs
+
+
 def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     """Cut, reframe and plan clip i. Media go to W/public/job/<id>/. Returns (plan, meta)."""
-    order = ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"]]
+    order = clip_order(c)
     if PRO:  # re-transcribed sentences can be empty (their words moved to the neighbour)
         order = [k for k in order if sents[k]]
-    ivs, opener = [], True
-    for k in order:
-        ws = [w for w in sents[k] if norm(w["w"]) not in ce.FILLERS] or sents[k]
-        if opener:  # the clip never starts on "Und …", "Also …", "Ja, …" – those words carry no meaning on their own
-            dropped = None
-            while len(ws) > 4 and norm(ws[0]["w"]) in WEAK_OPENERS:
-                dropped, ws = ws[0], ws[1:]
-            opener = False
-            part = ce.word_intervals(ws, DURATION)
-            if dropped and part:  # the breathy in-point must not reach back into the dropped word
-                part[0] = (round(max(part[0][0], dropped["e"] + 0.01), 3), part[0][1])
-            ivs += part
-            continue
-        ivs += ce.word_intervals(ws, DURATION)
+    ivs = order_intervals(order, sents)
+    if PRO and HARD_LEN:  # last guard on the re-transcribed words: never longer than the chosen maximum
+        order, ivs = cap_order(order, ivs, sents, c["teaser"], HARD_LEN[1] - LEN_SAFETY, i)
     t0 = max(0.0, min(a for a, _ in ivs) - 0.5)
     t1 = min(DURATION, max(b for _, b in ivs) + 0.5)
     win = os.path.join(W, f"win{i}.mp4")
@@ -1052,7 +1285,7 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
             "end": round(c["t1"] if "t1" in c else sents[c["end"]][-1]["e"], 2),
             "duration": round(dur, 2), "transcript": " ".join(w["w"] for w in plan["words"])[:4000], "layout": layout}
     if PRO:
-        meta["caption"] = c.get("caption") or ""
+        meta["caption"] = c.get("caption") or clean_caption("", " ".join(w["w"] for w in plan["words"]))
         meta["scenes"] = scenes
     return plan, meta
 
@@ -1139,7 +1372,7 @@ DURATION = 0.0
 
 
 def main():
-    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS, PRO, POOL, SOURCE_TAG
+    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS, PRO, POOL, FORMAT_TAGS, HARD_LEN
     t_run = time.time()
     report(status="downloading", note="Video wird geladen…", **({"runUrl": RUN_URL} if RUN_URL else {}))
     r = requests.get(f"{API}/clip-config?{AUTH}", timeout=30)
@@ -1155,8 +1388,7 @@ def main():
         LLM_ATTEMPTS = 2
     PRO = cfg.get("pro") is True
     if PRO:
-        SOURCE_TAG = {"twitch": "Twitch-Stream, z. B. #twitch #stream", "kick": "Kick-Stream, z. B. #kick #stream",
-                      "youtube": "YouTube-Video, z. B. #youtube"}.get(cfg.get("source"), "eigenes Video, z. B. #clips")
+        lo, hi = HARD_LEN = pro_len_bounds(lo, hi)
         from concurrent.futures import ThreadPoolExecutor
         POOL = ThreadPoolExecutor(max_workers=2)
         print("CLIPPERZ Pro clipping", flush=True)
@@ -1169,6 +1401,9 @@ def main():
 
     with phase("download"):
         src = download(cfg)
+    if PRO:
+        FORMAT_TAGS = format_tags(cfg.get("source"), f"{cfg.get('title') or ''} {SOURCE_INFO}")
+        print("hashtags (format):", " ".join(FORMAT_TAGS) or "-", flush=True)
     DURATION, has_audio = ce.probe(src)
     if not has_audio:
         raise ClipError("Das Video hat keinen Ton – ohne Sprache kann Claude keine Momente finden")
