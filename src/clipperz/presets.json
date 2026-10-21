@@ -393,5 +393,63 @@
       ]
     },
     "sfxVol": 0.25
+  },
+  "bold": {
+    "label": "Bold Pop",
+    "about": "Groß und fett: drei Wörter in schwarzen Versalien (Montserrat Black) mit harter schwarzer Kontur, das gerade gesprochene Wort leuchtet in der Akzentfarbe und poppt. Wenige gezielte Zooms, Whip-Übergänge, Fortschrittsbalken, keine Text-Beats.",
+    "captions": true,
+    "cap": {
+      "font": "montserrat",
+      "weight": 900,
+      "upper": true,
+      "size": 84,
+      "words": 3,
+      "y": 0.68,
+      "style": "karaoke",
+      "color": "#FFFFFF",
+      "track": 0
+    },
+    "accents": [
+      "#FFD400"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 2,
+      "maxLevel": 1,
+      "drift": 0.02,
+      "shake": false
+    },
+    "broll": "whip",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-03"
+      ],
+      "tr": []
+    },
+    "hook": "caption",
+    "progress": true,
+    "music": "music/minimal124.mp3",
+    "musicVol": 0.06,
+    "sfx": {
+      "broll": [
+        "whoosh",
+        "swish"
+      ],
+      "brollOut": [],
+      "zoom": [
+        "tick"
+      ],
+      "hook": [
+        "pop2"
+      ],
+      "end": [
+        "chime"
+      ]
+    },
+    "sfxVol": 0.4,
+    "smartPunct": true,
+    "grade": "eq=contrast=1.06:saturation=1.10:gamma=0.98"
   }
 }

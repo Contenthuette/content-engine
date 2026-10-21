@@ -45,5 +45,8 @@ export type Plan = {
   /** Upper zoom limit: 1.7 for 1080p sources, 2.2 when the source was kept at 1440p. */
   maxZoom?: number;
   accent: string;
+  /** Optional text colour on accent-filled shapes (e.g. the key-word pill of "Clean Motion") when a light custom accent
+   * would make white text unreadable. Without it the old white is used. */
+  accentInk?: string;
   captions: boolean;
 };

@@ -382,7 +382,7 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     if (cap.style === 'blur') {
       // clean motion: every word blurs in at its timestamp, key words in the accent colour
       Object.assign(st, {opacity: shown ? k : 0, filter: `blur(${(1 - k) * 10}px)`, transform: `translateY(${(1 - k) * 12}px)`, color: cap.color},
-        isEm ? {background: accent, color: '#fff', padding: '0.04em 0.28em 0.08em', borderRadius: 18, textShadow: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.25)'} : {});
+        isEm ? {background: accent, color: plan.accentInk ?? '#fff', padding: '0.04em 0.28em 0.08em', borderRadius: 18, textShadow: 'none', boxShadow: '0 10px 30px rgba(0,0,0,.25)'} : {});
     } else if (cap.style === 'plain') {
       // Contenthütte: the phrase stands calmly, words appear as they are spoken
       Object.assign(st, {opacity: shown ? 1 : 0});

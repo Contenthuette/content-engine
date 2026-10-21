@@ -599,6 +599,27 @@ WEAK_OPENERS = {"und", "also", "ja", "genau", "so", "okay", "ok", "naja", "na", 
 def norm(w):
     return re.sub(r"[^\wäöüß]", "", w.lower())
 
+
+HEX = re.compile(r"#[0-9A-Fa-f]{6}")
+
+
+def custom_accent(cfg):
+    """Optional highlight colour chosen by the customer (clip-config "accent", #RRGGBB). None = the style decides as before."""
+    a = cfg.get("accent") if isinstance(cfg, dict) else None
+    a = a.strip() if isinstance(a, str) else ""
+    return a.upper() if HEX.fullmatch(a) else None
+
+
+def accent_ink(hex_):
+    """Dark text on a light accent fill (e.g. a yellow key-word pill), else None (renderer keeps white)."""
+    r, g, b = (int(hex_[k:k + 2], 16) / 255 for k in (1, 3, 5))
+    lin = lambda c: c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    return "#0B0B0F" if 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) > 0.4 else None
+
+
+ACCENT = None  # set in main() from clip-config; None keeps the old behaviour exactly
+
+
 def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     """Cut, reframe and plan clip i. Media go to W/public/job/<id>/. Returns (plan, meta)."""
     order = ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"]]
@@ -641,6 +662,11 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     if c["hook"]:
         res["hook"] = c["hook"]  # the checked hook (only what is said) wins over a new idea
     plan = ce.build_plan(words, dur, [], preset_id, captions, focus, res, f"{job}/main.mp4", [], hi_res=False, src_min=1080)
+    if ACCENT:  # customer colour wins over the style's accent list (captions, hook, progress bar)
+        plan["accent"] = ACCENT
+        ink = accent_ink(ACCENT)
+        if ink:
+            plan["accentInk"] = ink
     if layout in ("stack", "fit"):  # zooms would crop the layout
         plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
     elif crop_h < 1600:  # the 9:16 window was already upscaled: only gentle zooms
@@ -703,7 +729,7 @@ DURATION = 0.0
 
 
 def main():
-    global DURATION
+    global DURATION, ACCENT
     report(status="downloading", note="Video wird geladen…", **({"runUrl": RUN_URL} if RUN_URL else {}))
     r = requests.get(f"{API}/clip-config?{AUTH}", timeout=30)
     if r.status_code != 200:
@@ -712,6 +738,7 @@ def main():
     lo, hi = int(cfg.get("minLen") or 15), int(cfg.get("maxLen") or 60)
     want = max(1, min(10, int(cfg.get("count") or 5)))
     preset_id = ce.register_style(cfg.get("preset"), cfg.get("styleConfig"))
+    ACCENT = custom_accent(cfg)
     pace = ce.PRESETS[preset_id].get("cut") or {}
     ce.CUT_HEAD, ce.CUT_TAIL = 0.06, 0.08  # a bit more air than a talking-head edit: streams are less clean
     ce.KEEP_GAP = 0.3                       # natural rhythm, only longer pauses are tightened
