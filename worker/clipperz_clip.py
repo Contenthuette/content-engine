@@ -111,6 +111,7 @@ LLM_ATTEMPTS = 3   # fallback runs use 2: a hanging AI call must not eat the who
 # speech pass with a bigger model for the captions, no full-screen text beats, overlap-free captions, post caption +
 # hashtags from the check pass, two-pass loudness (-14 LUFS), parallel AI calls. False = the old behaviour exactly.
 PRO = False
+SOURCE_TAG = "#clips"  # Pro: format hashtag hint for the post text (set from clip-config "source")
 
 TIMES = {}  # phase -> seconds (printed at the end: where the run spends its time)
 
@@ -352,17 +353,26 @@ def refine_words(picks, sents, audio, lang):
         # every new word goes to the clip sentence whose time span is nearest to its middle
         spans = [(k, sents[k][0]["s"], sents[k][-1]["e"]) for k in ks]
         first, last = spans[0][1], spans[-1][2]
+        mid = lambda w: (w["s"] + w["e"]) / 2
+        # clip edges by text, not only by time (the models disagree by a few 100 ms – a lost first "Ich" turns the
+        # opening line into a half sentence): the first/last word of the clip is looked up near its old time
+        keys = [norm(w["w"]) for w in new]
+        i0 = min((i for i, w in enumerate(new) if keys[i] == norm(sents[ks[0]][0]["w"]) and abs(mid(w) - first) < 1.0),
+                 key=lambda i: abs(mid(new[i]) - first), default=None)
+        i1 = min((i for i, w in enumerate(new) if keys[i] == norm(sents[ks[-1]][-1]["w"]) and abs(mid(w) - last) < 1.0),
+                 key=lambda i: abs(mid(new[i]) - last), default=None)
+        lo_t = mid(new[i0]) - 0.01 if i0 is not None else first - 0.12
+        hi_t = mid(new[i1]) + 0.01 if i1 is not None and (i0 is None or i1 >= i0) else last + 0.12
         got = {k: [] for k in ks}
         for w in new:
-            m = (w["s"] + w["e"]) / 2
-            if m < first - 0.12 or m > last + 0.12:  # outside the clip: the neighbour sentences stay out
+            m = mid(w)
+            if m < lo_t or m > hi_t:  # outside the clip: the neighbour sentences stay out
                 continue
             k, s0, s1 = min(spans, key=lambda sp: 0 if sp[1] <= m <= sp[2] else min(abs(m - sp[1]), abs(m - sp[2])))
             if s0 - 0.45 <= m <= s1 + 0.45:
                 got[k].append(w)
-        for k in ks:
-            if got[k]:
-                out[k] = got[k]
+        for k in ks:  # an empty sentence stays empty (its words went to the neighbour) – no doubled words
+            out[k] = got[k]
         print(f"clip {c['start']}-{c['end']}: re-transcribed {old_n} -> {len(new)} words", flush=True)
     return out
 
@@ -631,7 +641,7 @@ def review(chosen, sents, lo, hi, lang):
             "Verabschiedung, „Danke fürs Zuschauen“)? Dann Start/Ende verschieben.\n"
             "- Schreib für JEDEN Clip, der bleibt, den Post-Text: caption = 1–2 kurze, neugierig machende Sätze in der Sprache des Videos "
             "(nur was im Clip passiert, keine erfundenen Fakten, kein Clickbait-Versprechen) + Leerzeile + 3–5 passende Hashtags "
-            "(Thema/Format/Nische, klein geschrieben, keine Fantasie-Tags). hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, "
+            "(Thema/Format/Nische, klein geschrieben, keine Fantasie-Tags; das Format-Tag passt zur Quelle: " + SOURCE_TAG + "). hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, "
             "packend, nur was gesagt wird. why = „Hook: … – Payoff: …“ in einem Satz.\n"
             "Antworte NUR mit JSON:").replace(
             "\"reason\": \"kurz, deutsch\"}]}",
@@ -950,6 +960,8 @@ ACCENT = None  # set in main() from clip-config; None keeps the old behaviour ex
 def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     """Cut, reframe and plan clip i. Media go to W/public/job/<id>/. Returns (plan, meta)."""
     order = ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"]]
+    if PRO:  # re-transcribed sentences can be empty (their words moved to the neighbour)
+        order = [k for k in order if sents[k]]
     ivs, opener = [], True
     for k in order:
         ws = [w for w in sents[k] if norm(w["w"]) not in ce.FILLERS] or sents[k]
@@ -1022,8 +1034,8 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
         plan["pro"] = True
         if layout not in ("track", "vertical") or not focus.get("h"):  # zooms would crop the layout / the group
             plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
-        else:  # the 9:16 window is already upscaled from 1080p: gentle zooms, a close face hardly at all
-            plan["maxZoom"] = 1.12 if focus["h"] >= 0.2 else 1.25
+        else:  # the 9:16 window is already upscaled from 1080p: gentle zooms (below 1.25 the renderer's level 1 would
+            plan["maxZoom"] = 1.3  # drop under 1x and show black edges – 21.10.2026 proof run)
         cap = plan.get("style", {}).get("cap") if isinstance(plan.get("style"), dict) else None
         if layout == "fit" and isinstance(cap, dict) and isinstance(cap.get("y"), (int, float)):
             plan["style"]["cap"] = {**cap, "y": 0.75}  # below the 16:9 picture, not on its edge
@@ -1036,7 +1048,8 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     except Exception as e:
         print("sfx levelling failed:", e)
     meta = {"index": i, "title": c["title"] or c["hook"] or f"Clip {i + 1}", "hook": c["hook"], "why": c["why"], "score": round(c["score"]),
-            "scores": c["scores"], "start": round(sents[c["start"]][0]["s"], 2), "end": round(sents[c["end"]][-1]["e"], 2),
+            "scores": c["scores"], "start": round(c["t0"] if "t0" in c else sents[c["start"]][0]["s"], 2),
+            "end": round(c["t1"] if "t1" in c else sents[c["end"]][-1]["e"], 2),
             "duration": round(dur, 2), "transcript": " ".join(w["w"] for w in plan["words"])[:4000], "layout": layout}
     if PRO:
         meta["caption"] = c.get("caption") or ""
@@ -1126,7 +1139,7 @@ DURATION = 0.0
 
 
 def main():
-    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS, PRO, POOL
+    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS, PRO, POOL, SOURCE_TAG
     t_run = time.time()
     report(status="downloading", note="Video wird geladen…", **({"runUrl": RUN_URL} if RUN_URL else {}))
     r = requests.get(f"{API}/clip-config?{AUTH}", timeout=30)
@@ -1142,6 +1155,8 @@ def main():
         LLM_ATTEMPTS = 2
     PRO = cfg.get("pro") is True
     if PRO:
+        SOURCE_TAG = {"twitch": "Twitch-Stream, z. B. #twitch #stream", "kick": "Kick-Stream, z. B. #kick #stream",
+                      "youtube": "YouTube-Video, z. B. #youtube"}.get(cfg.get("source"), "eigenes Video, z. B. #clips")
         from concurrent.futures import ThreadPoolExecutor
         POOL = ThreadPoolExecutor(max_workers=2)
         print("CLIPPERZ Pro clipping", flush=True)
@@ -1192,9 +1207,12 @@ def main():
     clip_sents = sents
     if PRO:
         report(note="Untertitel werden genau erkannt…")
+        for c in picks:  # position in the long video, from the first transcript (re-transcribed sentences may be empty)
+            c["t0"], c["t1"] = sents[c["start"]][0]["s"], sents[c["end"]][-1]["e"]
         with phase("transcribe clips"):
             better = refine_words(picks, sents, audio, lang)
         del audio
+        globals()["_CLIP_MODEL"] = None  # ~1.5 GB back before rendering
         if better:
             clip_sents = [better.get(k, s_) for k, s_ in enumerate(sents)]
 

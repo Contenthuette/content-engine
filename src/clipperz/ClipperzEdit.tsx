@@ -829,9 +829,8 @@ function hookLayout(plan: Plan, preset: Preset): {top: number; takeover: boolean
   if (bottom + 40 + tall <= capTop - 30) return {top: bottom + 40, takeover: false};
   // no room: the hook sits where the captions are, captions wait until it is gone
   // CLIPPERZ Pro: a big close-up face pushed the hook below the screen (21.10.2026: no hook and no captions for the
-  // first 2.6 s). Pro puts it at the top of the safe area instead (over hair/forehead, like OpusClip titles) and the
-  // captions keep running.
-  if (plan.pro) return {top: above, takeover: false};
+  // first 2.6 s) – and at the top it covered the eyes. Pro: the hook takes the captions' place, always on screen.
+  if (plan.pro) return {top: Math.max(SAFE.top, Math.min(H - SAFE.bottom - tall - 20, capY - tall / 2)), takeover: true};
   return {top: Math.max(bottom + 40, Math.min(H - SAFE.bottom - tall - 20, capY - tall / 2)), takeover: true};
 }
 
