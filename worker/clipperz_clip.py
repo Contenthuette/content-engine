@@ -105,9 +105,13 @@ def post(path, body, timeout=60):
     return r.status_code, j
 
 
+FALLBACK = False   # clip-config "fallback" (CLIPPERZ Pro): always deliver clips when there is enough speech. False = old behaviour.
+LLM_ATTEMPTS = 3   # fallback runs use 2: a hanging AI call must not eat the whole run
+
+
 def llm(messages, max_tokens=8000, temperature=0.2):
     status = 0
-    for attempt in range(3):
+    for attempt in range(LLM_ATTEMPTS):
         try:
             r = requests.post(f"{API}/clip-llm?{AUTH}", json={"messages": messages, "maxTokens": max_tokens, "temperature": temperature}, timeout=300)
             status = r.status_code
@@ -308,38 +312,77 @@ RULES = (
 )
 
 
-def pick_moments(sents, lang, lo, hi, want):
-    """Claude reads the transcript (in windows for long videos) and proposes candidates. Returns a list of dicts."""
-    lines = [sent_line(i, s) for i, s in enumerate(sents)]
+def selection_windows(sents, lines, max_chars):
     windows, cur, size = [], [], 0
-    for i, ln in enumerate(lines):  # ~45k characters per window (35-45 min of speech), 2 min overlap
+    for i, ln in enumerate(lines):  # max_chars per window, 2 min overlap
         cur.append(i)
         size += len(ln) + 1
-        if size > 45000:
+        if size > max_chars:
             windows.append(cur)
             back = [k for k in cur if sents[k][0]["s"] >= sents[cur[-1]][-1]["e"] - 120]
             cur, size = list(back), sum(len(lines[k]) + 1 for k in back)
     if cur and (not windows or cur[-1] != windows[-1][-1]):
         windows.append(cur)
+    return windows
+
+
+def pick_moments(sents, lang, lo, hi, want, fallback=False):
+    """Claude reads the transcript (in windows for long videos) and proposes candidates. Returns a list of dicts.
+    fallback (Pro): smaller windows (~20k characters), "answer directly" (no long hidden reasoning), up to 16k tokens,
+    also weaker-but-usable candidates with an honest
+    lower score, a failed window is retried as two halves, and the selection stops after 25 min or 2 dead windows in a
+    row without any answer (the speech-based picks in choose() take over)."""
+    lines = [sent_line(i, s) for i, s in enumerate(sents)]
+    windows = selection_windows(sents, lines, 20000 if fallback else 45000)  # 45k ~ 35-45 min of speech
     per = max(4, min(12, math.ceil(want * 2 / len(windows)) + 2))
     system = RULES.format(lo=lo, hi=hi, lang=lang)
-    out = []
-    for n, win in enumerate(windows):
-        report(note=f"Claude sucht die besten Momente… ({n + 1}/{len(windows)})" if len(windows) > 1 else "Claude sucht die besten Momente…")
-        user = (f"Transkript{f' (Teil {n + 1} von {len(windows)})' if len(windows) > 1 else ''}, Satz für Satz:\n"
+    if fallback:  # 21.10.2026: without this the model reasoned through the whole token budget (>120 s, empty answer)
+        system += "\n\nDenk nicht lange nach: antworte direkt mit dem JSON."
+    ask = ("Finde bis zu {n} Clips (nur echte Treffer – lieber weniger als schwache)." if not fallback else
+           "Finde bis zu {n} Clips: zuerst die echten Treffer, dann auch brauchbare schwächere Momente mit ehrlich niedrigerem score "
+           "(die Regeln 1–5 gelten trotzdem), damit genug Auswahl da ist. Gib nur dann gar nichts an, wenn in diesem Teil wirklich nichts für sich steht.")
+    out, t_start, ok_any, dead = [], time.time(), False, 0
+
+    def ask_llm(win, label, n):
+        user = (f"Transkript{label}, Satz für Satz:\n"
                 + "\n".join(lines[k] for k in win)
-                + f"\n\nFinde bis zu {per} Clips (nur echte Treffer – lieber weniger als schwache). Antworte NUR mit JSON: "
+                + "\n\n" + ask.format(n=n) + " Antworte NUR mit JSON: "
                   "{\"clips\": [{\"start\": Satznummer, \"end\": Satznummer, \"teaser\": Satznummer oder null, \"title\": \"…\", \"hook\": \"…\", "
                   "\"why\": \"ein Satz auf Deutsch: warum dieser Moment funktioniert\", \"score\": 0-100, "
                   "\"scores\": {\"hook\": 0-100, \"story\": 0-100, \"emotion\": 0-100, \"shareability\": 0-100}}]} – sortiert nach score.")
+        res = ce.llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens=16000 if fallback else 12000)
+        return [c for c in ((res.get("clips") if isinstance(res, dict) else res) or []) if isinstance(c, dict)]
+
+    for n, win in enumerate(windows):
+        if fallback and (time.time() - t_start > 25 * 60 or (dead >= 2 and not ok_any)):
+            print(f"selection stopped after window {n}/{len(windows)} ({'time' if time.time() - t_start > 25 * 60 else 'AI unavailable'})")
+            break
+        if fallback:
+            report(note=f"Die besten Momente werden gesucht… ({n + 1}/{len(windows)})" if len(windows) > 1 else "Die besten Momente werden gesucht…")
+        else:
+            report(note=f"Claude sucht die besten Momente… ({n + 1}/{len(windows)})" if len(windows) > 1 else "Claude sucht die besten Momente…")
+        label = f" (Teil {n + 1} von {len(windows)})" if len(windows) > 1 else ""
         try:
-            res = ce.llm_json([{"role": "system", "content": system}, {"role": "user", "content": user}], max_tokens=12000)
-        except ClipError as e:
-            print("selection window failed:", e)
+            got = ask_llm(win, label, per)
+            print(f"selection window {n + 1}/{len(windows)}: {len(got)} candidates", flush=True)
+            out += got
+            ok_any, dead = True, 0
             continue
-        for c in (res.get("clips") if isinstance(res, dict) else res) or []:
-            if isinstance(c, dict):
-                out.append(c)
+        except ClipError as e:
+            print("selection window failed:", e, flush=True)
+        if not fallback or len(win) < 20:
+            dead += 1
+            continue
+        half, got_half = len(win) // 2, False  # a smaller request answers faster
+        for part in (win[:half], win[half:]):
+            try:
+                got = ask_llm(part, label, max(3, per // 2 + 1))
+                print(f"selection half window: {len(got)} candidates", flush=True)
+                out += got
+                ok_any, got_half = True, True
+            except ClipError as e:
+                print("selection half window failed:", e, flush=True)
+        dead = 0 if got_half else dead + 1
     return out
 
 
@@ -448,7 +491,7 @@ def review(chosen, sents, lo, hi, lang):
     return out
 
 
-def choose(cands, sents, want, lo, hi, lang):
+def choose(cands, sents, want, lo, hi, lang, fallback=False):
     pool = sorted((c for c in (clean_candidate(x, sents, lo, hi) for x in cands) if c), key=lambda c: -c["score"])
     chosen = []
     for c in pool:
@@ -466,8 +509,109 @@ def choose(cands, sents, want, lo, hi, lang):
             break
         if c["score"] >= 55 and all(overlap(c, o, sents) < 0.3 for o in checked):
             checked.append(c)
+    if fallback and len(checked) < want:
+        checked = fallback_fill(checked, cands, rest, sents, want, lo, hi)
     checked.sort(key=lambda c: -c["score"])
     return checked[:want]
+
+
+def relaxed_bounds(lo, hi):
+    """Slightly looser clip length for the fallback tiers, always inside 15-60 s."""
+    return max(15, lo - max(3, lo // 4)), min(60, hi + max(10, hi // 3))
+
+
+def fallback_fill(checked, cands, rest, sents, want, lo, hi):
+    """CLIPPERZ Pro: too few clips passed the strict tiers. Take the best available ones, step by step:
+    1. the remaining candidates with a lower score bar (>= 30), same length;
+    2. candidates with a slightly looser length (inside 15-60 s), any score;
+    3. speech-based picks from the transcript (dense speech, energy, complete sentences): up to `want` when the AI gave
+       nothing usable (unavailable or empty), else up to ~60 % of `want` (min. 3) in total – the AI picks stay on top.
+    Moments the review dropped stay dropped (they would distort what was said)."""
+    out = list(checked)
+    free = lambda c: all(overlap(c, o, sents) < 0.3 for o in out)
+    n0 = len(out)
+    for c in rest:
+        if len(out) >= want:
+            break
+        if c["score"] >= 30 and free(c):
+            out.append(c)
+    n1 = len(out)
+    lo2, hi2 = relaxed_bounds(lo, hi)
+    # every strict-length candidate was already ranked (or dropped by the review) above: only the new ones count here
+    seen = {(c["start"], c["end"]) for c in (clean_candidate(x, sents, lo, hi) for x in cands) if c}
+    loose = sorted((c for c in (clean_candidate(x, sents, lo2, hi2) for x in cands) if c and (c["start"], c["end"]) not in seen),
+                   key=lambda c: -c["score"])
+    for c in loose:
+        if len(out) >= want:
+            break
+        if free(c):
+            out.append(c)
+    n2 = len(out)
+    goal = want if n2 == 0 else min(want, max(3, math.ceil(want * 0.6)))
+    if len(out) < goal:
+        for c in speech_picks(sents, lo, hi, goal - len(out), out):
+            out.append(c)
+    print(f"fallback: strict {n0} -> lower score {n1} -> looser length {n2} -> speech-based {len(out)} (want {want})", flush=True)
+    return out
+
+
+def speech_picks(sents, lo, hi, need, taken):
+    """Clips without the AI: contiguous sentence runs of lo-hi s, ranked by how much is said (speech share, words per
+    second), the energy of the voice and whether the run ends on a complete sentence. Returns at most `need` picks that
+    do not overlap `taken`. Empty when the video has no stretch with enough speech."""
+    import numpy as np
+    if need <= 0 or not sents:
+        return []
+    env = ce.ENV
+    db = env["db"] if env else None
+    hop = ce.ENV_HOP
+    med = float(np.median(db)) if db is not None and len(db) else 0.0
+    target = min(hi, max(lo, (lo + hi) / 2))
+    dur_of = lambda s: s[-1]["e"] - s[0]["s"]
+    runs = []
+    for a in range(len(sents)):
+        dur, b = 0.0, a
+        while b < len(sents):
+            dur += dur_of(sents[b])
+            if dur >= target or (b + 1 < len(sents) and dur + dur_of(sents[b + 1]) > hi):
+                break
+            b += 1
+        b = min(b, len(sents) - 1)
+        if dur < lo - 4 or dur > hi + 6:
+            continue
+        t0, t1 = sents[a][0]["s"], sents[b][-1]["e"]
+        wall = max(0.1, t1 - t0)
+        nwords = sum(len(sents[k]) for k in range(a, b + 1))
+        share, wps = dur / wall, nwords / wall
+        if share < 0.5 or wps < 1.0:  # mostly silence/music: not a talking moment
+            continue
+        loud = 0.0
+        if db is not None:
+            seg = db[int(t0 / hop):max(int(t0 / hop) + 1, int(t1 / hop))]
+            if len(seg):
+                loud = float(np.percentile(seg, 75)) - med
+        last = sents[b][-1]["w"]
+        first = norm(sents[a][0]["w"])
+        raw = (25 * min(1.0, share) + 6 * min(3.5, wps) + 1.2 * max(-10.0, min(15.0, loud))
+               + (6 if last.endswith((".", "!", "?")) else 0) + (3 if "!" in last or "?" in last else 0)
+               - (6 if first in WEAK_OPENERS else 0))
+        runs.append((raw, a, b, dur))
+    runs.sort(key=lambda r: -r[0])
+    picks = []
+    for raw, a, b, dur in runs:
+        if len(picks) >= need:
+            break
+        c = {"start": a, "end": b, "teaser": None, "dur": dur}
+        if any(overlap(c, o, sents) > 0 for o in list(taken) + picks):
+            continue
+        words = [w["w"] for w in sents[a]]
+        title = " ".join(words[:8]) + ("…" if len(words) > 8 else "")
+        score = max(20.0, min(44.0, 20 + raw / 3))  # always below the AI picks
+        c.update({"title": title[:90], "hook": "", "score": score,
+                  "why": "Ausgewählt nach Sprechanteil und Energie – kurz prüfen, bevor du postest.",
+                  "scores": {"hook": score, "story": score, "emotion": score, "shareability": score}})
+        picks.append(c)
+    return picks
 
 
 # ---------- reframe (vertical, speaker in frame) ----------
@@ -729,7 +873,7 @@ DURATION = 0.0
 
 
 def main():
-    global DURATION, ACCENT
+    global DURATION, ACCENT, FALLBACK, LLM_ATTEMPTS
     report(status="downloading", note="Video wird geladen…", **({"runUrl": RUN_URL} if RUN_URL else {}))
     r = requests.get(f"{API}/clip-config?{AUTH}", timeout=30)
     if r.status_code != 200:
@@ -739,6 +883,9 @@ def main():
     want = max(1, min(10, int(cfg.get("count") or 5)))
     preset_id = ce.register_style(cfg.get("preset"), cfg.get("styleConfig"))
     ACCENT = custom_accent(cfg)
+    FALLBACK = cfg.get("fallback") is True
+    if FALLBACK:
+        LLM_ATTEMPTS = 2
     pace = ce.PRESETS[preset_id].get("cut") or {}
     ce.CUT_HEAD, ce.CUT_TAIL = 0.06, 0.08  # a bit more air than a talking-head edit: streams are less clean
     ce.KEEP_GAP = 0.3                       # natural rhythm, only longer pauses are tightened
@@ -766,11 +913,13 @@ def main():
         raise ClipError("Im Video wird zu wenig gesprochen – Claude findet daraus keine Clips")
     sents = sentences(words)
 
-    report(status="selecting", note="Claude sucht die besten Momente…")
-    cands = pick_moments(sents, lang, lo, hi, want)
-    picks = choose(cands, sents, want, lo, hi, lang)
+    report(status="selecting", note="Die besten Momente werden gesucht…" if FALLBACK else "Claude sucht die besten Momente…")
+    cands = pick_moments(sents, lang, lo, hi, want, fallback=FALLBACK)
+    picks = choose(cands, sents, want, lo, hi, lang, fallback=FALLBACK)
     with open(os.path.join(W, "picks.json"), "w", encoding="utf-8") as fh:
         json.dump({"candidates": cands, "picks": picks, "texts": [clip_text(c, sents) for c in picks]}, fh, ensure_ascii=False, indent=1)
+    if not picks and FALLBACK:  # even the speech-based picks found no stretch with enough talking
+        raise ClipError("Im Video wird zu wenig am Stück gesprochen – daraus lassen sich keine Clips machen")
     if not picks:
         raise ClipError("Claude hat keinen Moment gefunden, der allein als Clip funktioniert")
     print(f"{len(cands)} candidates -> {len(picks)} clips")
