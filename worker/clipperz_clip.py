@@ -1752,9 +1752,9 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
     reached = ok >= target
     bar_txt = f" (Qualitätsschwelle {bar})" if bar else ""
     if via == "moments":
-        how = f"über Momente: {len(used)} eigenständige Momente{bar_txt}, je ein Video"
+        how = f"über Momente: {len(used)} eigenständige{'r' if len(used) == 1 else ''} Moment{'' if len(used) == 1 else 'e'}{bar_txt}, je ein Video"
     else:
-        how = f"über Varianten: {len(used)} Momente{bar_txt} × bis zu {per} Versionen (Einstieg, Länge, Stil, Farbe)"
+        how = f"über Varianten: {len(used)} Moment{'' if len(used) == 1 else 'e'}{bar_txt} × bis zu {per} Versionen (Einstieg, Länge, Stil, Farbe)"
     if reached:
         note = f"Ziel {target} erreicht {how}"
     elif timed_out:
