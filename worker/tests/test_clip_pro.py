@@ -284,21 +284,32 @@ def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock
     cc.upload = lambda f, ext: f"https://x/{os.path.basename(f)}"
     cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent")}
 
-    def prep(i, c, sents_, src, preset_id, captions, lang, tag=None, reuse=None):
+    moments_done = []
+
+    def prep_moment(i, c, cuts, sents_, src, preset_id, captions):
         clock[0] += prep_sec
-        preps.append((i, tag, reuse is not None))
+        moments_done.append(i)
+        vert = os.path.join(cc.W, f"vertm{i}.mp4")
+        open(vert, "wb").close()
+        return {"vert": vert, "preset": cc.pro_preset(preset_id)}
+
+    def prep(i, c, sents_, base, captions, tag):
+        clock[0] += prep_sec / 10
+        preps.append((i, tag, i in moments_done))
         job = f"job/t{tag}"
         os.makedirs(os.path.join(cc.W, "public", job), exist_ok=True)
         open(os.path.join(cc.W, "public", job, "main.mp4"), "wb").close()
         dur = cc.played_len(c, sents_)
-        return {"accent": None}, {"index": i, "title": f"M{i}", "duration": dur, "score": 80}, {"preset": cc.pro_preset(preset_id), "job": job, "fid": tag}
-    cc.prepare_clip = prep
+        return {"accent": None}, {"index": i, "title": f"M{i}", "duration": dur, "score": 80}, {"preset": base["preset"], "job": job, "fid": tag}
+    cc.prepare_moment = prep_moment
+    cc.prepare_cut = prep
     # 300 sentences of 4 s: every moment has room for other lengths and starts
     sents = make_sents([4.0] * 300, gap=0.3)
     picks = [cand(5 + 9 * m, 10 + 9 * m) for m in range(moments)]  # 6 sentences ≈ 24 s each
     cc.render_variants(serve, picks, sents, None, "clean", True, "de", {"variantStyles": ["clean", "hype", "story", "bold"]}, clock[0], 60)
     results = [b for p_, b in sent if p_ == "clip-result" and b.get("ok")]
     final = [r["report"] for r in reports if "report" in r][-1]
+    assert sorted(set(moments_done)) == sorted(moments_done)  # every moment prepared exactly once
     return results, final, preps, serve
 
 
@@ -315,7 +326,7 @@ def test_variants_reach_target_round_robin():
     for i, tag, reused in preps:
         by_m.setdefault(i, []).append((tag, reused))
     per_m = {m: sum(1 for r in results if r["momentIndex"] == m) for m in by_m}
-    assert all(len(v) == per_m[m] and v[0] == (f"{m}k0", False) and all(r for _t, r in v[1:]) for m, v in by_m.items())
+    assert all(len(v) == per_m[m] and v[0][0] == f"{m}k0" for m, v in by_m.items())
     assert len({tag for _i, tag, _r in preps}) == len(preps)  # every video of a moment from its own cut
     assert len({round(r["duration"]) for r in results if r["momentIndex"] == 0}) >= 3  # really other lengths
     left = os.listdir(os.path.join(serve, "public", "job")) if os.path.isdir(os.path.join(serve, "public", "job")) else []

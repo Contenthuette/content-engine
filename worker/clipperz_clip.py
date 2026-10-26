@@ -1365,6 +1365,97 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang, tag=None, reuse=No
     return plan, meta, state
 
 
+def cut_span(c, sents):
+    """(order, intervals) of a cut in the long video – exactly as prepare_clip / prepare_cut play it."""
+    order = [k for k in clip_order(c) if sents[k]] if PRO else clip_order(c)
+    ivs = order_intervals(order, sents)
+    if PRO and HARD_LEN:
+        order, ivs = cap_order(order, ivs, sents, c["teaser"], HARD_LEN[1] - LEN_SAFETY, 0)
+    return order, ivs
+
+
+def prepare_moment(i, c, cuts, sents, src, preset_id, captions):
+    """Massenproduktion (26.10.2026): the expensive work ONCE per moment, over the widest span of all its cuts – the
+    window from the long video, the 9:16 reframe with face tracking and the AI edit plan. Every cut of the moment is
+    then only trimmed from this (prepare_cut: one fast encode, no face tracking, no AI call)."""
+    spans = []
+    for _l, c2, s2 in cuts:
+        spans += cut_span(c2, s2)[1]
+    t0 = max(0.0, min(a for a, _ in spans) - 0.5)
+    t1 = min(DURATION, max(b for _, b in spans) + 0.5)
+    tag = f"m{i}"
+    win = os.path.join(W, f"win{tag}.mp4")
+    run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t0:.3f}", "-i", src, "-t", f"{t1 - t0:.3f}", "-map", "0:v:0", "-map", "0:a:0?",
+         "-c:v", "libx264", "-preset", "superfast", "-crf", "16", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", win])
+    dur, _ = ce.probe(win)
+    # every word of the span in the long video (source order) – the edit plan covers all cuts of the moment
+    span_words = [w for s_ in sents for w in s_ if w["s"] >= t0 and w["e"] <= t1]
+    rel_words = [{**w, "s": round(w["s"] - t0, 3), "e": round(w["e"] - t0, 3)} for w in span_words]
+    pid = pro_preset(preset_id) if PRO else preset_id
+    pending = POOL.submit(ce.edit_plan, rel_words, dur, [], pid, c["hook"], list(EMOJI) if EMOJIS and captions else None) if POOL else None
+    vert = os.path.join(W, f"vert{tag}.mp4")
+    try:
+        import clipperz_reframe
+        sw, sh = ce.src_size(win)
+        if sh >= sw * 1.3:
+            (focus, layout, crop_h), scenes = reframe(win, vert, dur), []
+        else:
+            focus, layout, crop_h, scenes = clipperz_reframe.reframe(win, vert, dur, ce.FPS, run, os.path.join(W, f"rf{tag}"))
+    except Exception as e:
+        print("pro reframe failed, using the old one:", type(e).__name__, str(e)[:300], flush=True)
+        (focus, layout, crop_h), scenes = reframe(win, vert, dur), []
+    # colour look + voice clean-up once for the whole span (the cuts copy it)
+    clean = os.path.join(W, f"vertc{tag}.mp4")
+    ce.prepare_main(vert, clean, ce.PRESETS[pid].get("grade"))
+    try:
+        res = pending.result() if pending else ce.edit_plan(rel_words, dur, [], pid, c["hook"])
+    except Exception as e:
+        print("edit plan failed, using defaults:", type(e).__name__, e)
+        res = {}
+    for f in (win, vert, os.path.join(W, f"rf{tag}")):
+        try:
+            shutil.rmtree(f) if os.path.isdir(f) else os.remove(f)
+        except OSError:
+            pass
+    return {"t0": t0, "vert": clean, "focus": focus, "layout": layout, "crop_h": crop_h, "scenes": scenes, "res": res,
+            "src": [w["s"] for w in span_words], "preset": pid}
+
+
+def prepare_cut(i, c, sents, base, captions, tag):
+    """One cut of a prepared moment: trimmed from the moment's reframed video (one fast encode) with the moment's edit
+    plan mapped onto its words. Returns (plan, meta, state) like prepare_clip."""
+    order, ivs = cut_span(c, sents)
+    t0 = base["t0"]
+    rel = [(round(a - t0, 3), round(b - t0, 3)) for a, b in ivs]
+    job = f"job/{re.sub(r'[^A-Za-z0-9]', '', STREAM)[:30] or 'clip'}c{tag}"
+    pub = os.path.join(W, "public", job)
+    os.makedirs(pub, exist_ok=True)
+    cutp = os.path.join(pub, "main.mp4")  # straight from the moment's prepared video: one fast encode of just this span
+    ce.cut(base["vert"], rel, cutp, preset="ultrafast", crf=15, seek=True)
+    words_all = [{**w, "s": round(w["s"] - t0, 3), "e": round(w["e"] - t0, 3), "o": w["s"]} for k in order for w in sents[k]]
+    words = ce.remap_words(words_all, rel)
+    srct = [w["o"] for w in words]
+    words = [{k: v for k, v in w.items() if k != "o"} for w in words]
+    if words:
+        words[0] = {**words[0], "w": words[0]["w"][:1].upper() + words[0]["w"][1:]}
+    res, _cover = map_res(base["res"], base["src"], srct)
+    res["inserts"], res["broll"] = [], []
+    if c["hook"]:
+        res["hook"] = c["hook"]
+    dur, _ = ce.probe(cutp)
+    preset_id = base["preset"]
+    pr = ce.PRESETS[preset_id]
+    state = {"i": i, "words": words, "dur": dur, "focus": base["focus"], "res": res, "layout": base["layout"], "crop_h": base["crop_h"],
+             "captions": captions, "main": f"{job}/main.mp4", "main_abs": os.path.join(pub, "main.mp4"), "sfx": pr.get("sfxVol", 0.4),
+             "preset": preset_id, "src": srct, "job": job, "fid": tag}
+    plan = look_plan(state, preset_id, {"accent": ACCENT, "emojis": EMOJIS, "capY": None, "zoom": "normal"})
+    meta = {"index": i, "title": c["title"] or c["hook"] or f"Clip {i + 1}", "hook": c["hook"], "why": c["why"], "score": round(c["score"]),
+            "scores": c["scores"], "start": round(min(a for a, _ in ivs), 2), "end": round(max(b for _, b in ivs), 2),
+            "duration": round(dur, 2), "transcript": " ".join(w["w"] for w in plan["words"])[:4000], "layout": base["layout"],
+            "caption": c.get("caption") or clean_caption("", " ".join(w["w"] for w in plan["words"])), "scenes": base["scenes"]}
+    return plan, meta, state
+
+
 def look_plan(state, preset_id, look, log=False):
     """Render plan of one prepared moment in one look: style preset (captions, hook, pace), highlight colour, caption
     height, caption emojis on/off and zoom strength. The cut, the reframed picture and the AI edit plan are shared by
@@ -1949,7 +2040,21 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
     report(note=f"{total} Videos aus {moments} Momenten werden geschnitten und gerendert…", progress={"done": 0, "total": total})
     pub_job = lambda job: (os.path.join(W, "public", job), os.path.join(serve, "public", job))
     live = [None] * moments   # per moment: (cut index, plan of look 0, meta, state)
-    first = [None] * moments  # state of the original cut (its AI plan is reused for the other cuts)
+    bases = [None] * moments  # per moment: window + reframe + edit plan, made once (prepare_moment)
+    # moments are prepared one ahead in a background thread (face tracking and the AI call run while a video renders,
+    # uploads or is measured); all prepare_moment calls go through this one worker, so they never run at the same time
+    from concurrent.futures import ThreadPoolExecutor
+    prep_pool = ThreadPoolExecutor(max_workers=1)
+    ahead = {}
+
+    def base_of(m):
+        if bases[m] is None:
+            fut = ahead.pop(m, None) or prep_pool.submit(prepare_moment, m, picks[m], cuts[m], sents, src, preset_id, captions)
+            bases[m] = fut.result()
+        for n2 in range(m + 1, min(moments, m + 2)):  # one moment ahead
+            if bases[n2] is None and n2 not in ahead and n2 not in dead:
+                ahead[n2] = prep_pool.submit(prepare_moment, n2, picks[n2], cuts[n2], sents, src, preset_id, captions)
+        return bases[m]
     dead = set()
     n = ok = 0
     avg, timed_out, used = 90.0, False, set()
@@ -1970,18 +2075,17 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 label, c2, s2 = cuts[m][ci]
                 try:
                     report(note=f"Video {n + 1}/{total}: Moment {m + 1} wird geschnitten ({'Original' if ci == 0 else label})…")
-                    with phase("prepare clips"):
-                        plan0, meta, state = prepare_clip(m, c2, s2, src, preset_id, captions, lang, tag=f"{m}k{ci}",
-                                                          reuse=first[m] if ci else None)
-                    fid = state["fid"]
-                    drop_files(*(os.path.join(W, f"{x}{fid}.mp4") for x in ("win", "cut", "vert")), os.path.join(W, f"rf{fid}"))
+                    with phase("prepare moments"):
+                        base = base_of(m)
+                    with phase("prepare cuts"):
+                        plan0, meta, state = prepare_cut(m, c2, s2, base, captions, f"{m}k{ci}")
                     link_tree(pub_job(state["job"])[0], pub_job(state["job"])[1])
                     state["serve_dir"] = pub_job(state["job"])[1]
                     if live[m] is not None:
                         drop_files(*pub_job(live[m][3]["job"]))
                     live[m] = (ci, plan0, meta, state)
-                    if ci == 0:
-                        first[m] = state
+                    if ci == len(cuts[m]) - 1 or (ci + 1) * k >= per:  # the moment's last cut: its reframed video is no longer needed
+                        drop_files(bases[m]["vert"])
                 except Exception as e:
                     print(f"moment {m} cut {ci} ({label}) failed:", type(e).__name__, e, flush=True)
                     if live[m] is None:  # not even the original cut: this moment is out

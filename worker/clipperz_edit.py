@@ -503,8 +503,16 @@ def verify_cut(cut_path, words, duration):
     return out, remap_words(words2, iv), d2
 
 
-def cut(src, intervals, dst):
-    if len(intervals) == 1 and intervals[0][0] < 0.05:
+def cut(src, intervals, dst, preset="veryfast", crf=18, seek=False):
+    """Keeps only `intervals` of src (re-encoded; preset/crf for fast intermediates). seek: decode only the span the
+    intervals cover (input seeking) instead of the whole file – for short cuts out of a long source."""
+    pre = []
+    if seek and intervals:
+        lo = max(0.0, min(a for a, _ in intervals) - 0.1)
+        hi = max(b for _, b in intervals) + 0.1
+        pre = ["-ss", f"{lo:.3f}", "-t", f"{hi - lo:.3f}"]
+        intervals = [(round(a - lo, 3), round(b - lo, 3)) for a, b in intervals]
+    if len(intervals) == 1 and intervals[0][0] < 0.05 and not pre:
         run(["ffmpeg", "-v", "error", "-y", "-i", src, "-t", str(intervals[0][1]), "-c", "copy", dst])
         return
     parts = []
@@ -514,8 +522,8 @@ def cut(src, intervals, dst):
     concat = "".join(f"[v{i}][a{i}]" for i in range(len(intervals))) + f"concat=n={len(intervals)}:v=1:a=1[v][a]"
     with open(os.path.join(W, "cut.filter"), "w") as fh:
         fh.write(";".join(parts) + ";" + concat)
-    run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex_script", os.path.join(W, "cut.filter"),
-         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+    run(["ffmpeg", "-v", "error", "-y", *pre, "-i", src, "-filter_complex_script", os.path.join(W, "cut.filter"),
+         "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p",
          "-c:a", "aac", "-b:a", "192k", dst])
 
 
