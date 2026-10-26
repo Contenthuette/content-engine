@@ -248,9 +248,10 @@ def test_all_looks_distinct_and_base_first():
     base = cc.pro_preset("clean")
     styles = [cc.pro_preset(s) for s in ("clean", "hype", "story", "bold")]
     looks = cc.all_looks(base, styles)
-    assert looks[0] == {"style": base, "accent": None, "capY": None, "emojis": True, "zoom": "normal"}
+    assert looks[0] == {"style": base, "accent": None, "capY": None, "emojis": True, "zoom": "normal", "fx": None}
+    assert [lk["fx"] for lk in looks[:8]] == [None] * 4 + ["impact"] * 4  # effects change right after the style
     keys = {json.dumps(lk, sort_keys=True) for lk in looks}
-    assert len(keys) == len(looks) >= 500
+    assert len(keys) == len(looks) >= 2000
     for a, b in zip(looks, looks[1:]):  # neighbours never share style and colour
         assert (a["style"], a["accent"]) != (b["style"], b["accent"])
 

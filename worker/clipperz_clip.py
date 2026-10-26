@@ -1369,9 +1369,11 @@ def look_plan(state, preset_id, look, log=False):
     """Render plan of one prepared moment in one look: style preset (captions, hook, pace), highlight colour, caption
     height, caption emojis on/off and zoom strength. The cut, the reframed picture and the AI edit plan are shared by
     all looks of a moment – only what is drawn on top changes (Pro „Videos pro Stream“, 26.10.2026)."""
-    dur, focus, layout, crop_h = state["dur"], state["focus"], state["layout"], state["crop_h"]
-    words, res = json.loads(json.dumps(state["words"])), json.loads(json.dumps(state["res"]))
-    plan = ce.build_plan(words, dur, [], preset_id, state["captions"], focus, res, state["main"], [], hi_res=False, src_min=1080)
+    focus, layout, crop_h = state["focus"], state["layout"], state["crop_h"]
+    media = fx_media(state, look.get("fx"))  # effect version of the cut (slow motion + deep voice, tempo, film look)
+    main_rel, main_abs, words, dur, impact = media
+    words, res = json.loads(json.dumps(words)), json.loads(json.dumps(state["res"]))
+    plan = ce.build_plan(words, dur, [], preset_id, state["captions"], focus, res, main_rel, [], hi_res=False, src_min=1080)
     accent = look.get("accent")
     if accent:  # customer / look colour wins over the style's accent list (captions, hook, progress bar)
         plan["accent"] = accent
@@ -1391,6 +1393,19 @@ def look_plan(state, preset_id, look, log=False):
             plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
         else:  # the 9:16 window is already upscaled from 1080p: gentle zooms (below 1.25 the renderer's level 1 would
             plan["maxZoom"] = 1.3 if zoom != "soft" else 1.26  # drop under 1x and show black edges – 21.10.2026 proof run)
+            if impact:  # the slow-motion statement: the camera pushes in on the face
+                a, b = impact
+                keep = []
+                for z in plan.get("zooms") or []:
+                    if z["e"] <= a or z["s"] >= b:
+                        keep.append(z)
+                    else:
+                        if z["s"] < a:
+                            keep.append({**z, "e": round(a, 3)})
+                        if z["e"] > b:
+                            keep.append({**z, "s": round(b, 3), "mode": "cut"})
+                keep.append({"s": round(a, 3), "e": round(b, 3), "level": 2, "mode": "push", "shake": False})
+                plan["zooms"] = sorted(keep, key=lambda z: z["s"])
         cap = plan.get("style", {}).get("cap") if isinstance(plan.get("style"), dict) else None
         if isinstance(cap, dict) and isinstance(cap.get("y"), (int, float)):
             if layout == "fit":
@@ -1402,7 +1417,7 @@ def look_plan(state, preset_id, look, log=False):
     elif crop_h < 1600:  # the 9:16 window was already upscaled: only gentle zooms
         plan["maxZoom"] = 1.3
     try:
-        ce.level_sfx(plan, state["main_abs"], state["sfx"])
+        ce.level_sfx(plan, main_abs, state["sfx"])
     except Exception as e:
         print("sfx levelling failed:", e)
     return plan
@@ -1413,10 +1428,98 @@ LOOK_ACCENTS = ["#FFD400", "#00E676", "#FF3D7F", "#2F80FF", "#FF6A00", "#A259FF"
 VARIANTS = 0  # Pro „Videos pro Stream“: total videos wanted (0 = one video per moment, the classic CLIPZ run)
 
 
+FX_LIST = [None, "impact", "tempo", "film"]  # effects of a version (Pro „Videos pro Stream“, 26.10.2026)
+IMPACT_SLOW = 0.75   # slow motion factor of the key statement; the voice drops with it (deeper, dramatic)
+TEMPO_FAST = 1.1     # faster version: picture and voice 10 % faster, pitch stays
+FILM_VF = "eq=contrast=1.12:saturation=0.82:gamma=0.97,vignette=PI/5"
+
+
+def impact_span(state):
+    """The key statement of a cut for the slow-motion effect: a phrase of 1–3.5 s (between pauses or punctuation), not
+    under the hook at the start and not in the last second, with the most AI key words (ties: the later one – the
+    payoff). Returns (start, end) in seconds or None."""
+    words, dur = state["words"], state["dur"]
+    emph = {i for i in (_int(x) for x in (state["res"] or {}).get("emphasis") or []) if i is not None}
+    phrases, cur = [], []
+    for i, w in enumerate(words):
+        if cur and (w["s"] - words[cur[-1]]["e"] >= 0.3 or words[cur[-1]]["w"].rstrip().endswith((".", "!", "?", ",", ";", ":", "…"))):
+            phrases.append(cur)
+            cur = []
+        cur.append(i)
+    if cur:
+        phrases.append(cur)
+    best = None
+    for ph in phrases:
+        a, b = words[ph[0]]["s"], words[ph[-1]]["e"]
+        if not (1.0 <= b - a <= 3.5) or a < 3.0 or b > dur - 1.0:
+            continue
+        score = (sum(1 for i in ph if i in emph) + (1 if words[ph[-1]]["w"].rstrip().endswith("!") else 0), a)
+        if best is None or score > best[0]:
+            best = (score, max(0.0, a - 0.08), min(dur, b + 0.12))
+    return (round(best[1], 3), round(best[2], 3)) if best else None
+
+
+def fx_media(state, fx):
+    """(video path for the renderer, absolute path, words, duration, impact span) of a cut with an effect. The effect
+    files are made once per cut with ffmpeg and live next to its main.mp4 (deleted with the cut). Unknown or impossible
+    effect (no key statement) → the plain cut."""
+    plain = (state["main"], state["main_abs"], state["words"], state["dur"], None)
+    if not fx:
+        return plain
+    cache = state.setdefault("fx_cache", {})
+    if fx in cache:
+        return cache[fx] or plain
+    src = state["main_abs"]
+    rel = state["main"][:-len("main.mp4")] + f"main_{fx}.mp4"
+    dst = src[:-len("main.mp4")] + f"main_{fx}.mp4"
+    words, dur = state["words"], state["dur"]
+    enc = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
+    out = None
+    try:
+        if fx == "tempo":
+            r = TEMPO_FAST
+            run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex", f"[0:v]setpts=PTS/{r}[v];[0:a]atempo={r}[a]",
+                 "-map", "[v]", "-map", "[a]", "-r", str(ce.FPS), *enc, dst])
+            out = (rel, dst, [{**w, "s": round(w["s"] / r, 3), "e": round(w["e"] / r, 3)} for w in words], dur / r, None)
+        elif fx == "film":
+            run(["ffmpeg", "-v", "error", "-y", "-i", src, "-vf", FILM_VF, *enc[:8], "-c:a", "copy", dst])
+            out = (rel, dst, words, dur, None)
+        elif fx == "impact":
+            span = impact_span(state)
+            if span:
+                a, b = span
+                k = IMPACT_SLOW
+                fc = (f"[0:v]split=3[v0][v1][v2];[v0]trim=0:{a},setpts=PTS-STARTPTS[a0];"
+                      f"[v1]trim={a}:{b},setpts=(PTS-STARTPTS)/{k}[a1];[v2]trim=start={b},setpts=PTS-STARTPTS[a2];"
+                      f"[0:a]aresample=48000,asplit=3[s0][s1][s2];[s0]atrim=0:{a},asetpts=PTS-STARTPTS[b0];"
+                      f"[s1]atrim={a}:{b},asetpts=PTS-STARTPTS,asetrate={round(48000 * k)},aresample=48000[b1];"
+                      f"[s2]atrim=start={b},asetpts=PTS-STARTPTS[b2];[a0][b0][a1][b1][a2][b2]concat=n=3:v=1:a=1[v][au]")
+                run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex", fc, "-map", "[v]", "-map", "[au]", "-r", str(ce.FPS), *enc, dst])
+                extra = (b - a) * (1 / k - 1)
+
+                def at(t):
+                    return t if t <= a else (a + (t - a) / k if t <= b else t + extra)
+                out = (rel, dst, [{**w, "s": round(at(w["s"]), 3), "e": round(at(w["e"]), 3)} for w in words], dur + extra,
+                       (a, round(a + (b - a) / k, 3)))
+    except Exception as e:
+        print(f"effect {fx} failed, plain cut instead:", type(e).__name__, str(e)[:200], flush=True)
+        out = None
+    if out and state.get("serve_dir"):  # the renderer was bundled before this file existed
+        try:
+            target = os.path.join(state["serve_dir"], os.path.basename(dst))
+            if not os.path.exists(target):
+                os.link(dst, target)
+        except OSError:
+            shutil.copy2(dst, os.path.join(state["serve_dir"], os.path.basename(dst)))
+    cache[fx] = out
+    return out or plain
+
+
 def all_looks(base_style, styles):
     """Every look a moment can be cut in, the base look first. Order: style changes fastest, then colour, caption height,
     emojis, zoom – consecutive videos of a moment never share both style and colour. Real editing choices only (no
-    mirroring, no noise or other tricks against duplicate detection)."""
+    mirroring, no noise or other tricks against duplicate detection). Effects (slow-motion statement with deep voice,
+    tempo, film look) change right after the style."""
     sts = [base_style] + [s for s in styles if s != base_style]
     accents = [ACCENT] + [a for a in LOOK_ACCENTS if a != ACCENT] if ACCENT else [None] + LOOK_ACCENTS
     caps = [None, 0.58, 0.72]
@@ -1426,8 +1529,9 @@ def all_looks(base_style, styles):
         for emo in emojis:
             for cap_y in caps:
                 for accent in accents:
-                    for st in sts:
-                        out.append({"style": st, "accent": accent, "capY": cap_y, "emojis": emo, "zoom": zoom})
+                    for fx in FX_LIST if PRO else [None]:
+                        for st in sts:
+                            out.append({"style": st, "accent": accent, "capY": cap_y, "emojis": emo, "zoom": zoom, "fx": fx})
     return out
 
 
@@ -1696,6 +1800,7 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                     fid = state["fid"]
                     drop_files(*(os.path.join(W, f"{x}{fid}.mp4") for x in ("win", "cut", "vert")), os.path.join(W, f"rf{fid}"))
                     link_tree(pub_job(state["job"])[0], pub_job(state["job"])[1])
+                    state["serve_dir"] = pub_job(state["job"])[1]
                     if live[m] is not None:
                         drop_files(*pub_job(live[m][3]["job"]))
                     live[m] = (ci, plan0, meta, state)
@@ -1725,7 +1830,8 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 url = upload(final, "mp4")
                 poster_url = upload(poster, "jpg")
                 body = {"ok": True, **{key: val for key, val in meta.items() if key != "scenes"}, "index": idx, "url": url, "posterUrl": poster_url,
-                        "momentIndex": m, "variant": v, "style": plain_style(look["style"])}
+                        "momentIndex": m, "variant": v, "style": plain_style(look["style"]),
+                        "duration": round(float(plan.get("duration") or meta["duration"]), 2)}
                 accent = plan.get("accent") if isinstance(plan.get("accent"), str) else look.get("accent")
                 if isinstance(accent, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", accent):
                     body["accent"] = accent.upper()
@@ -1737,7 +1843,7 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                     raise ClipError(f"Video nicht angenommen ({code}: {j.get('error')})")
                 ok += 1
                 used.add(m)
-                print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')}] "
+                print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')} fx {look.get('fx') if v else '-'}] "
                       f"{meta['duration']:.0f}s in {time.time() - t0:.0f}s", flush=True)
                 if not ARGS.no_upload:
                     drop_files(final, poster)
