@@ -240,6 +240,71 @@ def test_emojis_off_for_internal_jobs():
     assert cc.EMOJIS is False   # set only in main() for Pro jobs with clip-config "emojis": true
 
 
+# ---------- „Videos pro Stream“: looks per moment until the wanted number ----------
+
+def test_all_looks_distinct_and_base_first():
+    setup_pro(15, 60)
+    cc.ACCENT, cc.EMOJIS = None, True
+    base = cc.pro_preset("clean")
+    styles = [cc.pro_preset(s) for s in ("clean", "hype", "story", "bold")]
+    looks = cc.all_looks(base, styles)
+    assert looks[0] == {"style": base, "accent": None, "capY": None, "emojis": True, "zoom": "normal"}
+    keys = {json.dumps(lk, sort_keys=True) for lk in looks}
+    assert len(keys) == len(looks) >= 500
+    for a, b in zip(looks, looks[1:]):  # neighbours never share style and colour
+        assert (a["style"], a["accent"]) != (b["style"], b["accent"])
+
+
+def _run_variants(target, moments, budget_min=300.0, render_sec=0.0):
+    import time as _t
+    clock = [1000.0]
+    real = _t.time
+    _t.time = lambda: clock[0]
+    try:
+        return _run_variants_inner(target, moments, budget_min, render_sec, clock)
+    finally:
+        _t.time = real
+
+
+def _run_variants_inner(target, moments, budget_min, render_sec, clock):
+    setup_pro(15, 60)
+    cc.ACCENT, cc.EMOJIS, cc.VARIANTS = None, False, target
+    cc.RENDER_BUDGET_MIN = budget_min
+    sent, reports = [], []
+    cc.post = lambda path, body: (sent.append((path, body)), (200, {}))[1]
+    cc.report = lambda **kw: reports.append(kw)
+    def render(serve, plan, dst):
+        clock[0] += render_sec
+        open(dst, "wb").close()
+    cc.render = render
+    cc.run = lambda cmd, **kw: None
+    cc.upload = lambda f, ext: f"https://x/{os.path.basename(f)}"
+    cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent")}
+    pid = cc.pro_preset("clean")
+    prepared = [({"accent": None}, {"index": m, "title": f"M{m}", "duration": 20.0, "score": 80}, {"preset": pid}) for m in range(moments)]
+    cc.render_variants(None, prepared, {"variantStyles": ["clean", "hype", "story", "bold"]}, clock[0])
+    results = [b for p_, b in sent if p_ == "clip-result" and b.get("ok")]
+    final = [r["report"] for r in reports if "report" in r][-1]
+    return results, final
+
+
+def test_variants_reach_target_round_robin():
+    results, rep = _run_variants(100, 30)
+    assert len(results) == 100 and rep["reached"] and rep["made"] == 100 and rep["moments"] == 30
+    assert [r["index"] for r in results] == list(range(100))
+    assert [r["momentIndex"] for r in results[:30]] == list(range(30))  # every moment once before any second look
+    assert all(r["variant"] == 0 for r in results[:30]) and results[30]["variant"] == 1
+    pairs = {(r["momentIndex"], r["variant"]) for r in results}
+    assert len(pairs) == 100
+    assert rep["perMoment"] == 4
+
+
+def test_variants_time_limit_reports_honestly():
+    results, rep = _run_variants(1000, 30, budget_min=60.0, render_sec=60.0)  # 1 min per video, 1 h budget
+    assert 30 <= len(results) < 60 and not rep["reached"] and rep["moments"] == 30
+    assert "Zeitlimit" in rep["note"]
+
+
 # ---------- optional: a real transcript excerpt from a local run ----------
 
 def test_real_transcript_if_available():
