@@ -1370,9 +1370,10 @@ def look_plan(state, preset_id, look, log=False):
     height, caption emojis on/off and zoom strength. The cut, the reframed picture and the AI edit plan are shared by
     all looks of a moment – only what is drawn on top changes (Pro „Videos pro Stream“, 26.10.2026)."""
     focus, layout, crop_h = state["focus"], state["layout"], state["crop_h"]
-    media = fx_media(state, look.get("fx"))  # effect version of the cut (slow motion + deep voice, tempo, film look)
-    main_rel, main_abs, words, dur, impact = media
-    words, res = json.loads(json.dumps(words)), json.loads(json.dumps(state["res"]))
+    fx = fx_for(state, look.get("fx"), look.get("v", 0))  # the effect, or another one that fits this cut
+    media = fx_media(state, fx)
+    main_rel, main_abs, dur = media["rel"], media["abs"], media["dur"]
+    words, res = json.loads(json.dumps(media["words"])), json.loads(json.dumps(state["res"]))
     plan = ce.build_plan(words, dur, [], preset_id, state["captions"], focus, res, main_rel, [], hi_res=False, src_min=1080)
     accent = look.get("accent")
     if accent:  # customer / look colour wins over the style's accent list (captions, hook, progress bar)
@@ -1393,19 +1394,8 @@ def look_plan(state, preset_id, look, log=False):
             plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
         else:  # the 9:16 window is already upscaled from 1080p: gentle zooms (below 1.25 the renderer's level 1 would
             plan["maxZoom"] = 1.3 if zoom != "soft" else 1.26  # drop under 1x and show black edges – 21.10.2026 proof run)
-            if impact:  # the slow-motion statement: the camera pushes in on the face
-                a, b = impact
-                keep = []
-                for z in plan.get("zooms") or []:
-                    if z["e"] <= a or z["s"] >= b:
-                        keep.append(z)
-                    else:
-                        if z["s"] < a:
-                            keep.append({**z, "e": round(a, 3)})
-                        if z["e"] > b:
-                            keep.append({**z, "s": round(b, 3), "mode": "cut"})
-                keep.append({"s": round(a, 3), "e": round(b, 3), "level": 2, "mode": "push", "shake": False})
-                plan["zooms"] = sorted(keep, key=lambda z: z["s"])
+            for za, zb, lvl, shake in media["zooms"]:  # the effect's camera moves
+                add_zoom(plan, za, zb, lvl, shake)
         cap = plan.get("style", {}).get("cap") if isinstance(plan.get("style"), dict) else None
         if isinstance(cap, dict) and isinstance(cap.get("y"), (int, float)):
             if layout == "fit":
@@ -1416,6 +1406,16 @@ def look_plan(state, preset_id, look, log=False):
         plan["zooms"] = [{"s": 0, "e": round(dur, 3), "level": 0, "mode": "cut", "shake": False}]
     elif crop_h < 1600:  # the 9:16 window was already upscaled: only gentle zooms
         plan["maxZoom"] = 1.3
+    if media["sfx"]:
+        plan["sfx"] = sorted((plan.get("sfx") or []) + [{"t": round(t, 3), "name": nm, "vol": round(v_, 3)} for t, nm, v_ in media["sfx"]], key=lambda x: x["t"])
+    if media["emojis"] and state["captions"]:
+        have = {x["i"] for x in plan.get("emojis") or []}
+        for t, e in media["emojis"]:
+            i = min(range(len(plan["words"])), key=lambda k: abs(plan["words"][k]["s"] - t)) if plan["words"] else None
+            if i is not None and i not in have and emoji_src(e):
+                plan.setdefault("emojis", []).append({"i": i, "e": _emoji_key(e), "src": emoji_src(e)})
+        plan["emojis"] = sorted(plan["emojis"], key=lambda x: x["i"])
+    plan["fx"] = fx
     try:
         ce.level_sfx(plan, main_abs, state["sfx"])
     except Exception as e:
@@ -1428,16 +1428,30 @@ LOOK_ACCENTS = ["#FFD400", "#00E676", "#FF3D7F", "#2F80FF", "#FF6A00", "#A259FF"
 VARIANTS = 0  # Pro „Videos pro Stream“: total videos wanted (0 = one video per moment, the classic CLIPZ run)
 
 
-FX_LIST = [None, "impact", "tempo", "film"]  # effects of a version (Pro „Videos pro Stream“, 26.10.2026)
+# ---------- effects of a version (Pro „Videos pro Stream“ / Massenproduktion, 26.10.2026) ----------
+# Each version of a moment gets at most one effect. Effects with a trigger („wenn es passt“) are only offered when the
+# cut has the fitting spot: a key statement, a laugh, money, a swear word, a slow stretch … Otherwise the version takes
+# another effect that fits (fx_for). Every effect is a real editing choice; the timeline ones are cut with ffmpeg from
+# the cut's main.mp4 (fx_timeline), the others only add sounds, zooms and emojis to the render plan.
+FX_LIST = [None, "impact", "tempo", "film", "replay", "boom", "pause", "rewind", "bw", "laugh", "money", "echo", "ffwd", "censor"]
 IMPACT_SLOW = 0.75   # slow motion factor of the key statement; the voice drops with it (deeper, dramatic)
 TEMPO_FAST = 1.1     # faster version: picture and voice 10 % faster, pitch stays
+FFWD = 2.0           # fast-forward through a calm stretch
+PAUSE_SEC = 0.8      # dramatic pause (frozen picture, silence) before the punchline
+ECHO_TAIL = 0.9      # the picture holds this long at the end so the echo can ring out
 FILM_VF = "eq=contrast=1.12:saturation=0.82:gamma=0.97,vignette=PI/5"
+SWEAR = re.compile(r"^(schei(ß|ss)\w*|fuck\w*|f\*+\w*|shit\w*|arsch\w*|wichser\w*|hurensohn\w*|fotze\w*|bitch\w*|fick\w*|kacke|verfickt\w*|bastard\w*)$", re.I)
+LAUGH = re.compile(r"^(\(?lacht\)?|\(?lachen\)?|(ha){2,}h?|hah+a+|hihi\w*|lol|xd)$", re.I)
+MONEY = re.compile(r"(€|\$|euro|dollar|tausend|million|milliard|kohle|geld|cash|gehalt|umsatz|^\d[\d.,]*k?$)", re.I)
+
+
+def _bare(w):
+    return re.sub(r"[^\w€$]+", "", w["w"]).strip()
 
 
 def impact_span(state):
-    """The key statement of a cut for the slow-motion effect: a phrase of 1–3.5 s (between pauses or punctuation), not
-    under the hook at the start and not in the last second, with the most AI key words (ties: the later one – the
-    payoff). Returns (start, end) in seconds or None."""
+    """The key statement of a cut: a phrase of 1–3.5 s (between pauses or punctuation), not under the hook at the start
+    and not in the last second, with the most AI key words (ties: the later one – the payoff). (start, end) or None."""
     words, dur = state["words"], state["dur"]
     emph = {i for i in (_int(x) for x in (state["res"] or {}).get("emphasis") or []) if i is not None}
     phrases, cur = [], []
@@ -1455,64 +1469,222 @@ def impact_span(state):
             continue
         score = (sum(1 for i in ph if i in emph) + (1 if words[ph[-1]]["w"].rstrip().endswith("!") else 0), a)
         if best is None or score > best[0]:
-            best = (score, max(0.0, a - 0.08), min(dur, b + 0.12))
-    return (round(best[1], 3), round(best[2], 3)) if best else None
+            best = (score, max(0.0, a - 0.08), min(dur, b + 0.12), ph)
+    return (round(best[1], 3), round(best[2], 3), best[3]) if best else None
+
+
+def calm_stretch(state):
+    """A calm stretch for fast-forward: 3–7 s of whole phrases without AI key words, after 4 s and 4 s before the end."""
+    words, dur = state["words"], state["dur"]
+    emph = {i for i in (_int(x) for x in (state["res"] or {}).get("emphasis") or []) if i is not None}
+    starts = [i for i in range(len(words)) if i == 0 or words[i]["s"] - words[i - 1]["e"] >= 0.25 or words[i - 1]["w"].rstrip().endswith((".", "!", "?"))]
+    best = None
+    for x in starts:
+        if words[x]["s"] < 4.0:
+            continue
+        for y in starts:
+            if y <= x:
+                continue
+            a, b = words[x]["s"], words[y - 1]["e"]
+            if b > dur - 4.0 or b - a > 7.0:
+                break
+            if b - a >= 3.0 and not any(i in emph for i in range(x, y)):
+                if best is None or b - a > best[1] - best[0]:
+                    best = (a - 0.05, b + 0.05)
+    return (round(best[0], 3), round(best[1], 3)) if best else None
+
+
+def fx_spots(state):
+    """Which effects fit this cut, and where. Cached in the state."""
+    if "fx_spots" in state:
+        return state["fx_spots"]
+    words, dur = state["words"], state["dur"]
+    sp = {"tempo": True, "film": True}
+    imp = impact_span(state)
+    if imp:
+        a, b, ph = imp
+        sp["impact"] = sp["bw"] = sp["pause"] = (a, b)
+        if b - a <= 2.6 and b <= dur - 1.5:
+            sp["replay"] = sp["rewind"] = (a, b)
+        emph = {i for i in (_int(x) for x in (state["res"] or {}).get("emphasis") or []) if i is not None}
+        hit = [i for i in ph if i in emph] or [ph[-1]]
+        sp["boom"] = hit[-1]
+    laugh = [i for i, w in enumerate(words) if LAUGH.match(_bare(w)) and w["s"] > 1.0]
+    if laugh:
+        sp["laugh"] = laugh[0]
+    money = [i for i, w in enumerate(words) if MONEY.search(_bare(w)) and 1.0 < w["s"] < dur - 0.8]
+    if money:
+        sp["money"] = money[0]
+    swear = [i for i, w in enumerate(words) if SWEAR.match(_bare(w))]
+    if swear:
+        sp["censor"] = swear
+    if words and words[-1]["e"] >= dur - 1.5 and words[-1]["e"] - words[-1]["s"] >= 0.2:
+        sp["echo"] = len(words) - 1
+    calm = calm_stretch(state)
+    if calm:
+        sp["ffwd"] = calm
+    state["fx_spots"] = sp
+    return sp
+
+
+def fx_for(state, fx, v=0):
+    """The effect a version gets: the wanted one if it fits the cut, else another fitting one (different per version)."""
+    if not fx:
+        return None
+    sp = fx_spots(state)
+    if fx in sp:
+        return fx
+    fits = [f for f in FX_LIST if f and f in sp]
+    return fits[(v * 7 + FX_LIST.index(fx)) % len(fits)] if fits else None
+
+
+def fx_timeline(state, segs, name, vf=None, audio=None, tail_echo=None):
+    """Cuts main.mp4 into `segs` (normal / slow / fast / reverse / freeze / gray) with ffmpeg and maps the words onto
+    the new timeline. Returns (relative path, absolute path, words, duration, starts of the segments)."""
+    src = state["main_abs"]
+    rel = state["main"][:-len("main.mp4")] + f"main_{name}.mp4"
+    dst = src[:-len("main.mp4")] + f"main_{name}.mp4"
+    parts, vl, al, out_words, starts, t = [], [], [], [], [], 0.0
+    for k, g in enumerate(segs):
+        a, b, kind = g["a"], g.get("b", g["a"]), g.get("kind", "normal")
+        f = g.get("f", 1.0)
+        gray = ",hue=s=0" if g.get("gray") else ""
+        if kind == "freeze":
+            d = g["d"]
+            parts.append(f"[0:v]trim=start={a}:duration={1 / ce.FPS:.4f},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration={d},trim=duration={d}{gray}[v{k}]")
+            parts.append(f"aevalsrc=0|0:c=stereo:s=48000:d={d}[a{k}]")
+            length = d
+        else:
+            vs = {"normal": "setpts=PTS-STARTPTS", "slow": f"setpts=(PTS-STARTPTS)/{f}", "fast": f"setpts=(PTS-STARTPTS)/{f}", "reverse": "setpts=PTS-STARTPTS,reverse"}[kind]
+            au = {"normal": "asetpts=PTS-STARTPTS", "slow": f"asetpts=PTS-STARTPTS,asetrate={round(48000 * f)},aresample=48000",
+                  "fast": f"asetpts=PTS-STARTPTS,atempo={f}", "reverse": "asetpts=PTS-STARTPTS,areverse"}[kind]
+            end = f":{b}" if b is not None and b < state["dur"] else ""
+            parts.append(f"[0:v]trim={a}{end},{vs}{gray}[v{k}]")
+            parts.append(f"[0:a]aresample=48000,aformat=channel_layouts=stereo,atrim={a}{end},{au}[a{k}]")
+            seg_b = b if b is not None else state["dur"]
+            length = (seg_b - a) / (f if kind == "fast" else 1.0) * (1 / f if kind == "slow" else 1.0)
+            if kind != "reverse" and g.get("words", True):
+                for w in state["words"]:
+                    if w["s"] >= a - 0.02 and w["s"] < seg_b:
+                        k2 = (1 / f) if kind == "slow" else (1 / f if kind == "fast" else 1.0)
+                        out_words.append({**w, "s": round(t + (w["s"] - a) * k2, 3), "e": round(t + (min(w["e"], seg_b) - a) * k2, 3)})
+        starts.append(round(t, 3))
+        vl.append(f"[v{k}][a{k}]")
+        t += length
+    fc = ";".join(parts) + ";" + "".join(vl) + f"concat=n={len(segs)}:v=1:a=1[vc][ac]"
+    vchain = f";[vc]{vf}[vo]" if vf else ";[vc]null[vo]"
+    achain = ";[ac]anull[ao]"
+    if audio:
+        achain = f";[ac]{audio}[ao]"
+    if tail_echo is not None:
+        achain = (f";[ac]asplit=2[dry][wet0];[wet0]volume='if(lt(t,{tail_echo}),0,1)':eval=frame,aecho=0.8:0.75:250|500:0.45|0.25[wet];"
+                  f"[dry][wet]amix=inputs=2:normalize=0:duration=first[ao]")
+    enc = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
+    run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex", fc + vchain + achain, "-map", "[vo]", "-map", "[ao]", "-r", str(ce.FPS), *enc, dst])
+    out_words.sort(key=lambda w: w["s"])
+    return rel, dst, out_words, t, starts
 
 
 def fx_media(state, fx):
-    """(video path for the renderer, absolute path, words, duration, impact span) of a cut with an effect. The effect
-    files are made once per cut with ffmpeg and live next to its main.mp4 (deleted with the cut). Unknown or impossible
-    effect (no key statement) → the plain cut."""
-    plain = (state["main"], state["main_abs"], state["words"], state["dur"], None)
+    """The cut with one effect: {rel, abs, words, dur, zooms: [(s, e, level, shake)], sfx: [(t, name, vol)],
+    emojis: [(t, emoji)]}. Timeline effects are rendered once per cut and live next to its main.mp4 (deleted with the
+    cut). An effect that fails or does not fit → the plain cut."""
+    plain = {"rel": state["main"], "abs": state["main_abs"], "words": state["words"], "dur": state["dur"], "zooms": [], "sfx": [], "emojis": []}
     if not fx:
         return plain
     cache = state.setdefault("fx_cache", {})
     if fx in cache:
         return cache[fx] or plain
-    src = state["main_abs"]
-    rel = state["main"][:-len("main.mp4")] + f"main_{fx}.mp4"
-    dst = src[:-len("main.mp4")] + f"main_{fx}.mp4"
-    words, dur = state["words"], state["dur"]
-    enc = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
+    sp = fx_spots(state)
+    words, dur, vol = state["words"], state["dur"], state["sfx"]
+    end = None  # „until the end“ in fx_timeline
     out = None
     try:
         if fx == "tempo":
-            r = TEMPO_FAST
-            run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex", f"[0:v]setpts=PTS/{r}[v];[0:a]atempo={r}[a]",
-                 "-map", "[v]", "-map", "[a]", "-r", str(ce.FPS), *enc, dst])
-            out = (rel, dst, [{**w, "s": round(w["s"] / r, 3), "e": round(w["e"] / r, 3)} for w in words], dur / r, None)
+            rel, ab, ws, d, _ = fx_timeline(state, [{"a": 0, "b": end, "kind": "fast", "f": TEMPO_FAST}], fx)
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d}
         elif fx == "film":
-            run(["ffmpeg", "-v", "error", "-y", "-i", src, "-vf", FILM_VF, *enc[:8], "-c:a", "copy", dst])
-            out = (rel, dst, words, dur, None)
-        elif fx == "impact":
-            span = impact_span(state)
-            if span:
-                a, b = span
-                k = IMPACT_SLOW
-                fc = (f"[0:v]split=3[v0][v1][v2];[v0]trim=0:{a},setpts=PTS-STARTPTS[a0];"
-                      f"[v1]trim={a}:{b},setpts=(PTS-STARTPTS)/{k}[a1];[v2]trim=start={b},setpts=PTS-STARTPTS[a2];"
-                      f"[0:a]aresample=48000,asplit=3[s0][s1][s2];[s0]atrim=0:{a},asetpts=PTS-STARTPTS[b0];"
-                      f"[s1]atrim={a}:{b},asetpts=PTS-STARTPTS,asetrate={round(48000 * k)},aresample=48000[b1];"
-                      f"[s2]atrim=start={b},asetpts=PTS-STARTPTS[b2];[a0][b0][a1][b1][a2][b2]concat=n=3:v=1:a=1[v][au]")
-                run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex", fc, "-map", "[v]", "-map", "[au]", "-r", str(ce.FPS), *enc, dst])
-                extra = (b - a) * (1 / k - 1)
+            rel, ab, ws, d, _ = fx_timeline(state, [{"a": 0, "b": end}], fx, vf=FILM_VF)
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d}
+        elif fx in ("impact", "bw") and fx in sp:
+            a, b = sp[fx]
+            mid = {"a": a, "b": b, "kind": "slow", "f": IMPACT_SLOW} if fx == "impact" else {"a": a, "b": b, "gray": True}
+            rel, ab, ws, d, st = fx_timeline(state, [{"a": 0, "b": a}, mid, {"a": b, "b": end}], fx)
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(st[1], st[2], 2, False)],
+                   "sfx": [(st[1], "sub", vol * 0.9)] if fx == "bw" else [(max(0.0, st[1] - 0.25), "whoosh", vol * 0.6)]}
+        elif fx in ("replay", "rewind") and fx in sp:
+            a, b = sp[fx]
+            back = min(0.7, b - a)
+            segs = [{"a": 0, "b": b}] + ([{"a": b - back, "b": b, "kind": "reverse"}] if fx == "rewind" else []) + [{"a": a, "b": b}, {"a": b, "b": end}]
+            rel, ab, ws, d, st = fx_timeline(state, segs, fx)
+            r0 = st[2] if fx == "rewind" else st[1]
+            snd = [(st[1], "swipe", vol), (max(0.0, st[1] + 0.25), "slide", vol * 0.6)] if fx == "rewind" else [(max(0.0, r0 - 0.15), "whoosh", vol * 0.8)]
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(r0, st[-1], 2, False)], "sfx": snd}
+        elif fx == "pause" and fx in sp:
+            a, _b = sp[fx]
+            rel, ab, ws, d, st = fx_timeline(state, [{"a": 0, "b": a}, {"a": a, "kind": "freeze", "d": PAUSE_SEC}, {"a": a, "b": end}], fx)
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(st[2], min(d, st[2] + 1.2), 2, True)],
+                   "sfx": [(st[1], "riser", vol * 0.5)]}
+        elif fx == "ffwd" and fx in sp:
+            a, b = sp[fx]
+            rel, ab, ws, d, st = fx_timeline(state, [{"a": 0, "b": a}, {"a": a, "b": b, "kind": "fast", "f": FFWD}, {"a": b, "b": end}], fx)
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "sfx": [(st[1], "swipe", vol * 0.8), (st[2], "swipe", vol * 0.6)]}
+        elif fx == "echo" and fx in sp:
+            last = words[sp[fx]]
+            rel, ab, ws, d, st = fx_timeline(state, [{"a": 0, "b": end}, {"a": max(0.0, dur - 1 / ce.FPS), "kind": "freeze", "d": ECHO_TAIL}], fx,
+                                            tail_echo=round(last["s"], 3))
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(last["s"], d, 2, False)]}
+        elif fx == "censor" and fx in sp:
+            idx = sp[fx]
+            win = "+".join(f"between(t,{words[i]['s'] - 0.03:.3f},{words[i]['e'] + 0.03:.3f})" for i in idx)
+            audio = (f"asplit=2[m0][b0];[m0]volume='if({win},0,1)':eval=frame[muted];"
+                     f"sine=f=1000:sample_rate=48000:d={dur + 1:.2f},aformat=channel_layouts=stereo,volume='if({win},0.4,0)':eval=frame[beep];"
+                     f"[b0]anullsink;[muted][beep]amix=inputs=2:normalize=0:duration=first")
+            rel, ab, ws, d, _ = fx_timeline(state, [{"a": 0, "b": end}], fx, audio=audio)
+            masked = {round(words[i]["s"], 2) for i in idx}
 
-                def at(t):
-                    return t if t <= a else (a + (t - a) / k if t <= b else t + extra)
-                out = (rel, dst, [{**w, "s": round(at(w["s"]), 3), "e": round(at(w["e"]), 3)} for w in words], dur + extra,
-                       (a, round(a + (b - a) / k, 3)))
+            def mask(w):
+                core = _bare(w)
+                if round(w["s"], 2) not in masked or len(core) < 3:
+                    return w
+                return {**w, "w": w["w"].replace(core, core[0] + "*" * (len(core) - 2) + core[-1])}
+            out = {**plain, "rel": rel, "abs": ab, "words": [mask(w) for w in ws], "dur": d}
+        elif fx == "boom" and fx in sp:
+            w = words[sp[fx]]
+            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.7), 2, True)], "sfx": [(max(0.0, w["s"] - 0.02), "boom", vol * 0.8)]}
+        elif fx == "laugh" and fx in sp:
+            w = words[sp[fx]]
+            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.8), 2, True)], "sfx": [(w["s"], "pop", vol)], "emojis": [(w["s"], "😂")]}
+        elif fx == "money" and fx in sp:
+            w = words[sp[fx]]
+            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.6), 2, False)], "sfx": [(w["s"], "coin", vol)], "emojis": [(w["s"], "💰")]}
     except Exception as e:
-        print(f"effect {fx} failed, plain cut instead:", type(e).__name__, str(e)[:200], flush=True)
+        print(f"effect {fx} failed, plain cut instead:", type(e).__name__, str(e)[:300], flush=True)
         out = None
-    if out and state.get("serve_dir"):  # the renderer was bundled before this file existed
+    if out and out["abs"] != state["main_abs"] and state.get("serve_dir"):  # the renderer was bundled before this file existed
         try:
-            target = os.path.join(state["serve_dir"], os.path.basename(dst))
+            target = os.path.join(state["serve_dir"], os.path.basename(out["abs"]))
             if not os.path.exists(target):
-                os.link(dst, target)
+                os.link(out["abs"], target)
         except OSError:
-            shutil.copy2(dst, os.path.join(state["serve_dir"], os.path.basename(dst)))
+            shutil.copy2(out["abs"], os.path.join(state["serve_dir"], os.path.basename(out["abs"])))
     cache[fx] = out
     return out or plain
+
+
+def add_zoom(plan, a, b, level, shake):
+    """A zoom window on top of the plan's zooms (the overlapped ones are cut around it)."""
+    keep = []
+    for z in plan.get("zooms") or []:
+        if z["e"] <= a or z["s"] >= b:
+            keep.append(z)
+            continue
+        if z["s"] < a:
+            keep.append({**z, "e": round(a, 3)})
+        if z["e"] > b:
+            keep.append({**z, "s": round(b, 3), "mode": "cut"})
+    keep.append({"s": round(a, 3), "e": round(b, 3), "level": level, "mode": "cut" if shake else "push", "shake": bool(shake)})
+    plan["zooms"] = sorted(keep, key=lambda z: z["s"])
 
 
 def all_looks(base_style, styles):
@@ -1821,7 +1993,7 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 timed_out = True  # stop – the server no longer accepts videos
                 break
             try:
-                plan = plan0 if v == 0 else look_plan(state, look["style"], look)
+                plan = plan0 if v == 0 else look_plan(state, look["style"], {**look, "v": v})
                 final = os.path.join(W, f"v{idx}.mp4")
                 with phase("render"):
                     render(serve, plan, final)
@@ -1843,7 +2015,7 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                     raise ClipError(f"Video nicht angenommen ({code}: {j.get('error')})")
                 ok += 1
                 used.add(m)
-                print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')} fx {look.get('fx') if v else '-'}] "
+                print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')} fx {plan.get('fx') or '-'}] "
                       f"{meta['duration']:.0f}s in {time.time() - t0:.0f}s", flush=True)
                 if not ARGS.no_upload:
                     drop_files(final, poster)

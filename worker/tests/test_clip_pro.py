@@ -402,6 +402,30 @@ def test_choose_all_bar_and_best():
     assert bar == 40 and len(picks) == 15
 
 
+def _fx_state(text, dur, emph_words=()):
+    words, t = [], 0.4
+    for w in text.split():
+        words.append({"w": w, "s": round(t, 2), "e": round(t + 0.3, 2)})
+        t += 0.38 if not w.endswith((".", "!", ",")) else 0.7
+    emph = [i for i, w in enumerate(words) if w["w"].strip(".,!") in emph_words]
+    return {"words": words, "dur": dur or words[-1]["e"] + 0.3, "res": {"emphasis": emph}}
+
+
+def test_fx_spots_fit_the_content():
+    st = _fx_state("Okay hört zu. Ich hab fünftausend Euro verdient, einfach so. Wir reden über ganz normale Dinge die jeder kennt und macht. "
+                   "Haha. Und dann kommt der Moment, der alles verändert! So eine Scheiße. Abonniert.", None, ("Moment", "alles", "verändert"))
+    sp = cc.fx_spots(st)
+    for k in ("impact", "replay", "rewind", "pause", "bw", "boom", "laugh", "money", "censor", "echo", "tempo", "film"):
+        assert k in sp, k
+    assert st["words"][sp["laugh"]]["w"] == "Haha." and st["words"][sp["money"]]["w"] == "fünftausend"
+    assert [st["words"][i]["w"] for i in sp["censor"]] == ["Scheiße."]
+    plain = _fx_state("Das ist ein ruhiger Satz ohne alles. Noch ein Satz hier. Und noch einer am Ende.", None)
+    sp2 = cc.fx_spots(plain)
+    assert "laugh" not in sp2 and "money" not in sp2 and "censor" not in sp2
+    assert cc.fx_for(plain, "laugh", 3) in sp2  # a version that wanted a laugh gets another effect that fits
+    assert cc.fx_for(plain, None, 3) is None
+
+
 # ---------- optional: a real transcript excerpt from a local run ----------
 
 def test_real_transcript_if_available():
