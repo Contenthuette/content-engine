@@ -1433,7 +1433,7 @@ VARIANTS = 0  # Pro „Videos pro Stream“: total videos wanted (0 = one video 
 # cut has the fitting spot: a key statement, a laugh, money, a swear word, a slow stretch … Otherwise the version takes
 # another effect that fits (fx_for). Every effect is a real editing choice; the timeline ones are cut with ffmpeg from
 # the cut's main.mp4 (fx_timeline), the others only add sounds, zooms and emojis to the render plan.
-FX_LIST = [None, "impact", "tempo", "film", "replay", "punch", "pause", "rewind", "bw", "laugh", "money", "echo", "ffwd", "censor"]
+FX_LIST = [None, "impact", "tempo", "film", "punch", "pause", "bw", "laugh", "money", "echo", "ffwd", "censor"]  # replay/rewind out (Leif, 26.10.)
 IMPACT_SLOW = 0.8    # slow motion of the key statement; the voice drops with it (−4 semitones: dramatic, not a cartoon)
 TEMPO_FAST = 1.1     # faster version: picture and voice 10 % faster, pitch stays
 FFWD = 1.75          # fast-forward through a calm stretch (still understandable)
@@ -1508,8 +1508,6 @@ def fx_spots(state):
     if imp:
         a, b, ph = imp
         sp["impact"] = sp["bw"] = sp["pause"] = (a, b)
-        if b - a <= 2.6 and b <= dur - 1.5:
-            sp["replay"] = sp["rewind"] = (a, b)
         emph = {i for i in (_int(x) for x in (state["res"] or {}).get("emphasis") or []) if i is not None}
         hit = [i for i in ph if i in emph] or [ph[-1]]
         sp["punch"] = hit[-1]

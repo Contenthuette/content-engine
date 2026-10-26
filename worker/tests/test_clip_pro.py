@@ -415,7 +415,11 @@ def test_fx_spots_fit_the_content():
     st = _fx_state("Okay hört zu. Ich hab fünftausend Euro verdient, einfach so. Wir reden über ganz normale Dinge die jeder kennt und macht. "
                    "Haha. Und dann kommt der Moment, der alles verändert! So eine Scheiße. Abonniert.", None, ("Moment", "alles", "verändert"))
     sp = cc.fx_spots(st)
-    for k in ("impact", "replay", "rewind", "pause", "bw", "punch", "laugh", "money", "censor", "echo", "tempo", "film"):
+    for k in ("impact", "pause", "bw", "punch", "laugh", "money", "censor", "echo", "tempo", "film"):
+        assert k in sp, k
+    for k in ("replay", "rewind"):
+        assert k not in sp and k not in cc.FX_LIST, k
+    for k in ():
         assert k in sp, k
     assert st["words"][sp["laugh"]]["w"] == "Haha." and st["words"][sp["money"]]["w"] == "fünftausend"
     assert [st["words"][i]["w"] for i in sp["censor"]] == ["Scheiße."]
@@ -430,7 +434,7 @@ def test_fx_not_cringe_guards():
     # numbers without money are no money moment; ordinary sentences get no slow motion / replay / pause
     st = _fx_state("Ich mache das seit 3 Jahren so. Wir reden über ganz normale Dinge die jeder kennt. Das ist eben so. Danke fürs Zuhören.", None)
     sp = cc.fx_spots(st)
-    for k in ("money", "impact", "replay", "rewind", "pause", "bw", "punch"):
+    for k in ("money", "impact", "pause", "bw", "punch"):
         assert k not in sp, k
     st2 = _fx_state("Hört mal zu, das ist wichtig. Ich hab dafür 500 Euro bezahlt, kein Witz. Und danach war alles anders.", None)
     sp2 = cc.fx_spots(st2)
