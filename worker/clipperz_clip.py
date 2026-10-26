@@ -460,7 +460,7 @@ def selection_windows(sents, lines, max_chars):
     return windows
 
 
-def pick_moments(sents, lang, lo, hi, want, fallback=False):
+def pick_moments(sents, lang, lo, hi, want, fallback=False, all_good=False):
     """Claude reads the transcript (in windows for long videos) and proposes candidates. Returns a list of dicts.
     fallback (Pro): smaller windows (~20k characters), "answer directly" (no long hidden reasoning), up to 16k tokens,
     also weaker-but-usable candidates with an honest
@@ -469,12 +469,18 @@ def pick_moments(sents, lang, lo, hi, want, fallback=False):
     lines = [sent_line(i, s) for i, s in enumerate(sents)]
     windows = selection_windows(sents, lines, 20000 if fallback else 45000)  # 45k ~ 35-45 min of speech
     per = max(4, min(12, math.ceil(want * 2 / len(windows)) + 2))
+    if all_good:  # „Videos pro Stream“: every moment that stands on its own, the threshold is set afterwards
+        per = 25
     system = RULES.format(lo=lo, hi=hi, lang=lang) + (PRO_RULES if PRO else "")
     if fallback:  # 21.10.2026: without this the model reasoned through the whole token budget (>120 s, empty answer)
         system += "\n\nDenk nicht lange nach: antworte direkt mit dem JSON."
     ask = ("Finde bis zu {n} Clips (nur echte Treffer – lieber weniger als schwache)." if not fallback else
            "Finde bis zu {n} Clips: zuerst die echten Treffer, dann auch brauchbare schwächere Momente mit ehrlich niedrigerem score "
            "(die Regeln 1–5 gelten trotzdem), damit genug Auswahl da ist. Gib nur dann gar nichts an, wenn in diesem Teil wirklich nichts für sich steht.")
+    if all_good:
+        ask = ("Finde ALLE Momente in diesem Teil, die als eigener Clip funktionieren (bis zu {n}) – sie dürfen sich nicht überschneiden. "
+               "Gib jedem einen ehrlichen score: echte Treffer hoch, brauchbare schwächere Momente niedriger (die Regeln gelten trotzdem). "
+               "Alles unter score 40 lässt du weg.")
     out, t_start, ok_any, dead = [], time.time(), False, 0
 
     def ask_llm(win, label, n):
@@ -1278,8 +1284,11 @@ def cap_order(order, ivs, sents, teaser, top, i=0):
     return order, ivs
 
 
-def prepare_clip(i, c, sents, src, preset_id, captions, lang):
-    """Cut, reframe and plan clip i. Media go to W/public/job/<id>/. Returns (plan, meta)."""
+def prepare_clip(i, c, sents, src, preset_id, captions, lang, tag=None, reuse=None):
+    """Cut, reframe and plan clip i. Media go to W/public/job/<id>/. Returns (plan, meta, state).
+    tag: name for the work files (default i). reuse: state of another cut of the same moment – its AI edit plan is mapped
+    onto this cut's words (no new AI call) when most words are the same."""
+    fid = i if tag is None else tag
     order = clip_order(c)
     if PRO:  # re-transcribed sentences can be empty (their words moved to the neighbour)
         order = [k for k in order if sents[k]]
@@ -1288,31 +1297,39 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
         order, ivs = cap_order(order, ivs, sents, c["teaser"], HARD_LEN[1] - LEN_SAFETY, i)
     t0 = max(0.0, min(a for a, _ in ivs) - 0.5)
     t1 = min(DURATION, max(b for _, b in ivs) + 0.5)
-    win = os.path.join(W, f"win{i}.mp4")
+    win = os.path.join(W, f"win{fid}.mp4")
     run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t0:.3f}", "-i", src, "-t", f"{t1 - t0:.3f}", "-map", "0:v:0", "-map", "0:a:0?",
          "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", win])
     rel = [(round(a - t0, 3), round(b - t0, 3)) for a, b in ivs]
-    cutp = os.path.join(W, f"cut{i}.mp4")
+    cutp = os.path.join(W, f"cut{fid}.mp4")
     ce.cut(win, rel, cutp)
-    words_all = [{**w, "s": round(w["s"] - t0, 3), "e": round(w["e"] - t0, 3)} for k in order for w in sents[k]]
+    words_all = [{**w, "s": round(w["s"] - t0, 3), "e": round(w["e"] - t0, 3), "o": w["s"]} for k in order for w in sents[k]]
     words = ce.remap_words(words_all, rel)
+    srct = [w["o"] for w in words]  # position in the long video: maps edit plans between cuts of one moment
+    words = [{k: v for k, v in w.items() if k != "o"} for w in words]
+    mapped = None
+    if reuse:
+        mapped, cover = map_res(reuse["res"], reuse["src"], srct)
+        if cover < 0.75:  # mostly new sentences (longer cut): own edit plan
+            mapped = None
     if words:
         words[0] = {**words[0], "w": words[0]["w"][:1].upper() + words[0]["w"][1:]}
     dur, _ = ce.probe(cutp)
-    vert = os.path.join(W, f"vert{i}.mp4")
+    vert = os.path.join(W, f"vert{fid}.mp4")
     pending = None
     if PRO:
         # Pro: the AI edit plan runs while the frame is reframed (both take ~30-60 s); no full-screen text beats in
         # clips – the picture IS the moment (21.10.2026: beats hid the reactions and one showed an invented number).
         pid = pro_preset(preset_id)
-        pending = POOL.submit(ce.edit_plan, words, dur, [], pid, c["hook"], list(EMOJI) if EMOJIS and captions else None)
+        if mapped is None:
+            pending = POOL.submit(ce.edit_plan, words, dur, [], pid, c["hook"], list(EMOJI) if EMOJIS and captions else None)
         try:
             import clipperz_reframe
             sw, sh = ce.src_size(cutp)
             if sh >= sw * 1.3:  # already vertical: as before
                 (focus, layout, crop_h), scenes = reframe(cutp, vert, dur), []
             else:
-                focus, layout, crop_h, scenes = clipperz_reframe.reframe(cutp, vert, dur, ce.FPS, run, os.path.join(W, f"rf{i}"))
+                focus, layout, crop_h, scenes = clipperz_reframe.reframe(cutp, vert, dur, ce.FPS, run, os.path.join(W, f"rf{fid}"))
         except Exception as e:
             print("pro reframe failed, using the old one:", type(e).__name__, str(e)[:300], flush=True)
             (focus, layout, crop_h), scenes = reframe(cutp, vert, dur), []
@@ -1320,13 +1337,13 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     else:
         focus, layout, crop_h = reframe(cutp, vert, dur)
 
-    job = f"job/{re.sub(r'[^A-Za-z0-9]', '', STREAM)[:30] or 'clip'}c{i}"
+    job = f"job/{re.sub(r'[^A-Za-z0-9]', '', STREAM)[:30] or 'clip'}c{fid}"
     pub = os.path.join(W, "public", job)
     os.makedirs(pub, exist_ok=True)
     pr = ce.PRESETS[preset_id]
     ce.prepare_main(vert, os.path.join(pub, "main.mp4"), pr.get("grade"))
     try:
-        res = pending.result() if pending else ce.edit_plan(words, dur, [], preset_id, c["hook"])
+        res = mapped if mapped is not None else pending.result() if pending else ce.edit_plan(words, dur, [], preset_id, c["hook"])
     except Exception as e:
         print("edit plan failed, using defaults:", type(e).__name__, e)
         res = {}
@@ -1335,7 +1352,8 @@ def prepare_clip(i, c, sents, src, preset_id, captions, lang):
     if c["hook"]:
         res["hook"] = c["hook"]  # the checked hook (only what is said) wins over a new idea
     state = {"i": i, "words": words, "dur": dur, "focus": focus, "res": res, "layout": layout, "crop_h": crop_h, "captions": captions,
-             "main": f"{job}/main.mp4", "main_abs": os.path.join(pub, "main.mp4"), "sfx": pr.get("sfxVol", 0.4), "preset": preset_id}
+             "main": f"{job}/main.mp4", "main_abs": os.path.join(pub, "main.mp4"), "sfx": pr.get("sfxVol", 0.4), "preset": preset_id,
+             "src": srct, "job": job, "fid": fid}
     plan = look_plan(state, preset_id, {"accent": ACCENT, "emojis": EMOJIS, "capY": None, "zoom": "normal"}, log=True)
     meta = {"index": i, "title": c["title"] or c["hook"] or f"Clip {i + 1}", "hook": c["hook"], "why": c["why"], "score": round(c["score"]),
             "scores": c["scores"], "start": round(c["t0"] if "t0" in c else sents[c["start"]][0]["s"], 2),
@@ -1494,7 +1512,11 @@ def loudnorm_2pass(path):
 DURATION = 0.0
 
 
-MAX_MOMENTS = 40     # „Videos pro Stream“: at most this many moments (same as MAX_MOMENTS in Pro convex/clipping.ts)
+MOMENT_CAP = 400      # „Videos pro Stream“: technical ceiling only (MAX_MOMENTS in Pro convex/clipping.ts) – no quality cap
+SCORE_TIERS = (60, 50, 40)  # quality bar for a moment; lowered step by step while one moment would need too many looks
+LOOKS_MAX = 20        # more versions of one moment than this = the bar goes down (if it still can)
+CUT_LENGTHS = (20, 35, 50)  # s – length versions of a moment (inside the chosen min/max)
+START_SHIFT = 2.0     # s – start versions: earlier / later, on the nearest pause or sentence border
 RENDER_BUDGET_MIN = float(os.environ.get("CLIPPERZ_BUDGET_MIN") or 300)  # whole run incl. download (Actions job: 330 min)
 
 
@@ -1502,28 +1524,190 @@ def plain_style(pid):
     return pid[:-4] if pid.endswith(":pro") else pid
 
 
-def render_variants(serve, prepared, cfg, t_run):
-    """„Videos pro Stream“: every good moment in several looks until the wanted number is reached. Round-robin – every
-    moment gets its first look before any moment gets a second one – so a time limit still leaves an even spread."""
+def choose_all(cands, sents, target, cap, lo, hi, lang):
+    """„Videos pro Stream“: every moment above the quality bar (no fixed number). Bar 60 first; when target ÷ moments
+    would need more than LOOKS_MAX versions per moment, the bar goes down (50, 40 – never below). More good moments than
+    videos wanted: only the best ones. Every pick is checked by the review (in chunks), dropped ones are refilled from
+    the moments above the same bar. Returns (picks, bar, moments above the lowest bar)."""
+    pool = sorted((c for c in (clean_candidate(x, sents, lo, hi) for x in cands) if c), key=lambda c: -c["score"])
+    sel = []
+    for c in pool:
+        if c["score"] < SCORE_TIERS[-1]:
+            break
+        if all(overlap(c, o, sents) < 0.3 for o in sel):
+            sel.append(c)
+    bar = SCORE_TIERS[0]
+    for bar in SCORE_TIERS:
+        if sum(1 for c in sel if c["score"] >= bar) * LOOKS_MAX >= target:
+            break
+    above = [c for c in sel if c["score"] >= bar]
+    want = min(cap, target, len(above))
+    good, rest = above[:want], above[want:]
+    checked = []
+    for k in range(0, len(good), 15):  # one review call per 15 moments
+        checked += review(good[k:k + 15], sents, lo, hi, lang)
+    for c in rest:
+        if len(checked) >= want:
+            break
+        if all(overlap(c, o, sents) < 0.3 for o in checked):
+            checked.append(c)
+    checked.sort(key=lambda c: -c["score"])
+    print(f"moments: {len(pool)} candidates, {len(sel)} >= {SCORE_TIERS[-1]}, bar {bar}: {len(above)} -> {len(checked)} picked "
+          f"for {target} videos", flush=True)
+    return checked[:want], bar, len(sel)
+
+
+def map_res(res, src_from, src_to):
+    """The AI edit plan of one cut on another cut of the same moment: word indices (key words, fixes, emojis) are
+    mapped by their position in the long video. Returns (plan, share of the new cut's words that were in the old one)."""
+    pos = {round(t, 2): j for j, t in enumerate(src_to)}
+    m = {i: pos[round(t, 2)] for i, t in enumerate(src_from) if round(t, 2) in pos}
+    out = {k: v for k, v in (res or {}).items() if k not in ("emphasis", "fixes", "emojis")}
+    out["emphasis"] = [m[i] for i in (_int(x) for x in (res or {}).get("emphasis") or []) if i in m]
+    fixes = (res or {}).get("fixes") if isinstance((res or {}).get("fixes"), dict) else {}
+    out["fixes"] = {str(m[i]): v for i, v in ((_int(k), v) for k, v in fixes.items()) if i in m}
+    if "emojis" in (res or {}):
+        out["emojis"] = [{**x, "i": m[_int(x.get("i"))]} for x in res["emojis"] or [] if isinstance(x, dict) and _int(x.get("i")) in m]
+    return out, (len(m) / len(src_to) if src_to else 0.0)
+
+
+def _borders(s):
+    """Indices of the words a cut may start on: the sentence start and every word after a pause >= 0.25 s."""
+    return [j for j in range(len(s)) if j == 0 or s[j]["s"] - s[j - 1]["e"] >= 0.25]
+
+
+def shift_start(c, sents, delta, lo, hi):
+    """Start of the clip about `delta` s earlier (< 0) or later (> 0), only on a pause or sentence border (never inside a
+    phrase). The pulled-forward teaser stays in front. Returns (cut, sentences) or None."""
+    a, b, t = c["start"], c["end"], c.get("teaser")
+    if not sents[a]:
+        return None
+    t_start = sents[a][0]["s"]
+    opts = []  # (prefers sentence border, -distance from the wanted shift, sentence, first word)
+    if delta < 0 and a > 0 and sents[a - 1] and t_start - sents[a - 1][-1]["e"] <= 3.0:
+        s = sents[a - 1]
+        for j in _borders(s):
+            d = t_start - s[j]["s"]
+            if 1.0 <= d <= START_SHIFT + 3.0:
+                opts.append((j == 0, -abs(d + delta), a - 1, j))
+    if delta > 0:
+        s = sents[a]
+        for j in _borders(s)[1:]:
+            d = s[j]["s"] - t_start
+            if 1.0 <= d <= START_SHIFT + 3.0 and len(s) - j >= 3:
+                opts.append((False, -abs(d - delta), a, j))
+        if a < b and sents[a + 1]:
+            d = sents[a + 1][0]["s"] - t_start
+            if 1.0 <= d <= START_SHIFT + 3.0:
+                opts.append((True, -abs(d - delta), a + 1, 0))
+    if not opts:
+        return None
+    _, _, k, j = max(opts)
+    s2 = list(sents)
+    if j:
+        s2[k] = sents[k][j:]
+    c2 = {**c, "start": k, "teaser": t if t is not None and k < t <= b else None}
+    n = played_len(c2, s2)
+    return (c2, s2) if lo <= n <= hi - LEN_SAFETY else None
+
+
+def cut_variants(c, sents, lo, hi):
+    """Cuts of one moment, the original first: other lengths (CUT_LENGTHS inside lo..hi, at sentence borders – shorter
+    from the front so the payoff stays, longer with the setup before it) × other starts (±START_SHIFT on a pause).
+    Order: all lengths first, then the earlier starts, then the later ones – a time limit still leaves different lengths.
+    Duplicates (same words) are dropped."""
+    lengths = [None] + [L for L in CUT_LENGTHS if lo <= L <= hi]
+    base = []
+    for L in lengths:
+        if L is None:
+            base.append(("orig", c, sents))
+            continue
+        c2 = fit_length(c, sents, max(lo, L - 4), min(hi, L + 4))
+        if c2:
+            base.append((f"{L}s", c2, sents))
+    out, seen = [], set()
+    for delta in (0.0, -START_SHIFT, START_SHIFT):
+        for label, c1, s1 in base:
+            got = (c1, s1) if not delta else shift_start(c1, s1, delta, lo, hi)
+            if not got:
+                continue
+            c2, s2 = got
+            key = tuple((k, s2[k][0]["s"] if s2[k] else None, len(s2[k])) for k in clip_order(c2))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((label + ("" if not delta else f"{'+' if delta > 0 else '-'}{START_SHIFT:.0f}s"), c2, s2))
+    return out
+
+
+def drop_files(*paths):
+    for f in paths:
+        try:
+            shutil.rmtree(f) if os.path.isdir(f) else os.remove(f)
+        except OSError:
+            pass
+
+
+def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_run, bar=None):
+    """„Videos pro Stream“: every picked moment in several versions until the wanted number is reached.
+    A version = a cut (original / other length / other start, see cut_variants) × a look (all_looks: style, colour,
+    caption height, emojis, zoom). Round-robin: every moment gets its first video before any moment gets a second one,
+    so a time limit still leaves an even spread. Cuts are prepared when they are first needed (and the previous cut of
+    the moment is deleted – 1000 videos would fill the disk) and handed to the already bundled renderer."""
     target = VARIANTS
-    moments = len(prepared)
+    moments = len(picks)
+    lo, hi = HARD_LEN or (15, 60)
     styles = [pro_preset(st) for st in (cfg.get("variantStyles") or []) if isinstance(st, str) and st in ce.PRESETS]
-    looks = [all_looks(state["preset"], styles) for _p, _m, state in prepared]
-    per = min(-(-target // moments), min(len(lk) for lk in looks))
-    total = min(target, sum(min(per, len(lk)) for lk in looks))
-    print(f"variants: target {target}, {moments} moments x {per} looks -> {total} videos ({len(styles)} styles)", flush=True)
-    report(note=f"{total} Videos aus {moments} Momenten werden gerendert…", progress={"done": 0, "total": total})
+    base_pid = pro_preset(preset_id) if PRO else preset_id
+    looks = all_looks(base_pid, styles)
+    cuts = [cut_variants(c, sents, lo, hi) for c in picks]
+    per = -(-target // moments)
+    total = min(target, sum(min(per, len(cs) * len(looks)) for cs in cuts))
+    via = "moments" if per <= 1 else "looks"
+    print(f"variants: target {target}, {moments} moments (bar {bar}) x {per} -> {total} videos; cuts per moment "
+          f"{min(len(x) for x in cuts)}-{max(len(x) for x in cuts)}, {len(looks)} looks, {len(styles)} styles", flush=True)
+    report(note=f"{total} Videos aus {moments} Momenten werden geschnitten und gerendert…", progress={"done": 0, "total": total})
+    pub_job = lambda job: (os.path.join(W, "public", job), os.path.join(serve, "public", job))
+    live = [None] * moments   # per moment: (cut index, plan of look 0, meta, state)
+    first = [None] * moments  # state of the original cut (its AI plan is reused for the other cuts)
+    dead = set()
     n = ok = 0
     avg, timed_out, used = 90.0, False, set()
     for v in range(per):
-        for m, (base_plan, meta, state) in enumerate(prepared):
+        for m, c in enumerate(picks):
             if n >= total:
                 break
+            if m in dead or v >= len(cuts[m]) * len(looks):
+                continue
             left = RENDER_BUDGET_MIN * 60 - (time.time() - t_run)
             if left < avg * 1.5 + 120:
                 timed_out = True
                 break
-            look = looks[m][v]
+            t0 = time.time()
+            k = max(1, -(-per // len(cuts[m])))  # videos per cut of this moment
+            ci = min(v // k, len(cuts[m]) - 1)
+            if live[m] is None or live[m][0] != ci:
+                label, c2, s2 = cuts[m][ci]
+                try:
+                    report(note=f"Video {n + 1}/{total}: Moment {m + 1} wird geschnitten ({'Original' if ci == 0 else label})…")
+                    with phase("prepare clips"):
+                        plan0, meta, state = prepare_clip(m, c2, s2, src, preset_id, captions, lang, tag=f"{m}k{ci}",
+                                                          reuse=first[m] if ci else None)
+                    fid = state["fid"]
+                    drop_files(*(os.path.join(W, f"{x}{fid}.mp4") for x in ("win", "cut", "vert")), os.path.join(W, f"rf{fid}"))
+                    link_tree(pub_job(state["job"])[0], pub_job(state["job"])[1])
+                    if live[m] is not None:
+                        drop_files(*pub_job(live[m][3]["job"]))
+                    live[m] = (ci, plan0, meta, state)
+                    if ci == 0:
+                        first[m] = state
+                except Exception as e:
+                    print(f"moment {m} cut {ci} ({label}) failed:", type(e).__name__, e, flush=True)
+                    if live[m] is None:  # not even the original cut: this moment is out
+                        dead.add(m)
+                        continue
+            cur_ci, plan0, meta, state = live[m]
+            look = looks[v]
             idx = n
             n += 1
             code, j = post("clip-charge", {"clip": idx})
@@ -1531,9 +1715,8 @@ def render_variants(serve, prepared, cfg, t_run):
                 print("clip charge refused:", j.get("error"))
                 timed_out = True  # stop – the server no longer accepts videos
                 break
-            t0 = time.time()
             try:
-                plan = base_plan if v == 0 else look_plan(state, look["style"], look)
+                plan = plan0 if v == 0 else look_plan(state, look["style"], look)
                 final = os.path.join(W, f"v{idx}.mp4")
                 with phase("render"):
                     render(serve, plan, final)
@@ -1541,26 +1724,23 @@ def render_variants(serve, prepared, cfg, t_run):
                 run(["ffmpeg", "-v", "error", "-y", "-ss", f"{min(0.8, meta['duration'] / 3):.2f}", "-i", final, "-frames:v", "1", "-q:v", "3", poster])
                 url = upload(final, "mp4")
                 poster_url = upload(poster, "jpg")
-                body = {"ok": True, **{k: val for k, val in meta.items() if k != "scenes"}, "index": idx, "url": url, "posterUrl": poster_url,
+                body = {"ok": True, **{key: val for key, val in meta.items() if key != "scenes"}, "index": idx, "url": url, "posterUrl": poster_url,
                         "momentIndex": m, "variant": v, "style": plain_style(look["style"])}
                 accent = plan.get("accent") if isinstance(plan.get("accent"), str) else look.get("accent")
                 if isinstance(accent, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", accent):
                     body["accent"] = accent.upper()
                 if ARGS.no_upload:
                     with open(os.path.join(ARGS.no_upload, "results.jsonl"), "a", encoding="utf-8") as fh:
-                        fh.write(json.dumps(body, ensure_ascii=False) + "\n")
+                        fh.write(json.dumps({**body, "cut": cuts[m][cur_ci][0]}, ensure_ascii=False) + "\n")
                 code, j = post("clip-result", body)
                 if code != 200:
                     raise ClipError(f"Video nicht angenommen ({code}: {j.get('error')})")
                 ok += 1
                 used.add(m)
-                print(f"video {idx} done: moment {m} look {v} [{body['style']} {body.get('accent', '-')}] {time.time() - t0:.0f}s", flush=True)
-                if not ARGS.no_upload:  # 1000 videos would fill the runner's disk
-                    for f in (final, poster):
-                        try:
-                            os.remove(f)
-                        except OSError:
-                            pass
+                print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')}] "
+                      f"{meta['duration']:.0f}s in {time.time() - t0:.0f}s", flush=True)
+                if not ARGS.no_upload:
+                    drop_files(final, poster)
             except Exception as e:
                 print(f"video {idx} failed:", type(e).__name__, e)
                 post("clip-result", {"ok": False, "index": idx})
@@ -1569,26 +1749,27 @@ def render_variants(serve, prepared, cfg, t_run):
                 report(note=f"Video {n}/{total} wird gerendert…", progress={"done": n, "total": total})
         if timed_out or n >= total:
             break
-    made_moments = len(used)
     reached = ok >= target
-    if reached:
-        note = f"Ziel {target} erreicht: {ok} Videos aus {moments} Momenten"
-    elif moments * per < target and not timed_out:
-        note = f"Ziel {target} nicht erreicht: Das Video hat {moments} gute Momente × {per} Looks = {ok} Videos"
-    elif timed_out:
-        note = f"Ziel {target} nicht erreicht: {ok} Videos aus {moments} Momenten – Zeitlimit des Renderers erreicht"
+    bar_txt = f" (Qualitätsschwelle {bar})" if bar else ""
+    if via == "moments":
+        how = f"über Momente: {len(used)} eigenständige Momente{bar_txt}, je ein Video"
     else:
-        note = f"{ok} von {target} Videos fertig ({moments} Momente)"
-    if per > 1 and moments:
-        note += f" ({'je ' + str(per) if moments * per <= total else 'bis zu ' + str(per)} Looks pro Moment)"
+        how = f"über Varianten: {len(used)} Momente{bar_txt} × bis zu {per} Versionen (Einstieg, Länge, Stil, Farbe)"
+    if reached:
+        note = f"Ziel {target} erreicht {how}"
+    elif timed_out:
+        note = f"Ziel {target} nicht erreicht: {ok} Videos {how} – Zeitlimit des Renderers erreicht"
+    else:
+        note = f"Ziel {target} nicht erreicht: {ok} Videos {how}"
     report(progress={"done": n, "total": total},
-           report={"target": target, "moments": made_moments, "perMoment": per, "made": ok, "reached": reached, "note": note})
+           report={"target": target, "moments": len(used), "perMoment": per, "made": ok, "reached": reached, "note": note[:300],
+                   "via": via, **({"threshold": bar} if bar else {})})
     TIMES["total"] = time.time() - t_run
-    print("[time] summary: " + ", ".join(f"{k} {val / 60:.1f} min" for k, val in TIMES.items()), flush=True)
+    print("[time] summary: " + ", ".join(f"{key} {val / 60:.1f} min" for key, val in TIMES.items()), flush=True)
     print(note, flush=True)
     if not ok:
         raise ClipError("Kein Video konnte fertig gerendert werden")
-    report(status="done", note=note)
+    report(status="done", note=note[:300])
 
 
 def main():
@@ -1601,7 +1782,7 @@ def main():
     cfg = r.json()
     lo, hi = int(cfg.get("minLen") or 15), int(cfg.get("maxLen") or 60)
     VARIANTS = max(0, min(5000, int(cfg.get("variants") or 0))) if cfg.get("pro") is True else 0
-    want = max(1, min(MAX_MOMENTS if VARIANTS else 10, int(cfg.get("count") or 5)))
+    want = max(1, min(MOMENT_CAP if VARIANTS else 10, int(cfg.get("count") or 5)))
     preset_id = ce.register_style(cfg.get("preset"), cfg.get("styleConfig"))
     ACCENT = custom_accent(cfg)
     FALLBACK = cfg.get("fallback") is True
@@ -1614,7 +1795,7 @@ def main():
         from concurrent.futures import ThreadPoolExecutor
         POOL = ThreadPoolExecutor(max_workers=2)
         print("CLIPPERZ Pro clipping" + (" (emojis in captions)" if EMOJIS else "")
-              + (f" – {VARIANTS} videos from up to {want} moments" if VARIANTS else ""), flush=True)
+              + (f" – {VARIANTS} videos from all moments above the quality bar" if VARIANTS else ""), flush=True)
     pace = ce.PRESETS[preset_id].get("cut") or {}
     ce.CUT_HEAD, ce.CUT_TAIL = 0.06, 0.08  # a bit more air than a talking-head edit: streams are less clean
     ce.KEEP_GAP = 0.3                       # natural rhythm, only longer pauses are tightened
@@ -1652,14 +1833,18 @@ def main():
 
     report(status="selecting", note="Die besten Momente werden gesucht…" if FALLBACK else "Claude sucht die besten Momente…")
     with phase("select"):
-        cands = pick_moments(sents, lang, lo, hi, want, fallback=FALLBACK)
+        cands = pick_moments(sents, lang, lo, hi, want, fallback=FALLBACK and not VARIANTS, all_good=bool(VARIANTS))
+    bar = None
     with phase("review"):
-        # „Videos pro Stream“: only moments that work on their own – the number is reached with looks, not with weak
-        # filler moments. The speech-based fallback only steps in when not a single moment passed.
-        picks = choose(cands, sents, want, lo, hi, lang, fallback=FALLBACK and not VARIANTS)
-        if not picks and VARIANTS and FALLBACK:
-            print("no moment passed the check – falling back to the speech-based picks", flush=True)
-            picks = choose(cands, sents, want, lo, hi, lang, fallback=True)
+        if VARIANTS:
+            # „Videos pro Stream“: all moments above the quality bar, no weak filler. The speech-based fallback only
+            # steps in when not a single moment passed.
+            picks, bar, _ = choose_all(cands, sents, VARIANTS, want, lo, hi, lang)
+            if not picks and FALLBACK:
+                print("no moment passed the check – falling back to the speech-based picks", flush=True)
+                picks, bar = choose(cands, sents, min(want, 10), lo, hi, lang, fallback=True), None
+        else:
+            picks = choose(cands, sents, want, lo, hi, lang, fallback=FALLBACK)
     with open(os.path.join(W, "picks.json"), "w", encoding="utf-8") as fh:
         json.dump({"candidates": cands, "picks": picks, "texts": [clip_text(c, sents) for c in picks]}, fh, ensure_ascii=False, indent=1)
     if not picks and FALLBACK:  # even the speech-based picks found no stretch with enough talking
@@ -1679,17 +1864,15 @@ def main():
         if better:
             clip_sents = [better.get(k, s_) for k, s_ in enumerate(sents)]
 
-    report(status="rendering", note=f"{len(picks)} {'Momente' if VARIANTS else 'Clips'} werden geschnitten…", progress={"done": 0, "total": len(picks)})
+    if VARIANTS:  # cuts are prepared when they are first needed, next to the renderer
+        report(status="rendering", note="Renderer wird vorbereitet…")
+        with phase("bundle"):
+            serve = bundle()
+        render_variants(serve, picks, clip_sents, src, preset_id, cfg.get("captions", True), lang, cfg, t_run, bar)
+        return
+    report(status="rendering", note=f"{len(picks)} Clips werden geschnitten…", progress={"done": 0, "total": len(picks)})
     prepared = []
     for i, c in enumerate(picks):
-        if VARIANTS:  # videos are counted (and checked) one by one when they render
-            try:
-                report(note=f"Moment {i + 1}/{len(picks)}: schneiden und hochkant ausrichten…")
-                with phase("prepare clips"):
-                    prepared.append(prepare_clip(i, c, clip_sents, src, preset_id, cfg.get("captions", True), lang))
-            except Exception as e:
-                print(f"moment {i} prepare failed:", type(e).__name__, e)
-            continue
         code, j = post("clip-charge", {"clip": i})
         if code != 200:
             print("clip charge refused:", j.get("error"))
@@ -1708,9 +1891,6 @@ def main():
     report(note="Renderer wird vorbereitet…")
     with phase("bundle"):
         serve = bundle()
-    if VARIANTS:
-        render_variants(serve, prepared, cfg, t_run)
-        return
     ok = 0
     for n, (plan, meta, _state) in enumerate(prepared):
         i = meta["index"]

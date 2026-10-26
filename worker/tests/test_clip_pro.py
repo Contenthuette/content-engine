@@ -255,54 +255,150 @@ def test_all_looks_distinct_and_base_first():
         assert (a["style"], a["accent"]) != (b["style"], b["accent"])
 
 
-def _run_variants(target, moments, budget_min=300.0, render_sec=0.0):
+def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.0):
     import time as _t
     clock = [1000.0]
     real = _t.time
     _t.time = lambda: clock[0]
     try:
-        return _run_variants_inner(target, moments, budget_min, render_sec, clock)
+        return _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock)
     finally:
         _t.time = real
 
 
-def _run_variants_inner(target, moments, budget_min, render_sec, clock):
-    setup_pro(15, 60)
+def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock):
+    lo, hi = setup_pro(15, 60)
     cc.ACCENT, cc.EMOJIS, cc.VARIANTS = None, False, target
     cc.RENDER_BUDGET_MIN = budget_min
-    sent, reports = [], []
+    sent, reports, preps = [], [], []
+    serve = tempfile.mkdtemp()
     cc.post = lambda path, body: (sent.append((path, body)), (200, {}))[1]
     cc.report = lambda **kw: reports.append(kw)
-    def render(serve, plan, dst):
+
+    def render(serve_, plan, dst):
         clock[0] += render_sec
         open(dst, "wb").close()
     cc.render = render
     cc.run = lambda cmd, **kw: None
     cc.upload = lambda f, ext: f"https://x/{os.path.basename(f)}"
     cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent")}
-    pid = cc.pro_preset("clean")
-    prepared = [({"accent": None}, {"index": m, "title": f"M{m}", "duration": 20.0, "score": 80}, {"preset": pid}) for m in range(moments)]
-    cc.render_variants(None, prepared, {"variantStyles": ["clean", "hype", "story", "bold"]}, clock[0])
+
+    def prep(i, c, sents_, src, preset_id, captions, lang, tag=None, reuse=None):
+        clock[0] += prep_sec
+        preps.append((i, tag, reuse is not None))
+        job = f"job/t{tag}"
+        os.makedirs(os.path.join(cc.W, "public", job), exist_ok=True)
+        open(os.path.join(cc.W, "public", job, "main.mp4"), "wb").close()
+        dur = cc.played_len(c, sents_)
+        return {"accent": None}, {"index": i, "title": f"M{i}", "duration": dur, "score": 80}, {"preset": cc.pro_preset(preset_id), "job": job, "fid": tag}
+    cc.prepare_clip = prep
+    # 300 sentences of 4 s: every moment has room for other lengths and starts
+    sents = make_sents([4.0] * 300, gap=0.3)
+    picks = [cand(5 + 9 * m, 10 + 9 * m) for m in range(moments)]  # 6 sentences ≈ 24 s each
+    cc.render_variants(serve, picks, sents, None, "clean", True, "de", {"variantStyles": ["clean", "hype", "story", "bold"]}, clock[0], 60)
     results = [b for p_, b in sent if p_ == "clip-result" and b.get("ok")]
     final = [r["report"] for r in reports if "report" in r][-1]
-    return results, final
+    return results, final, preps, serve
 
 
 def test_variants_reach_target_round_robin():
-    results, rep = _run_variants(100, 30)
+    results, rep, preps, serve = _run_variants(100, 30)
     assert len(results) == 100 and rep["reached"] and rep["made"] == 100 and rep["moments"] == 30
+    assert rep["via"] == "looks" and rep["threshold"] == 60 and "über Varianten" in rep["note"]
     assert [r["index"] for r in results] == list(range(100))
-    assert [r["momentIndex"] for r in results[:30]] == list(range(30))  # every moment once before any second look
+    assert [r["momentIndex"] for r in results[:30]] == list(range(30))  # every moment once before any second video
     assert all(r["variant"] == 0 for r in results[:30]) and results[30]["variant"] == 1
-    pairs = {(r["momentIndex"], r["variant"]) for r in results}
-    assert len(pairs) == 100
-    assert rep["perMoment"] == 4
+    assert len({(r["momentIndex"], r["variant"]) for r in results}) == 100
+    # 4 videos per moment -> 4 different cuts (original + other lengths/starts), the AI plan of the original is reused
+    by_m = {}
+    for i, tag, reused in preps:
+        by_m.setdefault(i, []).append((tag, reused))
+    per_m = {m: sum(1 for r in results if r["momentIndex"] == m) for m in by_m}
+    assert all(len(v) == per_m[m] and v[0] == (f"{m}k0", False) and all(r for _t, r in v[1:]) for m, v in by_m.items())
+    assert len({tag for _i, tag, _r in preps}) == len(preps)  # every video of a moment from its own cut
+    assert len({round(r["duration"]) for r in results if r["momentIndex"] == 0}) >= 3  # really other lengths
+    left = os.listdir(os.path.join(serve, "public", "job")) if os.path.isdir(os.path.join(serve, "public", "job")) else []
+    assert len(left) <= 30  # only the live cut of each moment stays on disk
+
+
+def test_variants_via_moments():
+    results, rep, preps, _ = _run_variants(20, 20)
+    assert len(results) == 20 and rep["via"] == "moments" and "über Momente" in rep["note"]
+    assert len(preps) == 20
 
 
 def test_variants_time_limit_reports_honestly():
-    results, rep = _run_variants(1000, 30, budget_min=60.0, render_sec=60.0)  # 1 min per video, 1 h budget
+    results, rep, _, _ = _run_variants(1000, 30, budget_min=60.0, render_sec=60.0)  # 1 min per video, 1 h budget
     assert 30 <= len(results) < 60 and not rep["reached"] and rep["moments"] == 30
     assert "Zeitlimit" in rep["note"]
+
+
+def test_cut_variants_lengths_and_starts():
+    lo, hi = setup_pro(15, 60)
+    sents = make_sents([4.0] * 60, gap=0.3)
+    c = cand(20, 25)  # ≈ 24 s
+    cuts = cc.cut_variants(c, sents, lo, hi)
+    assert cuts[0][0] == "orig" and cuts[0][1] is c
+    labels = [x[0] for x in cuts]
+    assert "35s" in labels and "50s" in labels  # 20 s is the original's own length window -> deduplicated or own cut
+    for label, c2, s2 in cuts:
+        n = cc.played_len(c2, s2)
+        assert lo <= n <= hi
+        if label.startswith("50s") and "s-" not in label and "s+" not in label:
+            assert 45 <= n <= 54.5, n
+    assert any(x.endswith("-2s") for x in labels) and any(x.endswith("+2s") for x in labels)
+    keys = {tuple((k, s2[k][0]["s"], len(s2[k])) for k in cc.clip_order(c2)) for _l, c2, s2 in cuts}
+    assert len(keys) == len(cuts)
+
+
+def test_cut_variants_respect_chosen_length():
+    lo, hi = setup_pro(15, 30)
+    sents = make_sents([4.0] * 60, gap=0.3)
+    cuts = cc.cut_variants(cand(20, 24), sents, lo, hi)
+    assert not any(x[0].startswith(("35s", "50s")) for x in cuts)
+    assert all(cc.played_len(c2, s2) <= 30 for _l, c2, s2 in cuts)
+
+
+def test_shift_start_only_on_borders():
+    lo, hi = setup_pro(15, 60)
+    sents = make_sents([4.0] * 40, gap=0.3)
+    c = cand(10, 15)
+    later = cc.shift_start(c, sents, 2.0, lo, hi)
+    earlier = cc.shift_start(c, sents, -2.0, lo, hi)
+    assert later and earlier
+    for c2, s2 in (later, earlier):
+        first = s2[c2["start"]][0]
+        src = [w for s_ in sents for w in s_]
+        k = next(j for j, w in enumerate(src) if w is first or (w["s"] == first["s"] and w["w"] == first["w"]))
+        assert k == 0 or first["s"] - src[k - 1]["e"] >= 0.25 or src[k - 1]["w"].endswith(".")
+        assert 1.0 <= abs(first["s"] - sents[10][0]["s"]) <= 5.0
+
+
+def test_map_res_moves_indices():
+    res = {"hook": "H", "emphasis": [0, 2, 5], "fixes": {"2": "WPC"}, "emojis": [{"i": 5, "emoji": "🔥"}, {"i": 1, "emoji": "😂"}]}
+    src_from = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    src_to = [3.0, 4.0, 5.0, 6.0, 7.0]  # starts two words later, one new word at the end
+    out, cover = cc.map_res(res, src_from, src_to)
+    assert out["hook"] == "H" and out["emphasis"] == [0, 3] and out["fixes"] == {"0": "WPC"}
+    assert out["emojis"] == [{"i": 3, "emoji": "🔥"}] and abs(cover - 0.8) < 1e-9
+
+
+def test_choose_all_bar_and_best():
+    lo, hi = setup_pro(15, 60)
+    sents = make_sents([4.0] * 200, gap=0.3)
+    cc.review = lambda chosen, sents_, lo_, hi_, lang: list(chosen)
+    strong = [cand(1 + 8 * k, 6 + 8 * k, score=80) for k in range(5)]
+    mid = [cand(41 + 8 * k, 46 + 8 * k, score=55) for k in range(10)]
+    weak = [cand(121 + 8 * k, 126 + 8 * k, score=35) for k in range(5)]
+    cands = strong + mid + weak
+    picks, bar, _ = cc.choose_all(cands, sents, 50, 400, lo, hi, "de")  # 5 strong * 20 >= 50 -> bar stays 60
+    assert bar == 60 and len(picks) == 5
+    picks, bar, _ = cc.choose_all(cands, sents, 200, 400, lo, hi, "de")  # too many looks -> bar 50: 15 moments
+    assert bar == 50 and len(picks) == 15 and all(p["score"] >= 50 for p in picks)
+    picks, bar, _ = cc.choose_all(cands, sents, 3, 400, lo, hi, "de")  # fewer videos than good moments: the best only
+    assert len(picks) == 3 and all(p["score"] == 80 for p in picks)
+    picks, bar, _ = cc.choose_all(cands, sents, 1000, 400, lo, hi, "de")  # never below 40: the weak ones stay out
+    assert bar == 40 and len(picks) == 15
 
 
 # ---------- optional: a real transcript excerpt from a local run ----------
