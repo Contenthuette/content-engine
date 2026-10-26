@@ -60,3 +60,6 @@ public/job/
 
 # Style lab: reference videos of other creators stay local
 jobs/stylelab/
+
+# private avatar test media (voice clone, face footage) – never in the public repo
+avatar_cheap/
