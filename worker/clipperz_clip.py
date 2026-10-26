@@ -1433,16 +1433,17 @@ VARIANTS = 0  # Pro „Videos pro Stream“: total videos wanted (0 = one video 
 # cut has the fitting spot: a key statement, a laugh, money, a swear word, a slow stretch … Otherwise the version takes
 # another effect that fits (fx_for). Every effect is a real editing choice; the timeline ones are cut with ffmpeg from
 # the cut's main.mp4 (fx_timeline), the others only add sounds, zooms and emojis to the render plan.
-FX_LIST = [None, "impact", "tempo", "film", "replay", "boom", "pause", "rewind", "bw", "laugh", "money", "echo", "ffwd", "censor"]
-IMPACT_SLOW = 0.75   # slow motion factor of the key statement; the voice drops with it (deeper, dramatic)
+FX_LIST = [None, "impact", "tempo", "film", "replay", "punch", "pause", "rewind", "bw", "laugh", "money", "echo", "ffwd", "censor"]
+IMPACT_SLOW = 0.8    # slow motion of the key statement; the voice drops with it (−4 semitones: dramatic, not a cartoon)
 TEMPO_FAST = 1.1     # faster version: picture and voice 10 % faster, pitch stays
-FFWD = 2.0           # fast-forward through a calm stretch
+FFWD = 1.75          # fast-forward through a calm stretch (still understandable)
 PAUSE_SEC = 0.8      # dramatic pause (frozen picture, silence) before the punchline
 ECHO_TAIL = 0.9      # the picture holds this long at the end so the echo can ring out
 FILM_VF = "eq=contrast=1.12:saturation=0.82:gamma=0.97,vignette=PI/5"
 SWEAR = re.compile(r"^(schei(ß|ss)\w*|fuck\w*|f\*+\w*|shit\w*|arsch\w*|wichser\w*|hurensohn\w*|fotze\w*|bitch\w*|fick\w*|kacke|verfickt\w*|bastard\w*)$", re.I)
 LAUGH = re.compile(r"^(\(?lacht\)?|\(?lachen\)?|(ha){2,}h?|hah+a+|hihi\w*|lol|xd)$", re.I)
-MONEY = re.compile(r"(€|\$|euro|dollar|tausend|million|milliard|kohle|geld|cash|gehalt|umsatz|^\d[\d.,]*k?$)", re.I)
+MONEY = re.compile(r"^(€|\$|euro|dollar|kohle|geld|cash|gehalt|umsatz|\w*euro|\w*tausend|millionen?|milliarden?|\d[\d.,]*\s?(€|k|\$))$", re.I)
+MONEY_UNIT = re.compile(r"^(€|\$|euro|dollar|tausend|k|mio|millionen?|milliarden?)$", re.I)
 
 
 def _bare(w):
@@ -1470,7 +1471,10 @@ def impact_span(state):
         score = (sum(1 for i in ph if i in emph) + (1 if words[ph[-1]]["w"].rstrip().endswith("!") else 0), a)
         if best is None or score > best[0]:
             best = (score, max(0.0, a - 0.08), min(dur, b + 0.12), ph)
-    return (round(best[1], 3), round(best[2], 3), best[3]) if best else None
+    # only a real punchline (two key words, or an exclamation) – slow motion or a replay on an ordinary sentence is cringe
+    if not best or best[0][0] < 2:
+        return None
+    return (round(best[1], 3), round(best[2], 3), best[3])
 
 
 def calm_stretch(state):
@@ -1508,11 +1512,12 @@ def fx_spots(state):
             sp["replay"] = sp["rewind"] = (a, b)
         emph = {i for i in (_int(x) for x in (state["res"] or {}).get("emphasis") or []) if i is not None}
         hit = [i for i in ph if i in emph] or [ph[-1]]
-        sp["boom"] = hit[-1]
+        sp["punch"] = hit[-1]
     laugh = [i for i, w in enumerate(words) if LAUGH.match(_bare(w)) and w["s"] > 1.0]
     if laugh:
         sp["laugh"] = laugh[0]
-    money = [i for i, w in enumerate(words) if MONEY.search(_bare(w)) and 1.0 < w["s"] < dur - 0.8]
+    money = [i for i, w in enumerate(words) if 1.0 < w["s"] < dur - 0.8 and (MONEY.match(_bare(w)) or (
+        re.match(r"^\d[\d.,]*$", _bare(w)) and any(MONEY_UNIT.match(_bare(x)) for x in words[i + 1:i + 3])))]
     if money:
         sp["money"] = money[0]
     swear = [i for i, w in enumerate(words) if SWEAR.match(_bare(w))]
@@ -1556,8 +1561,9 @@ def fx_timeline(state, segs, name, vf=None, audio=None, tail_echo=None):
             length = d
         else:
             vs = {"normal": "setpts=PTS-STARTPTS", "slow": f"setpts=(PTS-STARTPTS)/{f}", "fast": f"setpts=(PTS-STARTPTS)/{f}", "reverse": "setpts=PTS-STARTPTS,reverse"}[kind]
+            # reverse: no backwards speech (unpleasant) – the rewind sound plays over silence
             au = {"normal": "asetpts=PTS-STARTPTS", "slow": f"asetpts=PTS-STARTPTS,asetrate={round(48000 * f)},aresample=48000",
-                  "fast": f"asetpts=PTS-STARTPTS,atempo={f}", "reverse": "asetpts=PTS-STARTPTS,areverse"}[kind]
+                  "fast": f"asetpts=PTS-STARTPTS,atempo={f}", "reverse": "asetpts=PTS-STARTPTS,volume=0"}[kind]
             end = f":{b}" if b is not None and b < state["dur"] else ""
             parts.append(f"[0:v]trim={a}{end},{vs}{gray}[v{k}]")
             parts.append(f"[0:a]aresample=48000,aformat=channel_layouts=stereo,atrim={a}{end},{au}[a{k}]")
@@ -1577,7 +1583,7 @@ def fx_timeline(state, segs, name, vf=None, audio=None, tail_echo=None):
     if audio:
         achain = f";[ac]{audio}[ao]"
     if tail_echo is not None:
-        achain = (f";[ac]asplit=2[dry][wet0];[wet0]volume='if(lt(t,{tail_echo}),0,1)':eval=frame,aecho=0.8:0.75:250|500:0.45|0.25[wet];"
+        achain = (f";[ac]asplit=2[dry][wet0];[wet0]volume='if(lt(t,{tail_echo}),0,1)':eval=frame,aecho=0.8:0.7:260|520:0.32|0.16[wet];"
                   f"[dry][wet]amix=inputs=2:normalize=0:duration=first[ao]")
     enc = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
     run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_complex", fc + vchain + achain, "-map", "[vo]", "-map", "[ao]", "-r", str(ce.FPS), *enc, dst])
@@ -1611,20 +1617,20 @@ def fx_media(state, fx):
             mid = {"a": a, "b": b, "kind": "slow", "f": IMPACT_SLOW} if fx == "impact" else {"a": a, "b": b, "gray": True}
             rel, ab, ws, d, st = fx_timeline(state, [{"a": 0, "b": a}, mid, {"a": b, "b": end}], fx)
             out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(st[1], st[2], 2, False)],
-                   "sfx": [(st[1], "sub", vol * 0.9)] if fx == "bw" else [(max(0.0, st[1] - 0.25), "whoosh", vol * 0.6)]}
+                   "sfx": [] if fx == "bw" else [(max(0.0, st[1] - 0.25), "whoosh", vol * 0.5)]}
         elif fx in ("replay", "rewind") and fx in sp:
             a, b = sp[fx]
             back = min(0.7, b - a)
             segs = [{"a": 0, "b": b}] + ([{"a": b - back, "b": b, "kind": "reverse"}] if fx == "rewind" else []) + [{"a": a, "b": b}, {"a": b, "b": end}]
             rel, ab, ws, d, st = fx_timeline(state, segs, fx)
             r0 = st[2] if fx == "rewind" else st[1]
-            snd = [(st[1], "swipe", vol), (max(0.0, st[1] + 0.25), "slide", vol * 0.6)] if fx == "rewind" else [(max(0.0, r0 - 0.15), "whoosh", vol * 0.8)]
+            snd = [(st[1], "slide", vol * 0.8)] if fx == "rewind" else [(max(0.0, r0 - 0.15), "whoosh", vol * 0.6)]
             out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(r0, st[-1], 2, False)], "sfx": snd}
         elif fx == "pause" and fx in sp:
             a, _b = sp[fx]
             rel, ab, ws, d, st = fx_timeline(state, [{"a": 0, "b": a}, {"a": a, "kind": "freeze", "d": PAUSE_SEC}, {"a": a, "b": end}], fx)
-            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(st[2], min(d, st[2] + 1.2), 2, True)],
-                   "sfx": [(st[1], "riser", vol * 0.5)]}
+            # the silence is the effect: no riser over it, the punchline comes back with a clean zoom-in
+            out = {**plain, "rel": rel, "abs": ab, "words": ws, "dur": d, "zooms": [(st[2], min(d, st[2] + 1.2), 2, False)]}
         elif fx == "ffwd" and fx in sp:
             a, b = sp[fx]
             rel, ab, ws, d, st = fx_timeline(state, [{"a": 0, "b": a}, {"a": a, "b": b, "kind": "fast", "f": FFWD}, {"a": b, "b": end}], fx)
@@ -1638,7 +1644,7 @@ def fx_media(state, fx):
             idx = sp[fx]
             win = "+".join(f"between(t,{words[i]['s'] - 0.03:.3f},{words[i]['e'] + 0.03:.3f})" for i in idx)
             audio = (f"asplit=2[m0][b0];[m0]volume='if({win},0,1)':eval=frame[muted];"
-                     f"sine=f=1000:sample_rate=48000:d={dur + 1:.2f},aformat=channel_layouts=stereo,volume='if({win},0.4,0)':eval=frame[beep];"
+                     f"sine=f=1000:sample_rate=48000:d={dur + 1:.2f},aformat=channel_layouts=stereo,volume='if({win},0.3,0)':eval=frame[beep];"
                      f"[b0]anullsink;[muted][beep]amix=inputs=2:normalize=0:duration=first")
             rel, ab, ws, d, _ = fx_timeline(state, [{"a": 0, "b": end}], fx, audio=audio)
             masked = {round(words[i]["s"], 2) for i in idx}
@@ -1649,15 +1655,15 @@ def fx_media(state, fx):
                     return w
                 return {**w, "w": w["w"].replace(core, core[0] + "*" * (len(core) - 2) + core[-1])}
             out = {**plain, "rel": rel, "abs": ab, "words": [mask(w) for w in ws], "dur": d}
-        elif fx == "boom" and fx in sp:
+        elif fx == "punch" and fx in sp:  # quick zoom-in on the key word, crisp swish (no meme boom, no shaking)
             w = words[sp[fx]]
-            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.7), 2, True)], "sfx": [(max(0.0, w["s"] - 0.02), "boom", vol * 0.8)]}
+            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.7), 2, False)], "sfx": [(max(0.0, w["s"] - 0.08), "swish", vol * 0.6)]}
         elif fx == "laugh" and fx in sp:
             w = words[sp[fx]]
-            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.8), 2, True)], "sfx": [(w["s"], "pop", vol)], "emojis": [(w["s"], "😂")]}
+            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.8), 1, False)], "sfx": [(w["s"], "pop", vol * 0.5)], "emojis": [(w["s"], "😂")]}
         elif fx == "money" and fx in sp:
             w = words[sp[fx]]
-            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.6), 2, False)], "sfx": [(w["s"], "coin", vol)], "emojis": [(w["s"], "💰")]}
+            out = {**plain, "zooms": [(w["s"], min(dur, w["s"] + 0.6), 1, False)], "sfx": [(w["s"], "coin", vol * 0.6)], "emojis": [(w["s"], "💰")]}
     except Exception as e:
         print(f"effect {fx} failed, plain cut instead:", type(e).__name__, str(e)[:300], flush=True)
         out = None
