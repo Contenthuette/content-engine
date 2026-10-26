@@ -1514,7 +1514,7 @@ DURATION = 0.0
 
 MOMENT_CAP = 400      # „Videos pro Stream“: technical ceiling only (MAX_MOMENTS in Pro convex/clipping.ts) – no quality cap
 SCORE_TIERS = (60, 50, 40)  # quality bar for a moment; lowered step by step while one moment would need too many looks
-LOOKS_MAX = 20        # more versions of one moment than this = the bar goes down (if it still can)
+LOOKS_MAX = 40        # more versions of one moment than this = the bar goes down (if it still can) – 30 moments × 40 = 1.200
 CUT_LENGTHS = (20, 35, 50)  # s – length versions of a moment (inside the chosen min/max)
 START_SHIFT = 2.0     # s – start versions: earlier / later, on the nearest pause or sentence border
 RENDER_BUDGET_MIN = float(os.environ.get("CLIPPERZ_BUDGET_MIN") or 300)  # whole run incl. download (Actions job: 330 min)

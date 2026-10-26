@@ -391,9 +391,9 @@ def test_choose_all_bar_and_best():
     mid = [cand(41 + 8 * k, 46 + 8 * k, score=55) for k in range(10)]
     weak = [cand(121 + 8 * k, 126 + 8 * k, score=35) for k in range(5)]
     cands = strong + mid + weak
-    picks, bar, _ = cc.choose_all(cands, sents, 50, 400, lo, hi, "de")  # 5 strong * 20 >= 50 -> bar stays 60
+    picks, bar, _ = cc.choose_all(cands, sents, 200, 400, lo, hi, "de")  # 5 strong * 40 versions >= 200 -> bar stays 60
     assert bar == 60 and len(picks) == 5
-    picks, bar, _ = cc.choose_all(cands, sents, 200, 400, lo, hi, "de")  # too many looks -> bar 50: 15 moments
+    picks, bar, _ = cc.choose_all(cands, sents, 201, 400, lo, hi, "de")  # would need 41 versions -> bar 50: 15 moments
     assert bar == 50 and len(picks) == 15 and all(p["score"] >= 50 for p in picks)
     picks, bar, _ = cc.choose_all(cands, sents, 3, 400, lo, hi, "de")  # fewer videos than good moments: the best only
     assert len(picks) == 3 and all(p["score"] == 80 for p in picks)
