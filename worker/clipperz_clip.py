@@ -1845,7 +1845,7 @@ def render(serve, plan, dst):
         json.dump(plan, fh, ensure_ascii=False)
     raw = os.path.join(W, "render.mp4")
     cmd = ["npx", "remotion", "render", serve, "ClipperzEdit", raw, f"--props={pj}", f"--concurrency={max(1, os.cpu_count() or 2)}",
-           "--codec=h264", "--crf=19", "--audio-codec=aac", "--log=error"]
+           "--codec=h264", "--crf=19", "--x264-preset=veryfast", "--audio-codec=aac", "--log=error"]
     if os.environ.get("CLIPPERZ_BROWSER"):  # own servers: a local Chrome instead of Remotion's download
         cmd.append(f"--browser-executable={os.environ['CLIPPERZ_BROWSER']}")
     if os.environ.get("CLIPPERZ_CHROME_MODE"):  # e.g. "chrome-for-testing" for a full Chrome/Chromium build
