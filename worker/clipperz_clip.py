@@ -1148,7 +1148,8 @@ def pick_emojis(ai, words, dur, hook_end=0.0):
 
 
 def clip_order(c):
-    return ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"]]
+    skip = c.get("skip") or ()  # Massenproduktion: a version without one middle sentence (cut_variants)
+    return ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"] and k not in skip]
 
 
 def sent_intervals(s, opener):
@@ -1193,7 +1194,7 @@ def played_len(c, sents):
     return sum(_sent_len(sents, k, n == 0) for n, k in enumerate(order))
 
 
-def fit_length(c, sents, lo, hi):
+def fit_length(c, sents, lo, hi, log=True):
     """CLIPPERZ Pro: hard length (21.10.2026: clips ran over the chosen maximum, the fallback tier allowed +10 s).
     Returns c inside lo..hi (played length, `LEN_SAFETY` below hi), moved only at sentence/pause borders, or None.
     Too long: trimmed from the FRONT first (the payoff sits at the end, rule 11) – keeping the pulled-forward teaser –,
@@ -1244,10 +1245,12 @@ def fit_length(c, sents, lo, hi):
         if opts:
             pick = max(opts, key=lambda o: o[0])
     if not pick:
-        print(f"length: clip #{a}-#{b} ({cur:.1f}s) cannot be fitted into {lo}-{hi}s, dropped", flush=True)
+        if log:
+            print(f"length: clip #{a}-#{b} ({cur:.1f}s) cannot be fitted into {lo}-{hi}s, dropped", flush=True)
         return None
     _, n, a2, b2 = pick
-    print(f"length: clip #{a}-#{b} {cur:.1f}s -> #{a2}-#{b2} {n:.1f}s (limit {lo}-{hi}s)", flush=True)
+    if log:
+        print(f"length: clip #{a}-#{b} {cur:.1f}s -> #{a2}-#{b2} {n:.1f}s (limit {lo}-{hi}s)", flush=True)
     return {**c, "start": a2, "end": b2, "teaser": teaser_of(a2, b2),
             "dur": sum(s[-1]["e"] - s[0]["s"] for s in sents[a2:b2 + 1] if s)}
 
@@ -1461,7 +1464,7 @@ def look_plan(state, preset_id, look, log=False):
     height, caption emojis on/off and zoom strength. The cut, the reframed picture and the AI edit plan are shared by
     all looks of a moment – only what is drawn on top changes (Pro „Videos pro Stream“, 26.10.2026)."""
     focus, layout, crop_h = state["focus"], state["layout"], state["crop_h"]
-    fx = fx_for(state, look.get("fx"), look.get("v", 0))  # the effect, or another one that fits this cut
+    fx = fx_for(state, look.get("fx"), look.get("v", 0), look.get("avoid") or ())  # the effect, or another one that fits
     media = fx_media(state, fx)
     main_rel, main_abs, dur = media["rel"], media["abs"], media["dur"]
     words, res = json.loads(json.dumps(media["words"])), json.loads(json.dumps(state["res"]))
@@ -1621,15 +1624,18 @@ def fx_spots(state):
     return sp
 
 
-def fx_for(state, fx, v=0):
-    """The effect a version gets: the wanted one if it fits the cut, else another fitting one (different per version)."""
+def fx_for(state, fx, v=0, avoid=()):
+    """The effect a version gets: the wanted one if it fits the cut, else another fitting one (different per version).
+    `avoid`: effects other versions of the same cut already have – taken only when every fitting effect is used."""
     if not fx:
         return None
     sp = fx_spots(state)
-    if fx in sp:
-        return fx
     fits = [f for f in FX_LIST if f and f in sp]
-    return fits[(v * 7 + FX_LIST.index(fx)) % len(fits)] if fits else None
+    free = [f for f in fits if f not in avoid]
+    if fx in sp and (fx not in avoid or not free):
+        return fx
+    pool = free or fits
+    return pool[(v * 7 + FX_LIST.index(fx)) % len(pool)] if pool else None
 
 
 def fx_timeline(state, segs, name, vf=None, audio=None, tail_echo=None):
@@ -1894,8 +1900,10 @@ DURATION = 0.0
 MOMENT_CAP = 400      # „Videos pro Stream“: technical ceiling only (MAX_MOMENTS in Pro convex/clipping.ts) – no quality cap
 SCORE_TIERS = (60, 50, 40)  # quality bar for a moment; lowered step by step while one moment would need too many looks
 LOOKS_MAX = 40        # more versions of one moment than this = the bar goes down (if it still can) – 30 moments × 40 = 1.200
-CUT_LENGTHS = (20, 35, 50)  # s – length versions of a moment (inside the chosen min/max)
+CUT_TARGETS = 4       # length versions of a moment: evenly spread over the chosen min..max (15–30 s → ~17/21/24/28 s)
 START_SHIFT = 2.0     # s – start versions: earlier / later, on the nearest pause or sentence border
+START_SHIFT_FAR = 4.0  # s – second start version (27.10.2026: 20 versions of a moment need ~20 cuts, not 6)
+CUTS_WANT = 20        # cuts a moment should have; below this, versions without one middle sentence fill up (mid_drops)
 RENDER_BUDGET_MIN = float(os.environ.get("CLIPPERZ_BUDGET_MIN") or 300)  # whole run incl. download (Actions job: 330 min)
 
 
@@ -1957,65 +1965,163 @@ def _borders(s):
 
 def shift_start(c, sents, delta, lo, hi):
     """Start of the clip about `delta` s earlier (< 0) or later (> 0), only on a pause or sentence border (never inside a
-    phrase). The pulled-forward teaser stays in front. Returns (cut, sentences) or None."""
+    phrase); sentence borders win. ±START_SHIFT looks 1–5 s away, the far shift (±START_SHIFT_FAR) |delta|-1.5 to
+    |delta|+3 s – also across short sentences. The end (the payoff) and the pulled-forward teaser stay. Returns
+    (cut, sentences) or None."""
+    got = shift_options(c, sents, delta, lo, hi)
+    return got[0] if got else None
+
+
+def shift_options(c, sents, delta, lo, hi):
+    """Every start shift of shift_start that keeps the clip inside lo..hi, best first."""
     a, b, t = c["start"], c["end"], c.get("teaser")
     if not sents[a]:
         return None
     t_start = sents[a][0]["s"]
+    d = abs(delta)
+    near, far = (1.0, START_SHIFT + 3.0) if d <= START_SHIFT else (d - 1.5, d + 3.0)
     opts = []  # (prefers sentence border, -distance from the wanted shift, sentence, first word)
-    if delta < 0 and a > 0 and sents[a - 1] and t_start - sents[a - 1][-1]["e"] <= 3.0:
-        s = sents[a - 1]
-        for j in _borders(s):
-            d = t_start - s[j]["s"]
-            if 1.0 <= d <= START_SHIFT + 3.0:
-                opts.append((j == 0, -abs(d + delta), a - 1, j))
+    if delta < 0:
+        k = a - 1
+        while k >= 0 and sents[k] and sents[k + 1] and sents[k + 1][0]["s"] - sents[k][-1]["e"] <= 3.0 \
+                and t_start - sents[k][-1]["e"] < far:
+            for j in _borders(sents[k]):
+                dd = t_start - sents[k][j]["s"]
+                if near <= dd <= far:
+                    opts.append((j == 0, -abs(dd - d), k, j))
+            k -= 1
     if delta > 0:
-        s = sents[a]
-        for j in _borders(s)[1:]:
-            d = s[j]["s"] - t_start
-            if 1.0 <= d <= START_SHIFT + 3.0 and len(s) - j >= 3:
-                opts.append((False, -abs(d - delta), a, j))
-        if a < b and sents[a + 1]:
-            d = sents[a + 1][0]["s"] - t_start
-            if 1.0 <= d <= START_SHIFT + 3.0:
-                opts.append((True, -abs(d - delta), a + 1, 0))
-    if not opts:
-        return None
-    _, _, k, j = max(opts)
-    s2 = list(sents)
-    if j:
-        s2[k] = sents[k][j:]
-    c2 = {**c, "start": k, "teaser": t if t is not None and k < t <= b else None}
-    n = played_len(c2, s2)
-    return (c2, s2) if lo <= n <= hi - LEN_SAFETY else None
+        for k in range(a, b + 1):
+            s = sents[k]
+            if not s:
+                continue
+            if s[0]["s"] - t_start > far:
+                break
+            for j in _borders(s):
+                if k == a and j == 0:
+                    continue
+                dd = s[j]["s"] - t_start
+                if near <= dd <= far and (j == 0 or len(s) - j >= 3):
+                    opts.append((j == 0, -abs(dd - d), k, j))
+    out = []
+    for _, _, k, j in sorted(opts, reverse=True):
+        s2 = list(sents)
+        if j:
+            s2[k] = sents[k][j:]
+        c2 = {**c, "start": k, "teaser": t if t is not None and k < t <= b else None}
+        if lo <= played_len(c2, s2) <= hi - LEN_SAFETY:
+            out.append((c2, s2))
+    return out
 
 
-def cut_variants(c, sents, lo, hi):
-    """Cuts of one moment, the original first: other lengths (CUT_LENGTHS inside lo..hi, at sentence borders – shorter
-    from the front so the payoff stays, longer with the setup before it) × other starts (±START_SHIFT on a pause).
-    Order: all lengths first, then the earlier starts, then the later ones – a time limit still leaves different lengths.
-    Duplicates (same words) are dropped."""
-    lengths = [None] + [L for L in CUT_LENGTHS if lo <= L <= hi]
-    base = []
-    for L in lengths:
-        if L is None:
-            base.append(("orig", c, sents))
+def cut_lengths(lo, hi, n=CUT_TARGETS):
+    """Length targets of a moment's versions: `n` evenly spread over lo..hi, each with its window (target ± half a
+    step) – 15–30 s → ~17/21/24/28, 30–60 → ~34/41/49/56, 15–60 → ~21/32/43/54."""
+    step = (hi - lo) / n
+    return [(lo + step * (k + 0.5), step) for k in range(n)]
+
+
+def cut_key(c, sents):
+    """The words of a cut (sentence, first word, word count in playing order) – two cuts with the same key are the same."""
+    return tuple((k, sents[k][0]["s"] if sents[k] else None, len(sents[k])) for k in clip_order(c))
+
+
+def mid_drops(c, sents, lo, hi):
+    """Versions without one middle sentence (a jump cut that tightens the story) – only whole sentences, never the
+    first one (the opening), the last two (setup + payoff) or the teaser; the clip stays inside lo..hi."""
+    a, b, t = c["start"], c["end"], c.get("teaser")
+    ends = lambda k: bool(sents[k]) and sents[k][-1]["w"].rstrip().endswith(END_MARKS)
+    out = []
+    for k in range(a + 1, b - 1):
+        if k == t or k in (c.get("skip") or ()) or not sents[k] or not ends(k) or not ends(k - 1):
             continue
-        c2 = fit_length(c, sents, max(lo, L - 4), min(hi, L + 4))
+        c2 = {**c, "skip": tuple(c.get("skip") or ()) + (k,)}
+        if lo <= played_len(c2, sents) <= hi - LEN_SAFETY:
+            out.append((k - a, c2))
+    return out
+
+
+def cut_variants(c, sents, lo, hi, want=CUTS_WANT):
+    """Cuts of one moment, the original first (27.10.2026: every video of a moment its own cut where possible):
+    1. CUT_TARGETS lengths spread over the chosen lo..hi, fitted at sentence borders by fit_length – shorter from the
+       front so the payoff stays, longer with the setup before it;
+    2. × starts ±START_SHIFT, then ±START_SHIFT_FAR on a pause or sentence border (when a shift lands on a cut that
+       already exists, the next border is taken);
+    3. only while the moment still has fewer than `want` cuts (short sentences give few borders): versions without one
+       middle sentence (mid_drops), label suffix "-mid<n>".
+    Order: all lengths, near starts, far starts, middle cuts – a time limit still leaves different lengths. Duplicates
+    (same words) are dropped."""
+    base = [("orig", c, sents)]
+    for L, step in cut_lengths(lo, hi):
+        # window: target ± half a step (the top of a window is the bottom of the next), else ± a step
+        c2 = fit_length(c, sents, max(lo, L - step / 2), min(hi, L + step / 2 + LEN_SAFETY), log=False) \
+            or fit_length(c, sents, max(lo, L - step), min(hi, L + step), log=False)
         if c2:
-            base.append((f"{L}s", c2, sents))
+            base.append((f"{L:.0f}s", c2, sents))
     out, seen = [], set()
-    for delta in (0.0, -START_SHIFT, START_SHIFT):
+
+    def add(label, c2, s2):
+        key = cut_key(c2, s2)
+        if key in seen:
+            return False
+        seen.add(key)
+        out.append((label, c2, s2))
+        return True
+    for label, c1, s1 in base:
+        add(label, c1, s1)
+    for delta in (-START_SHIFT, START_SHIFT, -START_SHIFT_FAR, START_SHIFT_FAR):
         for label, c1, s1 in base:
-            got = (c1, s1) if not delta else shift_start(c1, s1, delta, lo, hi)
-            if not got:
-                continue
-            c2, s2 = got
-            key = tuple((k, s2[k][0]["s"] if s2[k] else None, len(s2[k])) for k in clip_order(c2))
-            if key in seen:
-                continue
-            seen.add(key)
-            out.append((label + ("" if not delta else f"{'+' if delta > 0 else '-'}{START_SHIFT:.0f}s"), c2, s2))
+            tag = f"{label}{'+' if delta > 0 else '-'}{abs(delta):.0f}s"
+            any(add(tag, c2, s2) for c2, s2 in shift_options(c1, s1, delta, lo, hi))
+    if want and len(out) < want:
+        for label, c1, s1 in list(out):
+            for pos, c2 in mid_drops(c1, s1, lo, hi):
+                if len(out) >= want:
+                    break
+                add(f"{label}-mid{pos}", c2, s1)
+    return out
+
+
+def version_plan(n_cuts, looks, count):
+    """(cut index, look index) of the first `count` versions of one moment (27.10.2026: every video really unique).
+    Cuts rotate – every cut once before any cut repeats, so a time limit still leaves the most different cuts. Looks:
+    the base look first, then style and effect rotate (each effect of FX_LIST in turn), a look is never used twice in a
+    moment (so never the same cut + look), and a cut used again gets an effect it has not had yet."""
+    fxs = list(dict.fromkeys(lk.get("fx") for lk in looks))
+    sts = list(dict.fromkeys(lk.get("style") for lk in looks))
+    free = {}
+    for li, lk in enumerate(looks):
+        free.setdefault((lk.get("fx"), lk.get("style")), []).append(li)
+    for q in free.values():
+        q.reverse()  # pop() takes the first unused look of a combination
+    used, on_cut, out = set(), {}, []
+
+    def take(key):
+        q = free.get(key)
+        while q and q[-1] in used:
+            q.pop()
+        return q.pop() if q else None
+    for v in range(min(count, max(0, n_cuts) * len(looks))):
+        ci = v % n_cuts
+        had = on_cut.setdefault(ci, set())
+        if len(had) >= len(fxs):
+            had.clear()
+        turn = [fxs[(v + j) % len(fxs)] for j in range(len(fxs))]
+        turn = [f for f in turn if f not in had] + [f for f in turn if f in had]
+        st = sts[v % len(sts)]
+        li = None
+        for f in turn:
+            for st2 in [st] + [x for x in sts if x != st]:
+                li = take((f, st2))
+                if li is not None:
+                    break
+            if li is not None:
+                break
+        if li is None:
+            li = next(x for x in range(len(looks)) if x not in used)
+        used.add(li)
+        had.add(looks[li].get("fx"))
+        out.append((ci, li))
     return out
 
 
@@ -2030,18 +2136,22 @@ def drop_files(*paths):
 def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_run, bar=None):
     """„Videos pro Stream“: every picked moment in several versions until the wanted number is reached.
     A version = a cut (original / other length / other start, see cut_variants) × a look (all_looks: style, colour,
-    caption height, emojis, zoom). Round-robin: every moment gets its first video before any moment gets a second one,
-    so a time limit still leaves an even spread. Cuts are prepared when they are first needed (and the previous cut of
-    the moment is deleted – 1000 videos would fill the disk) and handed to the already bundled renderer."""
+    caption height, emojis, zoom, effect), planned by version_plan: the cuts of a moment rotate (each once before one
+    repeats), never the same cut + look, a repeated cut gets another effect. Round-robin: every moment gets its first
+    video before any moment gets a second one, so a time limit still leaves an even spread. A cut is prepared when a
+    version needs it (the previous cut of the moment is deleted – 1000 videos would fill the disk; a cut needed again
+    later is cut again from the moment's prepared video, one fast encode) and handed to the already bundled renderer."""
     target = VARIANTS
     moments = len(picks)
     lo, hi = HARD_LEN or (15, 60)
     styles = [pro_preset(st) for st in (cfg.get("variantStyles") or []) if isinstance(st, str) and st in ce.PRESETS]
     base_pid = pro_preset(preset_id) if PRO else preset_id
     looks = all_looks(base_pid, styles)
-    cuts = [cut_variants(c, sents, lo, hi) for c in picks]
     per = -(-target // moments)
-    total = min(target, sum(min(per, len(cs) * len(looks)) for cs in cuts))
+    cuts = [cut_variants(c, sents, lo, hi, want=per) for c in picks]  # middle cuts only when lengths × starts are too few
+    plans = [version_plan(len(cs), looks, per) for cs in cuts]  # per moment: (cut index, look index) of each version
+    fx_used = {}  # (moment, cut index) -> effects its versions already have
+    total = min(target, sum(len(p) for p in plans))
     via = "moments" if per <= 1 else "looks"
     print(f"variants: target {target}, {moments} moments (bar {bar}) x {per} -> {total} videos; cuts per moment "
           f"{min(len(x) for x in cuts)}-{max(len(x) for x in cuts)}, {len(looks)} looks, {len(styles)} styles", flush=True)
@@ -2100,13 +2210,16 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
             poster_url = upload(poster, "jpg")
             body = {"ok": True, **{key: val for key, val in meta.items() if key != "scenes"}, "index": idx, "url": url, "posterUrl": poster_url,
                     "momentIndex": m, "variant": v, "style": plain_style(look["style"]),
-                    "duration": round(float(plan.get("duration") or meta["duration"]), 2)}
+                    "duration": round(float(plan.get("duration") or meta["duration"]), 2),
+                    "cut": cuts[m][cur_ci][0]}  # which cut of the moment: "orig", "24s", "24s-2s", "orig+4s" …
+            if isinstance(plan.get("fx"), str):  # the effect of this version (no effect: field left out)
+                body["fx"] = plan["fx"]
             accent = plan.get("accent") if isinstance(plan.get("accent"), str) else look.get("accent")
             if isinstance(accent, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", accent):
                 body["accent"] = accent.upper()
             if ARGS.no_upload:
                 with file_lock, open(os.path.join(ARGS.no_upload, "results.jsonl"), "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps({**body, "cut": cuts[m][cur_ci][0]}, ensure_ascii=False) + "\n")
+                    fh.write(json.dumps(body, ensure_ascii=False) + "\n")
             code, j = post("clip-result", body)
             if code != 200:
                 raise ClipError(f"Video nicht angenommen ({code}: {j.get('error')})")
@@ -2123,15 +2236,14 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
         for m, c in enumerate(picks):
             if n >= total:
                 break
-            if m in dead or v >= len(cuts[m]) * len(looks):
+            if m in dead or v >= len(plans[m]):
                 continue
             left = RENDER_BUDGET_MIN * 60 - (time.time() - t_run)
             if left < avg * 1.5 + 120:
                 timed_out = True
                 break
             t0 = time.time()
-            k = max(1, -(-per // len(cuts[m])))  # videos per cut of this moment
-            ci = min(v // k, len(cuts[m]) - 1)
+            ci, li = plans[m][v]
             if live[m] is None or live[m][0] != ci:
                 label, c2, s2 = cuts[m][ci]
                 try:
@@ -2147,7 +2259,7 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                         wait_for(lambda key: key == (m, old_ci))  # renders still reading the old cut
                         drop_files(*pub_job(live[m][3]["job"]))
                     live[m] = (ci, plan0, meta, state)
-                    if ci == len(cuts[m]) - 1 or (ci + 1) * k >= per:  # the moment's last cut: its reframed video is no longer needed
+                    if all(x[0] == ci for x in plans[m][v + 1:]):  # the moment's last cut: its reframed video is no longer needed
                         drop_files(bases[m]["vert"])
                 except Exception as e:
                     print(f"moment {m} cut {ci} ({label}) failed:", type(e).__name__, e, flush=True)
@@ -2155,7 +2267,7 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                         dead.add(m)
                         continue
             cur_ci, plan0, meta, state = live[m]
-            look = looks[v]
+            look = looks[li]
             idx = n
             n += 1
             code, j = post("clip-charge", {"clip": idx})
@@ -2164,7 +2276,9 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 timed_out = True  # stop – the server no longer accepts videos
                 break
             try:
-                plan = plan0 if v == 0 else look_plan(state, look["style"], {**look, "v": v})
+                had = fx_used.setdefault((m, cur_ci), set())
+                plan = plan0 if li == 0 else look_plan(state, look["style"], {**look, "v": v, "avoid": had})
+                had.add(plan.get("fx"))
             except Exception as e:
                 print(f"video {idx} failed:", type(e).__name__, e, flush=True)
                 post("clip-result", {"ok": False, "index": idx})

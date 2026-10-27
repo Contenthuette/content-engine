@@ -338,6 +338,10 @@ def test_variants_reach_target_round_robin():
     assert all(len(v) == per_m[m] and v[0][0] == f"{m}k0" for m, v in by_m.items())
     assert len({tag for _i, tag, _r in preps}) == len(preps)  # every video of a moment from its own cut
     assert len({round(r["duration"]) for r in results if r["momentIndex"] == 0}) >= 3  # really other lengths
+    # metadata for CLIPPERZ: which cut (and effect, when there is one) every video got
+    assert all(isinstance(r["cut"], str) and r["cut"] for r in results) and results[0]["cut"] == "orig"
+    assert all(r.get("fx") is None or isinstance(r["fx"], str) for r in results)
+    assert len({r["cut"] for r in results if r["momentIndex"] == 0}) == per_m[0]
     left = os.listdir(os.path.join(serve, "public", "job")) if os.path.isdir(os.path.join(serve, "public", "job")) else []
     assert len(left) <= 30  # only the live cut of each moment stays on disk
 
@@ -369,23 +373,47 @@ def test_cut_variants_lengths_and_starts():
     cuts = cc.cut_variants(c, sents, lo, hi)
     assert cuts[0][0] == "orig" and cuts[0][1] is c
     labels = [x[0] for x in cuts]
-    assert "35s" in labels and "50s" in labels  # 20 s is the original's own length window -> deduplicated or own cut
+    # lengths spread over 15–60 (~21/32/43/54 s); 21 s is the original's own length window -> deduplicated
+    assert "32s" in labels and "43s" in labels and "54s" in labels
     for label, c2, s2 in cuts:
         n = cc.played_len(c2, s2)
         assert lo <= n <= hi
-        if label.startswith("50s") and "s-" not in label and "s+" not in label:
-            assert 45 <= n <= 54.5, n
+        if label == "54s":
+            assert 48.75 <= n <= hi - cc.LEN_SAFETY, n
+        if label == "32s":
+            assert 26.25 <= n <= 37.5 + cc.LEN_SAFETY, n
     assert any(x.endswith("-2s") for x in labels) and any(x.endswith("+2s") for x in labels)
+    assert len(cuts) >= 12  # with middle cuts (sentences here have no inner pauses, so few start borders)
     keys = {tuple((k, s2[k][0]["s"], len(s2[k])) for k in cc.clip_order(c2)) for _l, c2, s2 in cuts}
     assert len(keys) == len(cuts)
+
+
+def test_far_start_shift_on_inner_pauses():
+    lo, hi = setup_pro(15, 60)
+    sents = make_sents([3.0] * 60, gap=0.3)
+    halves = list(zip(sents[0::2], sents[1::2]))
+    for a, _b in halves:
+        a[-1]["w"] = a[-1]["w"].rstrip(".") + ","
+    sents = [a + b for a, b in halves]  # 6.3 s sentences with a 0.3 s pause in the middle
+    c = cand(10, 14)
+    t0 = sents[10][0]["s"]
+    near, far = cc.shift_start(c, sents, -2.0, lo, hi), cc.shift_start(c, sents, -4.0, lo, hi)
+    assert near and far and cc.cut_key(*near) != cc.cut_key(*far)
+    assert 1.0 <= t0 - near[1][near[0]["start"]][0]["s"] <= 5.0
+    assert 2.5 <= t0 - far[1][far[0]["start"]][0]["s"] <= 7.0
+    later = cc.shift_start(c, sents, 4.0, lo, hi)
+    assert later and 2.5 <= later[1][later[0]["start"]][0]["s"] - t0 <= 7.0
+    labels = [x[0] for x in cc.cut_variants(c, sents, lo, hi, want=0)]
+    assert any(x.endswith("-4s") for x in labels) and any(x.endswith("+4s") for x in labels)
+    assert not any("-mid" in x for x in labels)  # want=0: no middle cuts
 
 
 def test_cut_variants_respect_chosen_length():
     lo, hi = setup_pro(15, 30)
     sents = make_sents([4.0] * 60, gap=0.3)
     cuts = cc.cut_variants(cand(20, 24), sents, lo, hi)
-    assert not any(x[0].startswith(("35s", "50s")) for x in cuts)
-    assert all(cc.played_len(c2, s2) <= 30 for _l, c2, s2 in cuts)
+    assert {x[0].split("s")[0] for x in cuts if x[0][0].isdigit()} <= {"17", "21", "24", "28"}  # targets inside 15–30
+    assert all(15 <= cc.played_len(c2, s2) <= 30 for _l, c2, s2 in cuts)
 
 
 def test_shift_start_only_on_borders():
