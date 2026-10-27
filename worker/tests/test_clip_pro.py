@@ -256,15 +256,18 @@ def test_all_looks_distinct_and_base_first():
         assert (a["style"], a["accent"]) != (b["style"], b["accent"])
 
 
-def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.0):
+def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.0, parallel=1):
     import time as _t
     clock = [1000.0]
     real = _t.time
     _t.time = lambda: clock[0]
+    old_par = cc.RENDER_PARALLEL
+    cc.RENDER_PARALLEL = parallel
     try:
         return _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock)
     finally:
         _t.time = real
+        cc.RENDER_PARALLEL = old_par
 
 
 def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock):
@@ -276,13 +279,19 @@ def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock
     cc.post = lambda path, body: (sent.append((path, body)), (200, {}))[1]
     cc.report = lambda **kw: reports.append(kw)
 
-    def render(serve_, plan, dst):
+    def render(serve_, plan, dst, tag=""):
+        if cc.RENDER_PARALLEL > 1:
+            import time as _tt
+            _tt.sleep(0.002)  # let the main thread race ahead
+            assert tag, "parallel renders need their own plan/raw files"
+        # the cut this video is made from must still be on disk while it renders
+        assert os.path.isdir(os.path.join(cc.W, "public", plan["job"])), f"cut {plan['job']} deleted during render"
         clock[0] += render_sec
         open(dst, "wb").close()
     cc.render = render
     cc.run = lambda cmd, **kw: None
     cc.upload = lambda f, ext: f"https://x/{os.path.basename(f)}"
-    cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent")}
+    cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent"), "job": state["job"]}
 
     moments_done = []
 
@@ -300,7 +309,7 @@ def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock
         os.makedirs(os.path.join(cc.W, "public", job), exist_ok=True)
         open(os.path.join(cc.W, "public", job, "main.mp4"), "wb").close()
         dur = cc.played_len(c, sents_)
-        return {"accent": None}, {"index": i, "title": f"M{i}", "duration": dur, "score": 80}, {"preset": base["preset"], "job": job, "fid": tag}
+        return {"accent": None, "job": job}, {"index": i, "title": f"M{i}", "duration": dur, "score": 80}, {"preset": base["preset"], "job": job, "fid": tag}
     cc.prepare_moment = prep_moment
     cc.prepare_cut = prep
     # 300 sentences of 4 s: every moment has room for other lengths and starts
@@ -331,6 +340,14 @@ def test_variants_reach_target_round_robin():
     assert len({round(r["duration"]) for r in results if r["momentIndex"] == 0}) >= 3  # really other lengths
     left = os.listdir(os.path.join(serve, "public", "job")) if os.path.isdir(os.path.join(serve, "public", "job")) else []
     assert len(left) <= 30  # only the live cut of each moment stays on disk
+
+
+def test_variants_parallel_renders():
+    # own servers: two renders at once – every video still made once, no cut deleted while a render reads it
+    results, rep, preps, _ = _run_variants(120, 30, parallel=2)
+    assert len(results) == 120 and rep["reached"] and rep["made"] == 120
+    assert sorted(r["index"] for r in results) == list(range(120))
+    assert len({(r["momentIndex"], r["variant"]) for r in results}) == 120
 
 
 def test_variants_via_moments():

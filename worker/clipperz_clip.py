@@ -1839,12 +1839,18 @@ def bundle():
     return out
 
 
-def render(serve, plan, dst):
-    pj = os.path.join(W, "plan.json")
+# Own servers: several renders at once (CLIPPERZ_RENDER_PARALLEL, e.g. 2). One Remotion render left ~45 % of an 8-core
+# server idle (measured 27.10.2026); two renders with half the browser tabs each fill it. GitHub runners keep 1.
+RENDER_PARALLEL = max(1, int(os.environ.get("CLIPPERZ_RENDER_PARALLEL") or 1))
+
+
+def render(serve, plan, dst, tag=""):
+    pj = os.path.join(W, f"plan{tag}.json")
     with open(pj, "w", encoding="utf-8") as fh:
         json.dump(plan, fh, ensure_ascii=False)
-    raw = os.path.join(W, "render.mp4")
-    cmd = ["npx", "remotion", "render", serve, "ClipperzEdit", raw, f"--props={pj}", f"--concurrency={max(1, os.cpu_count() or 2)}",
+    raw = os.path.join(W, f"render{tag}.mp4")
+    conc = max(1, (os.cpu_count() or 2) // RENDER_PARALLEL)
+    cmd = ["npx", "remotion", "render", serve, "ClipperzEdit", raw, f"--props={pj}", f"--concurrency={conc}",
            "--codec=h264", "--crf=19", "--x264-preset=veryfast", "--audio-codec=aac", "--log=error"]
     if os.environ.get("CLIPPERZ_BROWSER"):  # own servers: a local Chrome instead of Remotion's download
         cmd.append(f"--browser-executable={os.environ['CLIPPERZ_BROWSER']}")
@@ -1859,6 +1865,8 @@ def render(serve, plan, dst):
         af = loudnorm_2pass(raw) or af
     run(["ffmpeg", "-v", "error", "-y", "-i", raw, "-c:v", "copy", "-af", af,
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", dst])
+    if tag:
+        drop_files(pj, raw)
 
 
 def loudnorm_2pass(path):
@@ -2058,6 +2066,59 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
     dead = set()
     n = ok = 0
     avg, timed_out, used = 90.0, False, set()
+    # renders run in a pool (RENDER_PARALLEL at once); cutting, planning, charging and reports stay in this thread
+    import threading
+    from concurrent.futures import FIRST_COMPLETED, wait as fwait
+    rpool = ThreadPoolExecutor(max_workers=RENDER_PARALLEL)
+    pending = {}  # future -> (moment, cut index)
+    file_lock = threading.Lock()
+
+    def settle(futs):
+        nonlocal ok, avg
+        for f in futs:
+            pending.pop(f, None)
+            good, m_, took = f.result()
+            if good:
+                ok += 1
+                used.add(m_)
+            avg = 0.7 * avg + 0.3 * took / RENDER_PARALLEL  # wall time per video with all slots busy
+
+    def wait_for(pred):
+        busy = [f for f, key in pending.items() if pred(key)]
+        if busy:
+            fwait(busy)
+            settle(busy)
+
+    def make_video(idx, m, v, cur_ci, plan, meta, look, t0):
+        try:
+            final = os.path.join(W, f"v{idx}.mp4")
+            with phase("render"):
+                render(serve, plan, final, **({"tag": f"_{idx}"} if RENDER_PARALLEL > 1 else {}))
+            poster = os.path.join(W, f"v{idx}.jpg")
+            run(["ffmpeg", "-v", "error", "-y", "-ss", f"{min(0.8, meta['duration'] / 3):.2f}", "-i", final, "-frames:v", "1", "-q:v", "3", poster])
+            url = upload(final, "mp4")
+            poster_url = upload(poster, "jpg")
+            body = {"ok": True, **{key: val for key, val in meta.items() if key != "scenes"}, "index": idx, "url": url, "posterUrl": poster_url,
+                    "momentIndex": m, "variant": v, "style": plain_style(look["style"]),
+                    "duration": round(float(plan.get("duration") or meta["duration"]), 2)}
+            accent = plan.get("accent") if isinstance(plan.get("accent"), str) else look.get("accent")
+            if isinstance(accent, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", accent):
+                body["accent"] = accent.upper()
+            if ARGS.no_upload:
+                with file_lock, open(os.path.join(ARGS.no_upload, "results.jsonl"), "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps({**body, "cut": cuts[m][cur_ci][0]}, ensure_ascii=False) + "\n")
+            code, j = post("clip-result", body)
+            if code != 200:
+                raise ClipError(f"Video nicht angenommen ({code}: {j.get('error')})")
+            print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')} fx {plan.get('fx') or '-'}] "
+                  f"{meta['duration']:.0f}s in {time.time() - t0:.0f}s", flush=True)
+            if not ARGS.no_upload:
+                drop_files(final, poster)
+            return True, m, time.time() - t0
+        except Exception as e:
+            print(f"video {idx} failed:", type(e).__name__, e, flush=True)
+            post("clip-result", {"ok": False, "index": idx})
+            return False, m, time.time() - t0
     for v in range(per):
         for m, c in enumerate(picks):
             if n >= total:
@@ -2082,6 +2143,8 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                     link_tree(pub_job(state["job"])[0], pub_job(state["job"])[1])
                     state["serve_dir"] = pub_job(state["job"])[1]
                     if live[m] is not None:
+                        old_ci = live[m][0]
+                        wait_for(lambda key: key == (m, old_ci))  # renders still reading the old cut
                         drop_files(*pub_job(live[m][3]["job"]))
                     live[m] = (ci, plan0, meta, state)
                     if ci == len(cuts[m]) - 1 or (ci + 1) * k >= per:  # the moment's last cut: its reframed video is no longer needed
@@ -2102,39 +2165,20 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 break
             try:
                 plan = plan0 if v == 0 else look_plan(state, look["style"], {**look, "v": v})
-                final = os.path.join(W, f"v{idx}.mp4")
-                with phase("render"):
-                    render(serve, plan, final)
-                poster = os.path.join(W, f"v{idx}.jpg")
-                run(["ffmpeg", "-v", "error", "-y", "-ss", f"{min(0.8, meta['duration'] / 3):.2f}", "-i", final, "-frames:v", "1", "-q:v", "3", poster])
-                url = upload(final, "mp4")
-                poster_url = upload(poster, "jpg")
-                body = {"ok": True, **{key: val for key, val in meta.items() if key != "scenes"}, "index": idx, "url": url, "posterUrl": poster_url,
-                        "momentIndex": m, "variant": v, "style": plain_style(look["style"]),
-                        "duration": round(float(plan.get("duration") or meta["duration"]), 2)}
-                accent = plan.get("accent") if isinstance(plan.get("accent"), str) else look.get("accent")
-                if isinstance(accent, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", accent):
-                    body["accent"] = accent.upper()
-                if ARGS.no_upload:
-                    with open(os.path.join(ARGS.no_upload, "results.jsonl"), "a", encoding="utf-8") as fh:
-                        fh.write(json.dumps({**body, "cut": cuts[m][cur_ci][0]}, ensure_ascii=False) + "\n")
-                code, j = post("clip-result", body)
-                if code != 200:
-                    raise ClipError(f"Video nicht angenommen ({code}: {j.get('error')})")
-                ok += 1
-                used.add(m)
-                print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')} fx {plan.get('fx') or '-'}] "
-                      f"{meta['duration']:.0f}s in {time.time() - t0:.0f}s", flush=True)
-                if not ARGS.no_upload:
-                    drop_files(final, poster)
             except Exception as e:
-                print(f"video {idx} failed:", type(e).__name__, e)
+                print(f"video {idx} failed:", type(e).__name__, e, flush=True)
                 post("clip-result", {"ok": False, "index": idx})
-            avg = 0.7 * avg + 0.3 * (time.time() - t0)
+                continue
+            if len(pending) >= RENDER_PARALLEL:
+                done_, _ = fwait(list(pending), return_when=FIRST_COMPLETED)
+                settle(done_)
+            pending[rpool.submit(make_video, idx, m, v, cur_ci, plan, meta, look, t0)] = (m, cur_ci)
             if n % 5 == 0:
                 report(note=f"Video {n}/{total} wird gerendert…", progress={"done": n, "total": total})
         if timed_out or n >= total:
             break
+    wait_for(lambda key: True)
+    rpool.shutdown(wait=True)
     reached = ok >= target
     bar_txt = f" (Qualitätsschwelle {bar})" if bar else ""
     if via == "moments":
