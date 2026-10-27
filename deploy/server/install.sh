@@ -2,7 +2,7 @@
 # CLIPPERZ render server – install on a fresh Ubuntu 24.04 (as root). Safe to run again (idempotent).
 #
 #   curl -fsSL https://raw.githubusercontent.com/Contenthuette/content-engine/main/deploy/server/install.sh \
-#     | sudo bash -s -- --api https://loyal-finch-512.convex.site/clipperz
+#     | sudo bash -s -- --api https://loyal-finch-512.eu-west-1.convex.site/clipperz
 #
 # Options (or the same as env vars): --api URL (CLIPPERZ_API), --name NAME (CLIPPERZ_WORKER_NAME, default hostname),
 # --heavy N (CLIPPERZ_HEAVY_SLOTS, default 1), --light N (CLIPPERZ_LIGHT_SLOTS, default 1),

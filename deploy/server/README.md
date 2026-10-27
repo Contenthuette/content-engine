@@ -14,7 +14,7 @@ Hängt ein Auftrag zu lange, wird er abgebrochen und der Kunde sieht „bitte no
 **1. Installieren** (frischer Ubuntu-24.04-Server, als root):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Contenthuette/content-engine/main/deploy/server/install.sh | sudo bash -s -- --api https://loyal-finch-512.convex.site/clipperz
+curl -fsSL https://raw.githubusercontent.com/Contenthuette/content-engine/main/deploy/server/install.sh | sudo bash -s -- --api https://loyal-finch-512.eu-west-1.convex.site/clipperz
 ```
 
 Am Ende steht `worker_secret_sha256 = …` – diesen Wert in CLIPPERZ Pro als Setting eintragen und `worker_mode`
