@@ -1,0 +1,31 @@
+# CLIPPERZ render server. Start:  docker compose up -d --build   (in deploy/server, needs .env next to this file)
+name: clipperz
+services:
+  worker:
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+    image: clipperz-worker:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      CLIPPERZ_DATA: /data
+      HF_HOME: /data/hf
+    volumes:
+      - clipperz-data:/data
+    # Chrome (Remotion) needs a large /dev/shm; Docker's default 64 MB makes renders crash.
+    shm_size: "2gb"
+    # tini as PID 1: forwards SIGTERM to the agent and reaps orphaned Chrome/ffmpeg processes.
+    init: true
+    # The agent kills running jobs (10 s grace) and reports them as failed before it exits.
+    stop_grace_period: 2m
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  clipperz-data:

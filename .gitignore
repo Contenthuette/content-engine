@@ -63,3 +63,6 @@ jobs/stylelab/
 
 # private avatar test media (voice clone, face footage) – never in the public repo
 avatar_cheap/
+
+# Render-Server: Secret-Datei auf dem Server
+deploy/server/.env
