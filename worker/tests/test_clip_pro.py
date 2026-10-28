@@ -653,7 +653,13 @@ if __name__ == "__main__":
     sys.exit(1 if fails else 0)
 
 
-def test_version_music_rotates_and_leaves_some_without():
+def test_no_music_in_clips_by_default():
+    assert cc.CLIP_MUSIC is False
+    assert cc.version_music({"music": {"src": "music/x.mp3", "vol": 0.1}}, 0, 0)["music"] is None
+
+
+def test_version_music_rotates_and_leaves_some_without(monkeypatch):
+    monkeypatch.setattr(cc, "CLIP_MUSIC", True)
     plans = {(m, v): cc.version_music({"music": None, "x": 1}, m, v) for m in range(5) for v in range(20)}
     for m in range(5):
         srcs = [plans[(m, v)]["music"]["src"] if plans[(m, v)]["music"] else None for v in range(20)]

@@ -912,9 +912,16 @@ MASS_MUSIC = [("music/phonk130_bed.mp3", 0.07), ("music/popfunk118_bed.mp3", 0.0
               ("music/cinematic128.mp3", 0.05)]
 
 
+# Leif 28.10.2026: „kein Video soll die Sounds enthalten“ – no library music in any clip (CLIPZ and MASS CLIPZ).
+# Music only comes back with tracks he supplies and that are licensed for this use.
+CLIP_MUSIC = False
+
+
 def version_music(plan, m, v):
     """The plan of one version with its own music bed (or none for every 4th version). Neighbouring versions of a
-    moment and the same version number of neighbouring moments never share a track."""
+    moment and the same version number of neighbouring moments never share a track. Off while CLIP_MUSIC is False."""
+    if not CLIP_MUSIC:
+        return {**plan, "music": None}
     try:
         if v % 4 == 3:
             return {**plan, "music": None}
@@ -2003,6 +2010,8 @@ RENDER_PARALLEL = max(1, int(os.environ.get("CLIPPERZ_RENDER_PARALLEL") or 1))
 
 
 def render(serve, plan, dst, tag=""):
+    if not CLIP_MUSIC and plan.get("music"):  # styles bring their own music bed – none in clips (Leif 28.10.2026)
+        plan = {**plan, "music": None}
     pj = os.path.join(W, f"plan{tag}.json")
     with open(pj, "w", encoding="utf-8") as fh:
         json.dump(plan, fh, ensure_ascii=False)
