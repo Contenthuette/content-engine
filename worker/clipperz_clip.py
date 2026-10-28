@@ -1991,9 +1991,17 @@ def render(serve, plan, dst, tag=""):
         cmd.append(f"--browser-executable={os.environ['CLIPPERZ_BROWSER']}")
     if os.environ.get("CLIPPERZ_CHROME_MODE"):  # e.g. "chrome-for-testing" for a full Chrome/Chromium build
         cmd.append(f"--chrome-mode={os.environ['CLIPPERZ_CHROME_MODE']}")
-    r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True)
-    if r.returncode != 0:
+    for attempt in range(2):
+        r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True)
+        if r.returncode == 0:
+            break
         print((r.stderr or r.stdout)[-3000:])
+        # 28.10.2026, first server mass run: 1 of 174 renders failed with "Could not find composition with ID
+        # ClipperzEdit" (two renders starting at once) – a second try renders fine
+        if attempt == 0:
+            print("render failed – retrying once", flush=True)
+            time.sleep(3)
+    else:
         raise ClipError("Rendern fehlgeschlagen")
     af = "loudnorm=I=-14:TP=-1:LRA=11"
     if PRO:  # two passes: every clip really lands on -14 LUFS (one pass left them between -13.8 and -18.0 on 21.10.2026)
