@@ -792,6 +792,135 @@ def review(chosen, sents, lo, hi, lang):
     return out
 
 
+# ---------- Massenproduktion: one post text + hook per video (28.10.2026) ----------
+# ~20 versions of one moment go out on hundreds of accounts: every version gets its own post text (caption, with its
+# own topic hashtags) and its own on-screen hook. One small extra AI call per chunk of moments (the review call is
+# already near its token limit with 15 moments), run in POOL next to the second speech pass. Classic runs: unchanged.
+N_CAPTIONS, N_HOOKS = 6, 4
+TEXT_CHUNK = 8  # moments per call: ~8 × 350 output tokens, well inside max_tokens
+TEXT_TOKENS = 6000
+
+TEXT_PROMPT = (
+    "Du schreibst Post-Texte für Kurzvideos (Clips aus einem langen Video). Jeder Clip wird in vielen Versionen auf vielen "
+    "Accounts gepostet – jeder Post braucht einen EIGENEN Text. Schreib für JEDEN Clip {nc} verschiedene captions und {nh} "
+    "verschiedene hooks, alles in der Sprache des Videos ({lang}).\n"
+    "- caption = 1–2 kurze Sätze + Leerzeile + 2–3 Hashtags zum THEMA des Clips. Nur was im Clip passiert: keine erfundenen "
+    "Fakten, kein Clickbait-Versprechen. Jede caption mit einem anderen Ansatz: Frage an die Zuschauer, klare Aussage, Neugier "
+    "(ohne die Pointe zu verraten), wörtliches Zitat eines Schlüsselsatzes aus dem Clip (in Anführungszeichen) – nicht nur "
+    "Wörter umgestellt, kein Satz doppelt.\n"
+    "- Hashtags zwischen den captions variieren (andere Kombinationen, alle zum Thema), klein geschrieben, deutsch oder "
+    "englisch, keine Fantasie-Tags; KEINE Format-Tags wie #podcast, #stream, #twitch, #youtube, #clips, #fyp – die setzt "
+    "das System passend zur Quelle.\n"
+    "- hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, packend, nur was im Clip gesagt wird. Die {nh} hooks "
+    "klar verschieden.\n"
+    "Antworte NUR mit JSON: {{\"clips\": [{{\"i\": Nummer, \"captions\": [\"…\"], \"hooks\": [\"…\"]}}]}} – "
+    "{nc} captions und {nh} hooks für jeden Clip."
+)
+
+
+def _text_call(items, lang):
+    """One AI call for a chunk of moments. items: [(i, clip, clip text)]. Returns {i: answer} – {} on any failure."""
+    blocks = [f"=== Clip {i}\nHook bisher: {c.get('hook') or '-'}\nPost-Text bisher: {c.get('caption') or '-'}\n"
+              f"Text im Clip: {text[:1500]}" for i, c, text in items]
+    msgs = [{"role": "system", "content": TEXT_PROMPT.format(nc=N_CAPTIONS, nh=N_HOOKS, lang=lang)},
+            {"role": "user", "content": "\n\n".join(blocks)}]
+    try:
+        for _ in range(2):
+            obj = ce.parse_json(llm(msgs, max_tokens=TEXT_TOKENS, temperature=0.7))  # warmer: the texts must differ
+            if obj is not None:
+                break
+        rows = (obj.get("clips") if isinstance(obj, dict) else obj) or []
+        return {_int(r.get("i")): r for r in rows if isinstance(r, dict)}
+    except Exception as e:  # never fails the run: the moment keeps its one caption / hook
+        print("post texts failed, keeping one text per moment:", type(e).__name__, str(e)[:200], flush=True)
+        return {}
+
+
+def caption_pool(raw, content):
+    """The AI's captions, cleaned (clean_caption: hashtags rebuilt), without doubles (same sentences = double)."""
+    out, seen = [], set()
+    for x in raw if isinstance(raw, list) else []:
+        if not isinstance(x, str) or not x.strip():
+            continue
+        cap = clean_caption(x, content)
+        key = " ".join(re.sub(TAG_RE, "", cap).lower().split())
+        if key and key not in seen:
+            seen.add(key)
+            out.append(cap)
+    return out[:N_CAPTIONS]
+
+
+def hook_pool(raw):
+    """The AI's hooks through short_hook (overlong ones dropped), without doubles."""
+    out = []
+    for x in raw if isinstance(raw, list) else []:
+        h = short_hook(x)
+        if h and h.casefold() not in [o.casefold() for o in out]:
+            out.append(h)
+    return out[:N_HOOKS]
+
+
+def start_text_variants(picks, sents, lang):
+    """Submits the post-text calls (one per TEXT_CHUNK moments) to POOL. Returns the jobs for finish_text_variants."""
+    items = [(i, c, clip_text(c, sents)) for i, c in enumerate(picks)]
+    jobs = []
+    for k in range(0, len(items), TEXT_CHUNK):
+        ch = items[k:k + TEXT_CHUNK]
+        jobs.append((ch, POOL.submit(_text_call, ch, lang) if POOL else _text_call(ch, lang)))
+    return jobs
+
+
+def finish_text_variants(jobs):
+    """Sets c["captions"] / c["hooks"] on every moment the AI answered for. Missing: the moment keeps its one text."""
+    n = 0
+    for ch, job in jobs:
+        try:
+            rows = job.result() if hasattr(job, "result") else job
+        except Exception as e:
+            print("post texts failed:", type(e).__name__, e, flush=True)
+            rows = {}
+        for i, c, text in ch:
+            r = rows.get(i) or {}
+            c["captions"], c["hooks"] = caption_pool(r.get("captions"), text), hook_pool(r.get("hooks"))
+            n += bool(c["captions"] or c["hooks"])
+    print(f"post texts: {n} moments with their own texts per version", flush=True)
+
+
+def rotate_texts(cut_ids, n):
+    """Which of n texts each version of a moment gets (cut_ids[v] = the cut of version v): never the text of the version
+    before, on a cut first a text that cut has not had, then the least used one, else plain rotation by version index.
+    The first n versions use all n texts. None when there are no texts."""
+    if n <= 0:
+        return [None] * len(cut_ids)
+    total, on_cut, out = [0] * n, {}, []
+    for v, ci in enumerate(cut_ids):
+        had = on_cut.setdefault(ci, [0] * n)
+        prev = out[-1] if out and n > 1 else None
+        k = min((k for k in range(n) if k != prev), key=lambda k: (had[k], total[k], (k - v) % n))
+        had[k] += 1
+        total[k] += 1
+        out.append(k)
+    return out
+
+
+def version_texts(c, plan, meta, cap_k, hook_k):
+    """(plan, meta) of one version with its own caption and hook. Anything missing or broken: the moment's one text."""
+    try:
+        caps, hooks = c.get("captions") or [], c.get("hooks") or []
+        meta = dict(meta)
+        if caps and cap_k is not None:
+            meta["caption"] = caps[cap_k % len(caps)]
+        if hooks and hook_k is not None:
+            h = short_hook(hooks[hook_k % len(hooks)])
+            if h:
+                meta["hook"] = h
+                if isinstance(plan.get("hook"), dict) and plan["hook"].get("text"):  # the title drawn in the video
+                    plan = {**plan, "hook": {**plan["hook"], "text": h}}
+    except Exception as e:
+        print("version texts failed, keeping the moment's text:", type(e).__name__, e, flush=True)
+    return plan, meta
+
+
 def choose(cands, sents, want, lo, hi, lang, fallback=False):
     pool = sorted((c for c in (clean_candidate(x, sents, lo, hi) for x in cands) if c), key=lambda c: -c["score"])
     chosen = []
@@ -2150,6 +2279,9 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
     per = -(-target // moments)
     cuts = [cut_variants(c, sents, lo, hi, want=per) for c in picks]  # middle cuts only when lengths × starts are too few
     plans = [version_plan(len(cs), looks, per) for cs in cuts]  # per moment: (cut index, look index) of each version
+    # per moment: which caption / hook each version gets (its own post text and title, see rotate_texts)
+    cap_rot = [rotate_texts([ci for ci, _ in p], len(c.get("captions") or [])) for p, c in zip(plans, picks)]
+    hook_rot = [rotate_texts([ci for ci, _ in p], len(c.get("hooks") or [])) for p, c in zip(plans, picks)]
     fx_used = {}  # (moment, cut index) -> effects its versions already have
     total = min(target, sum(len(p) for p in plans))
     via = "moments" if per <= 1 else "looks"
@@ -2283,10 +2415,11 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 print(f"video {idx} failed:", type(e).__name__, e, flush=True)
                 post("clip-result", {"ok": False, "index": idx})
                 continue
+            plan, meta_v = version_texts(c, plan, meta, cap_rot[m][v], hook_rot[m][v])
             if len(pending) >= RENDER_PARALLEL:
                 done_, _ = fwait(list(pending), return_when=FIRST_COMPLETED)
                 settle(done_)
-            pending[rpool.submit(make_video, idx, m, v, cur_ci, plan, meta, look, t0)] = (m, cur_ci)
+            pending[rpool.submit(make_video, idx, m, v, cur_ci, plan, meta_v, look, t0)] = (m, cur_ci)
             if n % 5 == 0:
                 report(note=f"Video {n}/{total} wird gerendert…", progress={"done": n, "total": total})
         if timed_out or n >= total:
@@ -2397,6 +2530,12 @@ def main():
         raise ClipError("Claude hat keinen Moment gefunden, der allein als Clip funktioniert")
     print(f"{len(cands)} candidates -> {len(picks)} clips", flush=True)
     clip_sents = sents
+    text_jobs = None
+    if VARIANTS and VARIANTS > len(picks):  # several videos per moment: own post text + hook per version (AI, in POOL)
+        try:
+            text_jobs = start_text_variants(picks, sents, lang)
+        except Exception as e:
+            print("post texts not started:", type(e).__name__, e, flush=True)
     if PRO:
         report(note="Untertitel werden genau erkannt…")
         for c in picks:  # position in the long video, from the first transcript (re-transcribed sentences may be empty)
@@ -2409,6 +2548,9 @@ def main():
             clip_sents = [better.get(k, s_) for k, s_ in enumerate(sents)]
 
     if VARIANTS:  # cuts are prepared when they are first needed, next to the renderer
+        if text_jobs:
+            with phase("post texts"):
+                finish_text_variants(text_jobs)
         report(status="rendering", note="Renderer wird vorbereitet…")
         with phase("bundle"):
             serve = bundle()

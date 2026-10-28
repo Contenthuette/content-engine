@@ -256,7 +256,7 @@ def test_all_looks_distinct_and_base_first():
         assert (a["style"], a["accent"]) != (b["style"], b["accent"])
 
 
-def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.0, parallel=1):
+def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.0, parallel=1, texts=None, hooks_seen=None):
     import time as _t
     clock = [1000.0]
     real = _t.time
@@ -264,13 +264,13 @@ def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.
     old_par = cc.RENDER_PARALLEL
     cc.RENDER_PARALLEL = parallel
     try:
-        return _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock)
+        return _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock, texts, hooks_seen)
     finally:
         _t.time = real
         cc.RENDER_PARALLEL = old_par
 
 
-def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock):
+def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock, texts=None, hooks_seen=None):
     lo, hi = setup_pro(15, 60)
     cc.ACCENT, cc.EMOJIS, cc.VARIANTS = None, False, target
     cc.RENDER_BUDGET_MIN = budget_min
@@ -287,11 +287,14 @@ def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock
         # the cut this video is made from must still be on disk while it renders
         assert os.path.isdir(os.path.join(cc.W, "public", plan["job"])), f"cut {plan['job']} deleted during render"
         clock[0] += render_sec
+        if hooks_seen is not None:  # the hook title drawn in this video
+            hooks_seen[os.path.basename(dst)] = (plan.get("hook") or {}).get("text")
         open(dst, "wb").close()
     cc.render = render
     cc.run = lambda cmd, **kw: None
     cc.upload = lambda f, ext: f"https://x/{os.path.basename(f)}"
-    cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent"), "job": state["job"]}
+    cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent"), "job": state["job"],
+                                                        "hook": {"text": "Original Hook", "e": 2.0}}
 
     moments_done = []
 
@@ -309,12 +312,16 @@ def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock
         os.makedirs(os.path.join(cc.W, "public", job), exist_ok=True)
         open(os.path.join(cc.W, "public", job, "main.mp4"), "wb").close()
         dur = cc.played_len(c, sents_)
-        return {"accent": None, "job": job}, {"index": i, "title": f"M{i}", "duration": dur, "score": 80}, {"preset": base["preset"], "job": job, "fid": tag}
+        return ({"accent": None, "job": job, "hook": {"text": "Original Hook", "e": 2.0}},
+                {"index": i, "title": f"M{i}", "duration": dur, "score": 80, "hook": "Original Hook", "caption": "Original.\n\n#thema"},
+                {"preset": base["preset"], "job": job, "fid": tag})
     cc.prepare_moment = prep_moment
     cc.prepare_cut = prep
     # 300 sentences of 4 s: every moment has room for other lengths and starts
     sents = make_sents([4.0] * 300, gap=0.3)
     picks = [cand(5 + 9 * m, 10 + 9 * m) for m in range(moments)]  # 6 sentences ≈ 24 s each
+    for m, c in enumerate(picks):
+        c.update(texts(m) if texts else {})
     cc.render_variants(serve, picks, sents, None, "clean", True, "de", {"variantStyles": ["clean", "hype", "story", "bold"]}, clock[0], 60)
     results = [b for p_, b in sent if p_ == "clip-result" and b.get("ok")]
     final = [r["report"] for r in reports if "report" in r][-1]
@@ -495,6 +502,123 @@ def test_fx_not_cringe_guards():
     st2 = _fx_state("Hört mal zu, das ist wichtig. Ich hab dafür 500 Euro bezahlt, kein Witz. Und danach war alles anders.", None)
     sp2 = cc.fx_spots(st2)
     assert st2["words"][sp2["money"]]["w"] == "500"
+
+
+# ---------- Massenproduktion: own post text + hook per version (28.10.2026) ----------
+
+def _texts_answer(ids, bad_hook=True):
+    """What the AI would answer for the moments `ids`: 6 captions with (partly wrong) hashtags, 4 hooks + extras."""
+    clips = []
+    for i in ids:
+        caps = [f"Frage {i}: Würdest du das auch machen?\n\n#Motivation #fyp #twitch",
+                f"Aussage {i}: Er hat es einfach durchgezogen.\n\n#mindset #disziplin #clips",
+                f"Neugier {i}: Am Ende passiert etwas, das keiner erwartet.\n\n#story #reaktion",
+                f"„Ich hab's dir doch gesagt“ – Clip {i}\n\n#zitat #streamer #YouTube",
+                f"Clip {i}: So reagiert man richtig.\n\n#reaktion #mindset",
+                f"Clip {i}: Darüber wird noch lange geredet.\n\n#gesprächsthema #story",
+                f"Frage {i}: Würdest du das auch machen?\n\n#doppelt"]  # same sentence again: a double
+        hooks = [f"Er zieht es durch {i}", f"Keiner hat's erwartet {i}", f"So reagiert man {i}", f"Das sagt er wirklich {i}",
+                 "Dieser Hook ist viel zu lang für den Titel im Bild hier" if bad_hook else ""]
+        clips.append({"i": i, "captions": caps, "hooks": hooks})
+    return json.dumps({"clips": clips}, ensure_ascii=False)
+
+
+def _mock_texts_llm(calls):
+    def fake(messages, max_tokens=8000, temperature=0.2):
+        calls.append((messages, max_tokens, temperature))
+        ids = [int(x) for x in __import__("re").findall(r"=== Clip (\d+)", messages[1]["content"])]
+        return _texts_answer(ids)
+    return fake
+
+
+def test_text_variants_from_ai_cleaned():
+    setup_pro(15, 60, ["#stream", "#streamclips", "#twitch"])
+    old_llm, old_pool = cc.llm, cc.POOL
+    calls = []
+    cc.llm, cc.POOL = _mock_texts_llm(calls), None
+    try:
+        sents = make_sents([4.0] * 120, gap=0.3)
+        picks = [{**cand(5 + 9 * m, 10 + 9 * m), "hook": "Alter Hook", "caption": "Alt."} for m in range(10)]
+        cc.finish_text_variants(cc.start_text_variants(picks, sents, "de"))
+    finally:
+        cc.llm, cc.POOL = old_llm, old_pool
+    assert len(calls) == 2 and all(t > 0.2 and mt == cc.TEXT_TOKENS for _m, mt, t in calls)  # 8 + 2 moments, warmer
+    system = calls[0][0][0]["content"]
+    assert "6 verschiedene captions" in system and "4" in system and "(de)" in system and "KEINE Format-Tags" in system
+    assert "Alter Hook" in calls[0][0][1]["content"] and "Text im Clip:" in calls[0][0][1]["content"]
+    for m, c in enumerate(picks):
+        assert len(c["captions"]) == 6  # the double is gone
+        assert len(c["hooks"]) == 4 and all(len(h.split()) <= 6 for h in c["hooks"])  # overlong hook dropped
+        for cap in c["captions"]:
+            text, tags = cap.rsplit("\n\n", 1)
+            tags = tags.split()
+            assert tags[:3] == ["#stream", "#streamclips", "#twitch"] and len(tags) <= 5
+            assert all(t == t.lower() for t in tags) and "#youtube" not in tags and "#clips" not in tags
+            assert tags.count("#twitch") == 1 and len(tags) == len(set(tags))
+        assert len({cap.rsplit("\n\n", 1)[1] for cap in c["captions"]}) >= 4  # hashtags differ between the posts
+
+
+def test_text_variants_fallback_when_ai_gives_nothing():
+    setup_pro(15, 60)
+    old_llm, old_pool = cc.llm, cc.POOL
+    sents = make_sents([4.0] * 60, gap=0.3)
+    try:
+        for fake in (lambda *a, **k: (_ for _ in ()).throw(cc.ClipError("KI nicht erreichbar (500)")),
+                     lambda *a, **k: "kein JSON", lambda *a, **k: '{"clips": [{"i": 0, "captions": "x", "hooks": null}]}'):
+            cc.llm, cc.POOL = fake, None
+            picks = [{**cand(5, 10), "hook": "Alter Hook", "caption": "Alt."}]
+            cc.finish_text_variants(cc.start_text_variants(picks, sents, "de"))
+            assert picks[0]["captions"] == [] and picks[0]["hooks"] == []
+    finally:
+        cc.llm, cc.POOL = old_llm, old_pool
+    # the videos keep the moment's one caption and hook
+    results, rep, _, _ = _run_variants(40, 10, texts=lambda m: {"captions": [], "hooks": []})
+    assert len(results) == 40 and rep["reached"]
+    assert all(r["caption"] == "Original.\n\n#thema" and r["hook"] == "Original Hook" for r in results)
+    plan, meta = cc.version_texts({"captions": None, "hooks": [None]}, {"hook": {"text": "A"}}, {"hook": "A"}, 0, 0)
+    assert plan["hook"]["text"] == "A" and meta["hook"] == "A"  # broken texts: nothing changes, no error
+
+
+def test_rotate_texts():
+    cuts = [v % 3 for v in range(20)]
+    k = cc.rotate_texts(cuts, 6)
+    assert len(set(k[:6])) == 6 and all(a != b for a, b in zip(k, k[1:]))
+    for ci in range(3):  # versions on the same cut: no caption twice before all were used on that cut
+        on = [k[v] for v in range(20) if cuts[v] == ci]
+        assert len(set(on[:6])) == min(6, len(on))
+    assert cc.rotate_texts([0] * 5, 1) == [0] * 5 and cc.rotate_texts([0, 1], 0) == [None, None]
+    assert cc.rotate_texts([0] * 6, 2) == [0, 1, 0, 1, 0, 1]
+
+
+def test_variants_every_version_own_caption_and_hook():
+    setup_pro(15, 60, ["#stream", "#streamclips", "#twitch"])
+    sents = make_sents([4.0] * 300, gap=0.3)
+
+    def texts(m):
+        c = cand(5 + 9 * m, 10 + 9 * m)
+        content = cc.clip_text(cc.clean_candidate(c, sents, *cc.HARD_LEN) or c, sents)
+        ans = json.loads(_texts_answer([m]))["clips"][0]
+        return {"captions": cc.caption_pool(ans["captions"], content), "hooks": cc.hook_pool(ans["hooks"])}
+    hooks_seen = {}
+    results, rep, _, _ = _run_variants(200, 10, texts=texts, hooks_seen=hooks_seen)  # 20 videos per moment
+    assert len(results) == 200 and rep["reached"]
+    for m in range(10):
+        vids = sorted((r for r in results if r["momentIndex"] == m), key=lambda r: r["variant"])
+        caps, hooks = [r["caption"] for r in vids], [r["hook"] for r in vids]
+        assert len(vids) == 20
+        assert len(set(caps)) == 6 and all(a != b for a, b in zip(caps, caps[1:]))  # all 6 used, no neighbours alike
+        assert len(set(hooks)) == 4 and all(a != b for a, b in zip(hooks, hooks[1:]))
+        assert all(f"{m}" in h for h in hooks)
+        for cap in caps:  # cleaned: lower case topic tags, no format/filler tags from the AI
+            tags = cap.rsplit("\n\n", 1)[1].split()
+            assert 2 <= len(tags) <= 5 and all(t == t.lower() and t not in ("#twitch", "#clips", "#youtube") for t in tags)
+        by_cut = {}
+        for r in vids:
+            by_cut.setdefault(r["cut"], []).append(r["caption"])
+        assert all(len(set(v)) == len(v) for v in by_cut.values() if len(v) <= 6)  # same cut: other post text
+        assert len({(r["caption"], r["hook"]) for r in vids}) >= 12
+    for r in results:  # the hook drawn in the video is the hook sent with it
+        assert hooks_seen[f"v{r['index']}.mp4"] == r["hook"]
 
 
 # ---------- optional: a real transcript excerpt from a local run ----------
