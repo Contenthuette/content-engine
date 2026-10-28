@@ -651,3 +651,18 @@ if __name__ == "__main__":
                 fails += 1
                 print("FAIL", name, e)
     sys.exit(1 if fails else 0)
+
+
+def test_version_music_rotates_and_leaves_some_without():
+    plans = {(m, v): cc.version_music({"music": None, "x": 1}, m, v) for m in range(5) for v in range(20)}
+    for m in range(5):
+        srcs = [plans[(m, v)]["music"]["src"] if plans[(m, v)]["music"] else None for v in range(20)]
+        assert srcs.count(None) == 5  # every 4th version without music
+        for a, b in zip(srcs, srcs[1:]):  # neighbours never share a track
+            assert a is None or b is None or a != b
+        assert len({x for x in srcs if x}) >= 8  # many different tracks per moment
+        assert all(plans[(m, v)]["x"] == 1 for v in range(20))  # rest of the plan untouched
+    for v in range(20):  # same version number on neighbouring moments: other track
+        a, b = plans[(0, v)]["music"], plans[(1, v)]["music"]
+        assert a is None or b is None or a["src"] != b["src"]
+    assert all(0 < p["music"]["vol"] <= 0.08 for p in plans.values() if p["music"])

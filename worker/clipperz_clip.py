@@ -903,6 +903,29 @@ def rotate_texts(cut_ids, n):
     return out
 
 
+# Mass production: background music per version (Leif 28.10.2026). Only our own library in public/music (made for
+# CLIPPERZ, no third-party songs – those get muted or claimed). The *_bed files have the voice pocket cut out. Every 4th
+# version stays without music so the views can show whether music helps. The renderer ducks the music under the voice.
+MASS_MUSIC = [("music/phonk130_bed.mp3", 0.07), ("music/popfunk118_bed.mp3", 0.07), ("music/afro112_bed.mp3", 0.07),
+              ("music/electro126_bed.mp3", 0.07), ("music/synthwave110_bed.mp3", 0.07), ("music/techno132_bed.mp3", 0.07),
+              ("music/dnb174_bed.mp3", 0.06), ("music/minimal124.mp3", 0.05), ("music/hiphop92.mp3", 0.05),
+              ("music/cinematic128.mp3", 0.05)]
+
+
+def version_music(plan, m, v):
+    """The plan of one version with its own music bed (or none for every 4th version). Neighbouring versions of a
+    moment and the same version number of neighbouring moments never share a track."""
+    try:
+        if v % 4 == 3:
+            return {**plan, "music": None}
+        tracks = [t for t in MASS_MUSIC if os.path.exists(os.path.join(REPO, "public", t[0]))] or MASS_MUSIC
+        src, vol = tracks[(m * 3 + v - v // 4) % len(tracks)]
+        return {**plan, "music": {"src": src, "vol": vol}}
+    except Exception as e:
+        print("version music failed, keeping the style's music:", type(e).__name__, e, flush=True)
+        return plan
+
+
 def version_texts(c, plan, meta, cap_k, hook_k):
     """(plan, meta) of one version with its own caption and hook. Anything missing or broken: the moment's one text."""
     try:
@@ -2424,6 +2447,7 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 post("clip-result", {"ok": False, "index": idx})
                 continue
             plan, meta_v = version_texts(c, plan, meta, cap_rot[m][v], hook_rot[m][v])
+            plan = version_music(plan, m, v)
             if len(pending) >= RENDER_PARALLEL:
                 done_, _ = fwait(list(pending), return_when=FIRST_COMPLETED)
                 settle(done_)
