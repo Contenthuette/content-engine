@@ -1686,7 +1686,7 @@ VARIANTS = 0  # Pro „Videos pro Stream“: total videos wanted (0 = one video 
 # cut has the fitting spot: a key statement, a laugh, money, a swear word, a slow stretch … Otherwise the version takes
 # another effect that fits (fx_for). Every effect is a real editing choice; the timeline ones are cut with ffmpeg from
 # the cut's main.mp4 (fx_timeline), the others only add sounds, zooms and emojis to the render plan.
-FX_LIST = [None, "impact", "tempo", "film", "punch", "pause", "bw", "laugh", "money", "echo", "ffwd", "censor"]  # replay/rewind out (Leif, 26.10.)
+FX_LIST = [None, "impact", "tempo", "film", "punch", "pause", "bw", "laugh", "money", "ffwd", "censor"]  # replay/rewind out (Leif, 26.10.), echo out (Leif 29.10.: „Parfüm, Parfüm“ – Wiederholung klingt scheiße)
 IMPACT_SLOW = 0.8    # slow motion of the key statement; the voice drops with it (−4 semitones: dramatic, not a cartoon)
 TEMPO_FAST = 1.1     # faster version: picture and voice 10 % faster, pitch stays
 FFWD = 1.75          # fast-forward through a calm stretch (still understandable)
