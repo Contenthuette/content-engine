@@ -256,7 +256,7 @@ def test_all_looks_distinct_and_base_first():
         assert (a["style"], a["accent"]) != (b["style"], b["accent"])
 
 
-def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.0, parallel=1, texts=None, hooks_seen=None):
+def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.0, parallel=1, texts=None, hooks_seen=None, look_plan=None):
     import time as _t
     clock = [1000.0]
     real = _t.time
@@ -264,13 +264,13 @@ def _run_variants(target, moments, budget_min=300.0, render_sec=0.0, prep_sec=0.
     old_par = cc.RENDER_PARALLEL
     cc.RENDER_PARALLEL = parallel
     try:
-        return _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock, texts, hooks_seen)
+        return _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock, texts, hooks_seen, look_plan)
     finally:
         _t.time = real
         cc.RENDER_PARALLEL = old_par
 
 
-def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock, texts=None, hooks_seen=None):
+def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock, texts=None, hooks_seen=None, look_plan=None):
     lo, hi = setup_pro(15, 60)
     cc.ACCENT, cc.EMOJIS, cc.VARIANTS = None, False, target
     cc.RENDER_BUDGET_MIN = budget_min
@@ -293,8 +293,8 @@ def _run_variants_inner(target, moments, budget_min, render_sec, prep_sec, clock
     cc.render = render
     cc.run = lambda cmd, **kw: None
     cc.upload = lambda f, ext: f"https://x/{os.path.basename(f)}"
-    cc.look_plan = lambda state, pid, look, log=False: {"accent": look.get("accent"), "job": state["job"],
-                                                        "hook": {"text": "Original Hook", "e": 2.0}}
+    cc.look_plan = look_plan or (lambda state, pid, look, log=False: {"accent": look.get("accent"), "job": state["job"],
+                                                                      "hook": {"text": "Original Hook", "e": 2.0}})
 
     moments_done = []
 
@@ -544,7 +544,7 @@ def test_text_variants_from_ai_cleaned():
         cc.llm, cc.POOL = old_llm, old_pool
     assert len(calls) == 2 and all(t > 0.2 and mt == cc.TEXT_TOKENS for _m, mt, t in calls)  # 8 + 2 moments, warmer
     system = calls[0][0][0]["content"]
-    assert "6 verschiedene captions" in system and "4" in system and "(de)" in system and "KEINE Format-Tags" in system
+    assert "6 verschiedene captions" in system and "8 verschiedene hooks" in system and "(de)" in system and "KEINE Format-Tags" in system
     assert "Alter Hook" in calls[0][0][1]["content"] and "Text im Clip:" in calls[0][0][1]["content"]
     for m, c in enumerate(picks):
         assert len(c["captions"]) == 6  # the double is gone

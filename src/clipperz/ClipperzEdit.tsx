@@ -87,7 +87,9 @@ function camera(t: number, zooms: Zoom[], focus: Plan['focus'], drift: number, m
     const from = prev && prev.e >= z.s - 0.05 ? levelScale(prev.level, focus.h, max) : 1;
     const local = t - z.s;
     const len = Math.max(0.2, z.e - z.s);
-    S = z.mode === 'push' ? lerp(INOUT(cl(local / Math.min(0.7, len))), from, target) : target;
+    S = z.mode === 'push' ? lerp(INOUT(cl(local / Math.min(0.7, len))), from, target)
+      : z.mode === 'punch' ? lerp(EXPO(cl(local / Math.min(0.26, len))), from, target) // hook type „zoom“: fast snap in
+      : target;
     S *= 1 + drift * (local / Math.max(len, 1.5)); // the camera always moves a little
     if (z.shake && local < 0.3) shake = (1 - local / 0.3) * 14;
   } else {
@@ -864,7 +866,7 @@ function hookHeight(text: string, style: string) {
  * (captions pause while it is up). Never over the face. */
 function hookLayout(plan: Plan, preset: Preset): {top: number; takeover: boolean} {
   const text = plan.hook?.text ?? '';
-  const tall = hookHeight(text, preset.hook);
+  const tall = plan.hookMode === 'zoom' ? zoomHookHeight(text) : hookHeight(text, preset.hook);
   const end = plan.hook?.e ?? 1;
   // The camera may still move during the hook (push mode): check start, middle and end.
   let top = H;
@@ -888,6 +890,80 @@ function hookLayout(plan: Plan, preset: Preset): {top: number; takeover: boolean
   if (plan.pro) return {top: Math.max(SAFE.top, Math.min(H - SAFE.bottom - tall - 20, capY - tall / 2)), takeover: true};
   return {top: Math.max(bottom + 40, Math.min(H - SAFE.bottom - tall - 20, capY - tall / 2)), takeover: true};
 }
+
+// ---------- MASS CLIPZ hook types (29.10.2026, only with plan.hookMode / plan.flashAt) ----------
+
+const ZOOM_HOOK = 118;
+const ZOOM_HOOK_CHARS = 12;
+
+function zoomHookHeight(text: string) {
+  return hookLines(text, ZOOM_HOOK_CHARS).length * Math.round(ZOOM_HOOK * 0.98 + 6);
+}
+
+/** Hook type „zoom“: the hook word by word, big and bold – each word lands with a short pop, the longest one in the
+ * accent colour. Goes with the worker's punch zoom on the face in the first second. */
+const HookWords: React.FC<{text: string; end: number; accent: string; top: number; family?: string}> = ({text, end, accent, top, family}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const t = f / fps;
+  if (t > end) return null;
+  const lines = hookLines(text, ZOOM_HOOK_CHARS);
+  const n = lines.reduce((k, l) => k + l.split(' ').length, 0);
+  const step = Math.min(0.26, Math.max(0.12, (end - 0.7) / Math.max(1, n)));
+  const longest = text.toUpperCase().split(/\s+/).reduce((a, b) => (b.replace(/\W/g, '').length > a.replace(/\W/g, '').length ? b : a), '');
+  const kOut = ease(t, end - 0.18, 0.18, Easing.in(Easing.cubic));
+  let idx = 0;
+  return (
+    <div style={{position: 'absolute', left: SAFE.left - 20, right: SAFE.right - 50, top, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+      opacity: 1 - kOut, transform: `scale(${lerp(kOut, 1, 1.06)})`, filter: kOut > 0.01 ? `blur(${kOut * 10}px)` : undefined}}>
+      {lines.map((l, i) => (
+        <div key={i} style={{fontFamily: family ?? 'Montserrat', fontWeight: 900, fontSize: ZOOM_HOOK, lineHeight: 0.98, letterSpacing: '-0.025em', whiteSpace: 'nowrap',
+          textShadow: '0 6px 26px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.7)', WebkitTextStroke: '3px rgba(0,0,0,.85)', paintOrder: 'stroke fill'}}>
+          {l.split(' ').map((w, j) => {
+            const a = 0.08 + idx++ * step;
+            const k = ease(t, a, 0.2, POP);
+            return <span key={j} style={{display: 'inline-block', marginLeft: j ? '0.26em' : 0, color: w === longest ? accent : '#fff',
+              opacity: t < a ? 0 : cl(k * 3), transform: `scale(${lerp(k, 1.45, 1)}) translateY(${(1 - k) * -10}px)`}}>{w}</span>;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** Hook type „question“: the hook as a question on a full-width bar at the top for ~2 s (slides in and out). */
+const QuestionBar: React.FC<{text: string; end: number; accent: string; family?: string}> = ({text, end, accent, family}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const t = f / fps;
+  if (t > end) return null;
+  const kIn = ease(t, 0, 0.32);
+  const kOut = ease(t, end - 0.25, 0.25, Easing.in(Easing.cubic));
+  const y = (1 - kIn) * -60 + kOut * -60;
+  const words = text.split(/\s+/).filter(Boolean);
+  return (
+    <div style={{position: 'absolute', left: 0, right: 0, top: SAFE.top - 40, transform: `translateY(${y}px)`, opacity: cl(kIn * 1.5) * (1 - kOut)}}>
+      <div style={{background: 'rgba(255,255,255,.96)', padding: '30px 64px 30px', boxShadow: '0 18px 50px rgba(0,0,0,.28)', borderBottom: `8px solid ${accent}`,
+        display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0 18px'}}>
+        {words.map((w, i) => {
+          const k = ease(t, 0.12 + i * 0.05, 0.22);
+          return <span key={i} style={{fontFamily: family ?? 'Montserrat', fontWeight: 800, fontSize: 64, lineHeight: 1.1, letterSpacing: '-0.015em', color: C.INK,
+            opacity: k, transform: `translateY(${(1 - k) * 10}px)`, display: 'inline-block'}}>{w}</span>;
+        })}
+      </div>
+    </div>
+  );
+};
+
+/** Teaser hook type: a short, light flash where the clip starts after the preview. */
+const Flash: React.FC<{at: number}> = ({at}) => {
+  const f = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const d = f / fps - at;
+  if (d < -0.05 || d > 0.2) return null;
+  const k = d < 0 ? (d + 0.05) / 0.05 : 1 - d / 0.2;
+  return <AbsoluteFill style={{background: '#fff', opacity: 0.55 * cl(k), pointerEvents: 'none'}} />;
+};
 
 // ---------- text behind the speaker (needs the cut-out, style "depth") ----------
 
@@ -986,7 +1062,8 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
   };
   const inInsert = (t: number) => plan.inserts.some((x) => t >= x.s && t < x.e);
   const showHook = !!plan.hook && !(plan.fg && preset.hook === 'behind');
-  const hl = React.useMemo(() => (showHook ? hookLayout(plan, preset) : {top: 0, takeover: false}), [plan, preset, showHook]);
+  const hl = React.useMemo(() => (showHook && plan.hookMode !== 'question' ? hookLayout(plan, preset) : {top: 0, takeover: false}), [plan, preset, showHook]);
+  const capFamily = preset.cap.style === 'custom' ? (CAPTION_FONTS[(preset.cap as unknown as CustomCap).font] ?? CAPTION_FONTS.montserrat).family : undefined;
   const capHidden = (t: number) => inInsert(t) || (showHook && hl.takeover && t < plan.hook!.e);
   const total = plan.duration;
 
@@ -1030,7 +1107,10 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
       ) : null}
       {plan.captions ? (preset.cap.style === 'custom' ? <CustomCaptions plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
       {plan.captions && plan.pro && plan.emojis?.length ? <EmojiPops plan={plan} preset={preset} hidden={capHidden} /> : null}
-      {showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} cap={preset.cap.style === 'custom' ? (preset.cap as unknown as CustomCap) : undefined} /> : null}
+      {showHook && plan.hookMode === 'question' ? <QuestionBar text={plan.hook!.text} end={plan.hook!.e} accent={plan.accent} family={capFamily} />
+        : showHook && plan.hookMode === 'zoom' ? <HookWords text={plan.hook!.text} end={plan.hook!.e} accent={plan.accent} top={hl.top} family={capFamily} />
+        : showHook ? <Hook text={plan.hook!.text} end={plan.hook!.e} style={preset.hook} accent={plan.accent} top={hl.top} cap={preset.cap.style === 'custom' ? (preset.cap as unknown as CustomCap) : undefined} /> : null}
+      {typeof plan.flashAt === 'number' && plan.flashAt > 0 ? <Flash at={plan.flashAt} /> : null}
 
       {plan.inserts.map((x, i) => {
         const tr = x.tr ? byCode(x.tr) : null;

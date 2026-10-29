@@ -796,9 +796,13 @@ def review(chosen, sents, lo, hi, lang):
 # ~20 versions of one moment go out on hundreds of accounts: every version gets its own post text (caption, with its
 # own topic hashtags) and its own on-screen hook. One small extra AI call per chunk of moments (the review call is
 # already near its token limit with 15 moments), run in POOL next to the second speech pass. Classic runs: unchanged.
-N_CAPTIONS, N_HOOKS = 6, 4
-TEXT_CHUNK = 8  # moments per call: ~8 × 350 output tokens, well inside max_tokens
-TEXT_TOKENS = 6000
+N_CAPTIONS, N_HOOKS = 6, 8  # 29.10.2026: 8 hooks per moment (was 4) – the analytics compare which hook works
+TEXT_CHUNK = 8  # moments per call: ~8 × 550 output tokens, well inside max_tokens
+TEXT_TOKENS = 8000
+
+# The angles the hooks of one moment cover (one hook each, in this order) – the run page and the analytics compare them.
+HOOK_ANGLES = ("Frage", "klare Behauptung", "Zahl/Fakt aus dem Clip", "Zitat der Schlüsselzeile", "Neugier-Lücke",
+               "„POV: …“", "direkte Ansprache („Du …“)", "Kontrast („Erst …, dann …“ / „Alle denken …, aber …“)")
 
 TEXT_PROMPT = (
     "Du schreibst Post-Texte für Kurzvideos (Clips aus einem langen Video). Jeder Clip wird in vielen Versionen auf vielen "
@@ -811,10 +815,14 @@ TEXT_PROMPT = (
     "- Hashtags zwischen den captions variieren (andere Kombinationen, alle zum Thema), klein geschrieben, deutsch oder "
     "englisch, keine Fantasie-Tags; KEINE Format-Tags wie #podcast, #stream, #twitch, #youtube, #clips, #fyp – die setzt "
     "das System passend zur Quelle.\n"
-    "- hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, packend, nur was im Clip gesagt wird. Die {nh} hooks "
-    "klar verschieden.\n"
-    "Antworte NUR mit JSON: {{\"clips\": [{{\"i\": Nummer, \"captions\": [\"…\"], \"hooks\": [\"…\"]}}]}} – "
-    "{nc} captions und {nh} hooks für jeden Clip."
+    "- hook = Titel im Bild für die ersten 2 Sekunden: 2–6 Wörter, kurz und packend, NUR was im Clip gesagt wird – keine "
+    "Clickbait-Lüge, keine erfundene Zahl, nichts versprechen, was der Clip nicht hält. Die {nh} hooks klar verschieden, "
+    "jeder aus einem anderen Blickwinkel, in dieser Reihenfolge: {angles}. Passt ein Blickwinkel nicht zum Clip (z. B. keine "
+    "Zahl im Clip), nimm stattdessen einen weiteren ehrlichen Blickwinkel – nie etwas erfinden.\n"
+    "- questions = dieselben {nh} hooks, jeder als kurze Frage umformuliert (2–7 Wörter, endet mit „?“, gleicher Inhalt; "
+    "ist der hook schon eine Frage, dieselbe Frage). Gleiche Reihenfolge wie hooks.\n"
+    "Antworte NUR mit JSON: {{\"clips\": [{{\"i\": Nummer, \"captions\": [\"…\"], \"hooks\": [\"…\"], \"questions\": [\"…?\"]}}]}} – "
+    "{nc} captions, {nh} hooks und {nh} questions für jeden Clip."
 )
 
 
@@ -822,7 +830,7 @@ def _text_call(items, lang):
     """One AI call for a chunk of moments. items: [(i, clip, clip text)]. Returns {i: answer} – {} on any failure."""
     blocks = [f"=== Clip {i}\nHook bisher: {c.get('hook') or '-'}\nPost-Text bisher: {c.get('caption') or '-'}\n"
               f"Text im Clip: {text[:1500]}" for i, c, text in items]
-    msgs = [{"role": "system", "content": TEXT_PROMPT.format(nc=N_CAPTIONS, nh=N_HOOKS, lang=lang)},
+    msgs = [{"role": "system", "content": TEXT_PROMPT.format(nc=N_CAPTIONS, nh=N_HOOKS, lang=lang, angles=", ".join(HOOK_ANGLES))},
             {"role": "user", "content": "\n\n".join(blocks)}]
     try:
         for _ in range(2):
@@ -860,6 +868,28 @@ def hook_pool(raw):
     return out[:N_HOOKS]
 
 
+def short_question(q):
+    """A hook as a question (hook type „question“): like short_hook, but it must end with „?“ – else ""."""
+    q = short_hook(q)
+    return q if q.endswith("?") and len(q) > 3 else ""
+
+
+def hook_questions(raw_hooks, raw_qs):
+    """{hook: the same hook as a question} – questions[k] belongs to hooks[k] (same order in the AI answer). A hook that
+    already is a question is its own question. Hooks without a usable question are left out (no question type then)."""
+    out = {}
+    hs = raw_hooks if isinstance(raw_hooks, list) else []
+    qs = raw_qs if isinstance(raw_qs, list) else []
+    for k, x in enumerate(hs):
+        h = short_hook(x)
+        if not h or h in out:
+            continue
+        q = short_question(h) or (short_question(qs[k]) if k < len(qs) else "")
+        if q:
+            out[h] = q
+    return out
+
+
 def start_text_variants(picks, sents, lang):
     """Submits the post-text calls (one per TEXT_CHUNK moments) to POOL. Returns the jobs for finish_text_variants."""
     items = [(i, c, clip_text(c, sents)) for i, c in enumerate(picks)]
@@ -882,6 +912,7 @@ def finish_text_variants(jobs):
         for i, c, text in ch:
             r = rows.get(i) or {}
             c["captions"], c["hooks"] = caption_pool(r.get("captions"), text), hook_pool(r.get("hooks"))
+            c["hook_qs"] = hook_questions(r.get("hooks"), r.get("questions"))
             n += bool(c["captions"] or c["hooks"])
     print(f"post texts: {n} moments with their own texts per version", flush=True)
 
@@ -1312,18 +1343,67 @@ def clip_order(c):
 
 
 def sent_intervals(s, opener):
-    """Cut intervals of one sentence exactly as the clip plays it: fillers out; the first sentence of the clip never
-    starts on "Und …", "Also …", "Ja, …" – those words carry no meaning on their own."""
+    """Cut intervals of one sentence exactly as the clip plays it: fillers out; stutter repeats out (stutter_drops: the
+    first of two back-to-back „Parfüm, Parfüm“); the first sentence of the clip never starts on "Und …", "Also …",
+    "Ja, …" – those words carry no meaning on their own."""
     ws = [w for w in s if norm(w["w"]) not in ce.FILLERS] or s
-    if not opener:
-        return ce.word_intervals(ws, DURATION)
     dropped = None
-    while len(ws) > 4 and norm(ws[0]["w"]) in WEAK_OPENERS:
-        dropped, ws = ws[0], ws[1:]
-    part = ce.word_intervals(ws, DURATION)
+    if opener:
+        while len(ws) > 4 and norm(ws[0]["w"]) in WEAK_OPENERS:
+            dropped, ws = ws[0], ws[1:]
+    gone = stutter_drops(ws)
+    if not gone:
+        part = ce.word_intervals(ws, DURATION)
+    else:  # one interval run per stretch between dropped words, never reaching into a dropped word
+        part, run_ = [], []
+        for k in range(len(ws) + 1):
+            if k < len(ws) and k not in gone:
+                run_.append(k)
+                continue
+            if run_:
+                iv = [list(x) for x in ce.word_intervals([ws[x] for x in run_], DURATION)]
+                a0, b0 = run_[0], run_[-1]
+                if iv and a0 - 1 in gone:  # starts right after a dropped word: not a millisecond of it
+                    iv[0][0] = max(iv[0][0], min(ws[a0 - 1]["e"], ws[a0]["s"]))
+                if iv and b0 + 1 in gone:  # ends right before a dropped word
+                    iv[-1][1] = min(iv[-1][1], max(ws[b0 + 1]["s"], ws[b0]["e"]))
+                part += [(round(a, 3), round(b, 3)) for a, b in iv if b - a > 0.05]
+                run_ = []
+        if not part:
+            part = ce.word_intervals(ws, DURATION)
     if dropped and part:  # the breathy in-point must not reach back into the dropped word
         part[0] = (round(max(part[0][0], dropped["e"] + 0.01), 3), part[0][1])
     return part
+
+
+# Leif 29.10.2026: „Parfüm, Parfüm“ – a word or short phrase said twice back to back sounds like a stutter. The first
+# one goes (the second is the one that carries on into the sentence). Intensifiers said twice on purpose stay.
+STUTTER_GAP = 1.0  # s: the repeat must start within this time after the first one ends
+STUTTER_KEEP = {"sehr", "ganz", "viel", "viele", "immer", "nein", "doch", "mega", "richtig", "so", "ja", "nee", "no", "very",
+                "really", "bitte", "los", "schnell", "hallo", "danke", "haha", "weiter", "komm", "come", "go", "never", "nie",
+                "niemals", "oh", "wow", "ey", "hey", "okay", "ok", "tick", "tack", "bla"}
+
+
+def stutter_drops(ws):
+    """Indices of words to drop in one sentence: the FIRST of two back-to-back identical 1–4 word sequences
+    (clipperz_edit._repeats), when the repeat starts within STUTTER_GAP. Not dropped: intensifiers on purpose
+    („sehr, sehr“, „nein nein“), a word said three times or more (emphasis), and never the sentence's last word."""
+    if len(ws) < 2:
+        return set()
+    nw = [re.sub(r"[^a-zäöüß0-9]", "", w["w"].lower()) for w in ws]
+    gone = set()
+    for i, j in sorted(ce._repeats(ws), key=lambda h: (h[0], h[0] - h[1])):  # longest sequence first
+        n = j - i + 1
+        if any(k in gone for k in range(i, i + 2 * n)):
+            continue
+        if ws[j + 1]["s"] - ws[j]["e"] > STUTTER_GAP:
+            continue
+        if n == 1 and (nw[i] in STUTTER_KEEP or (i + 2 < len(nw) and nw[i + 2] == nw[i]) or (i > 0 and nw[i - 1] == nw[i])):
+            continue
+        if n > 1 and all(x in STUTTER_KEEP for x in nw[i:j + 1]):
+            continue
+        gone.update(range(i, j + 1))
+    return gone
 
 
 def order_intervals(order, sents):
@@ -1625,8 +1705,15 @@ def look_plan(state, preset_id, look, log=False):
     focus, layout, crop_h = state["focus"], state["layout"], state["crop_h"]
     fx = fx_for(state, look.get("fx"), look.get("v", 0), look.get("avoid") or ())  # the effect, or another one that fits
     media = fx_media(state, fx)
+    tz = None
+    if look.get("hookType") == "teaser":  # MASS CLIPZ: the strongest line first as a preview (teaser_media)
+        tm = teaser_media(state, media, fx, (HARD_LEN[1] if HARD_LEN else 60) - LEN_SAFETY)
+        if tm:
+            media, tz = tm, tm["teaser"]
     main_rel, main_abs, dur = media["rel"], media["abs"], media["dur"]
     words, res = json.loads(json.dumps(media["words"])), json.loads(json.dumps(state["res"]))
+    if tz:
+        res = teaser_res(res, tz, len(words))
     plan = ce.build_plan(words, dur, [], preset_id, state["captions"], focus, res, main_rel, [], hi_res=False, src_min=1080)
     accent = look.get("accent")
     if accent:  # customer / look colour wins over the style's accent list (captions, hook, progress bar)
@@ -1669,6 +1756,9 @@ def look_plan(state, preset_id, look, log=False):
                 plan.setdefault("emojis", []).append({"i": i, "e": _emoji_key(e), "src": emoji_src(e)})
         plan["emojis"] = sorted(plan["emojis"], key=lambda x: x["i"])
     plan["fx"] = fx
+    if tz:
+        plan["hookType"] = "teaser"
+        plan["flashAt"] = tz["cut"]  # a light flash where the clip starts after the preview
     try:
         ce.level_sfx(plan, main_abs, state["sfx"])
     except Exception as e:
@@ -1797,10 +1887,11 @@ def fx_for(state, fx, v=0, avoid=()):
     return pool[(v * 7 + FX_LIST.index(fx)) % len(pool)] if pool else None
 
 
-def fx_timeline(state, segs, name, vf=None, audio=None, tail_echo=None):
-    """Cuts main.mp4 into `segs` (normal / slow / fast / reverse / freeze / gray) with ffmpeg and maps the words onto
+def fx_timeline(state, segs, name, vf=None, audio=None, tail_echo=None, src=None):
+    """Cuts main.mp4 (or `src`, e.g. a cut that already has an effect) into `segs` (normal / slow / fast / reverse /
+    freeze / gray; "fade": short audio fades at both ends, no click at a hard join) with ffmpeg and maps the words onto
     the new timeline. Returns (relative path, absolute path, words, duration, starts of the segments)."""
-    src = state["main_abs"]
+    src = src or state["main_abs"]
     rel = state["main"][:-len("main.mp4")] + f"main_{name}.mp4"
     dst = src[:-len("main.mp4")] + f"main_{name}.mp4"
     parts, vl, al, out_words, starts, t = [], [], [], [], [], 0.0
@@ -1820,9 +1911,11 @@ def fx_timeline(state, segs, name, vf=None, audio=None, tail_echo=None):
                   "fast": f"asetpts=PTS-STARTPTS,atempo={f}", "reverse": "asetpts=PTS-STARTPTS,volume=0"}[kind]
             end = f":{b}" if b is not None and b < state["dur"] else ""
             parts.append(f"[0:v]trim={a}{end},{vs}{gray}[v{k}]")
-            parts.append(f"[0:a]aresample=48000,aformat=channel_layouts=stereo,atrim={a}{end},{au}[a{k}]")
             seg_b = b if b is not None else state["dur"]
             length = (seg_b - a) / (f if kind == "fast" else 1.0) * (1 / f if kind == "slow" else 1.0)
+            if g.get("fade"):
+                au += f",afade=t=in:d=0.012,afade=t=out:st={max(0.0, length - 0.03):.3f}:d=0.03"
+            parts.append(f"[0:a]aresample=48000,aformat=channel_layouts=stereo,atrim={a}{end},{au}[a{k}]")
             if kind != "reverse" and g.get("words", True):
                 for w in state["words"]:
                     if w["s"] >= a - 0.02 and w["s"] < seg_b:
@@ -1921,15 +2014,205 @@ def fx_media(state, fx):
     except Exception as e:
         print(f"effect {fx} failed, plain cut instead:", type(e).__name__, str(e)[:300], flush=True)
         out = None
-    if out and out["abs"] != state["main_abs"] and state.get("serve_dir"):  # the renderer was bundled before this file existed
-        try:
-            target = os.path.join(state["serve_dir"], os.path.basename(out["abs"]))
-            if not os.path.exists(target):
-                os.link(out["abs"], target)
-        except OSError:
-            shutil.copy2(out["abs"], os.path.join(state["serve_dir"], os.path.basename(out["abs"])))
+    if out and out["abs"] != state["main_abs"]:
+        serve_file(state, out["abs"])
     cache[fx] = out
     return out or plain
+
+
+def serve_file(state, path):
+    """A media file made after the renderer was bundled: linked into the bundle's public job folder."""
+    if not state.get("serve_dir"):
+        return
+    target = os.path.join(state["serve_dir"], os.path.basename(path))
+    try:
+        if not os.path.exists(target):
+            os.link(path, target)
+    except OSError:
+        shutil.copy2(path, target)
+
+
+# ---------- hook type: how the first ~2 s of a version look (MASS CLIPZ, Leif 29.10.2026) ----------
+# ~20 versions of a moment go out on different accounts; the analytics compare which opening works. Next to the hook
+# text (8 per moment, rotate_texts) every version gets one of four openings, rotated independently of the text:
+#   title    – the style's hook title over the face (as before)
+#   teaser   – the strongest line of the moment (key words of the edit plan, else the payoff) plays first for
+#              ~1.2–1.8 s as a preview with a quick whoosh and a light flash, then the clip starts from its beginning.
+#              Only when the cut has room (length stays inside lo..hi) and never a line from the first ~5 s (that
+#              would sound like a stutter: „… Parfüm – Parfüm …“).
+#   zoom     – a strong punch-in on the face in the first second + the hook title word by word, bigger and bolder
+#   question – the hook as a question on a full-width bar at the top for 2 s (captions keep running below)
+HOOK_TYPES = ("title", "teaser", "zoom", "question")
+TEASER_MIN, TEASER_MAX = 1.2, 1.85  # s of preview, at whole phrase borders
+TEASER_NOT_BEFORE = 5.0  # s: the preview line never starts in the first ~5 s of the cut
+TEASER_FX_ROOM = 0.9     # s an effect may still add (slow motion, pause) – kept free when planning
+ZOOM_HOOK_SEC = 1.0      # s of the punch-in
+QUESTION_SEC = 2.0       # s the question bar stays
+
+
+def teaser_room(c, sents, hi):
+    """Plan time: can this cut take a teaser preview? Not when it already opens on its pulled-forward teaser sentence
+    (a second preview would be double), not when it is too short for a line after TEASER_NOT_BEFORE, and only when the
+    longest preview (+ an effect's extra time) still fits under the maximum length."""
+    if c.get("teaser") is not None:
+        return False
+    n = played_len(c, sents)
+    return n >= TEASER_NOT_BEFORE + TEASER_MAX + 1.0 and n + TEASER_MAX + TEASER_FX_ROOM <= hi - LEN_SAFETY
+
+
+def version_question(c, hook_k):
+    """The question form of the hook version hook_k shows ("" when there is none: no question type then)."""
+    hooks = c.get("hooks") or []
+    h = short_hook(hooks[hook_k % len(hooks)]) if hooks and hook_k is not None else short_hook(c.get("hook"))
+    if not h:
+        return ""
+    return short_question(h) or short_question((c.get("hook_qs") or {}).get(h))
+
+
+def rotate_hook_types(allowed, hook_ks=None):
+    """The hook type of every version of one moment. allowed[v] = the types version v can have (its cut / hook text).
+    Never the type of the version before (when another one is allowed); the least used type first, so all four are used
+    before one repeats; then a (hook text, type) pair that is new; ties rotate with the version index, shifted every
+    four versions, so text and type do not move in lockstep."""
+    count = {t: 0 for t in HOOK_TYPES}
+    pairs, out = set(), []
+    for v, ok in enumerate(allowed):
+        ok = [t for t in HOOK_TYPES if t in (ok or ())] or ["title"]
+        prev = out[-1] if out else None
+        hk = hook_ks[v] if hook_ks and v < len(hook_ks) else None
+        t = min(ok, key=lambda t: (t == prev, count[t], (hk, t) in pairs, (HOOK_TYPES.index(t) - v - v // 4) % 4))
+        count[t] += 1
+        pairs.add((hk, t))
+        out.append(t)
+    return out
+
+
+def hook_type_fallback(planned, prev, nxt, question_ok):
+    """The type a version gets when its planned type does not work out (teaser: no fitting line or no room after all):
+    another one than its neighbours."""
+    for t in ("zoom", "title", "question"):
+        if t != planned and t != prev and t != nxt and (t != "question" or question_ok):
+            return t
+    return "title" if planned != "title" else "zoom"
+
+
+def teaser_span(words, dur, emph=()):
+    """The preview line of a cut: whole phrases (borders: pause >= 0.3 s or punctuation), TEASER_MIN..TEASER_MAX s,
+    starting at TEASER_NOT_BEFORE s or later, and never the words the cut opens with or ending on the cut's first word
+    (both would sound like a stutter). Most key words wins, then a line that ends a sentence, then an exclamation /
+    question, then the later one (the payoff). Returns (start, end, first word, last word) or None."""
+    if len(words) < 4:
+        return None
+    marks = (".", "!", "?", ",", ";", ":", "…")
+    starts = [i for i in range(len(words)) if i == 0 or words[i]["s"] - words[i - 1]["e"] >= 0.3 or words[i - 1]["w"].rstrip().endswith(marks)]
+    ends = {k - 1 for k in starts if k > 0} | {len(words) - 1}
+    opening = [norm(w["w"]) for w in words[:3]]
+    best = None
+    for x in starts:
+        if words[x]["s"] < TEASER_NOT_BEFORE:
+            continue
+        a = max(0.0, words[x]["s"] - 0.06, words[x - 1]["e"] + 0.01 if x > 0 else 0.0)
+        for y in range(x, len(words)):
+            b = min(dur, words[y]["e"] + 0.1, words[y + 1]["s"] - 0.01 if y + 1 < len(words) else dur)
+            if b - a > TEASER_MAX:
+                break
+            if y not in ends or b - a < TEASER_MIN:
+                continue
+            seq = [norm(w["w"]) for w in words[x:y + 1]]
+            if seq[:3] == opening[:len(seq[:3])] or seq[-1] == opening[0]:
+                continue
+            last = words[y]["w"].rstrip()
+            # no „und …“ / „also …“ start; key words and a complete sentence count the same
+            score = (seq[0] not in WEAK_OPENERS, sum(1 for i in range(x, y + 1) if i in emph) + last.endswith(END_MARKS),
+                     last.endswith(("!", "?")), words[x]["s"])
+            if best is None or score > best[0]:
+                best = (score, round(a, 3), round(b, 3), x, y)
+    return best[1:] if best else None
+
+
+def teaser_media(state, media, fx, top):
+    """The cut (with its effect) behind a preview of its strongest line: [line] + [whole cut]. Like fx_media:
+    {rel, abs, words, dur, zooms, sfx, emojis} plus "teaser": {cut: where the clip starts, n: preview words, first: the
+    preview's first word in the cut}. None when there is no fitting line or the clip would get longer than `top`."""
+    cache = state.setdefault("fx_cache", {})
+    key = f"teaser:{fx}"
+    if key in cache:
+        return cache[key]
+    out = None
+    try:
+        words, dur = media["words"], media["dur"]
+        same = len(words) == len(state["words"])  # the edit plan's key words still match the words 1:1
+        emph = {i for i in (_int(x) for x in (state["res"] or {}).get("emphasis") or []) if i is not None} if same else set()
+        sp = teaser_span(words, dur, emph)
+        if sp and dur + (sp[1] - sp[0]) <= top:
+            a, b, x, _y = sp
+            st = {**state, "words": words, "dur": dur}
+            name = f"{fx or 'plain'}_teaser"
+            rel, ab, ws, d, starts = fx_timeline(st, [{"a": a, "b": b, "fade": True}, {"a": 0, "b": None, "fade": True}], name, src=media["abs"])
+            T = round(starts[1], 3)
+            n_pre = sum(1 for w in ws if w["s"] < T - 1e-6)
+            mv = lambda t: round(t + T, 3)
+            vol = state["sfx"]
+            out = {**media, "rel": rel, "abs": ab, "words": ws, "dur": d,
+                   # the preview closer (slow push in), the clip then starts on its own framing
+                   "zooms": [(0.0, T, 2, False)] + [(mv(za), mv(zb), lv, sh) for za, zb, lv, sh in media["zooms"]],
+                   "sfx": [(max(0.0, T - 0.2), "whoosh", vol * 0.7)] + [(mv(t), nm, v_) for t, nm, v_ in media["sfx"]],
+                   "emojis": [(mv(t), e) for t, e in media["emojis"]],
+                   "teaser": {"cut": round(T, 3), "n": n_pre, "first": x if same else None}}
+            serve_file(state, ab)
+            print(f"teaser: „{' '.join(w['w'] for w in ws[:n_pre])}“ {T:.1f}s first, clip {d:.1f}s", flush=True)
+    except Exception as e:
+        print("teaser failed, other hook type instead:", type(e).__name__, str(e)[:300], flush=True)
+        out = None
+    cache[key] = out
+    return out
+
+
+def teaser_res(res, tz, n_words):
+    """The edit plan of a cut on its teaser timeline: every word index moves back by the preview's words; the preview
+    words get the key-word marks / fixes of the words they repeat."""
+    n, first = tz["n"], tz["first"]
+    out = dict(res)
+    emph = [i for i in (_int(x) for x in res.get("emphasis") or []) if i is not None]
+    pre = [p for p in range(n) if first is not None and first + p in emph]
+    out["emphasis"] = pre + [i + n for i in emph if 0 <= i + n < n_words]
+    fixes = res.get("fixes") if isinstance(res.get("fixes"), dict) else {}
+    fx2 = {str(i + n): v for i, v in ((_int(k), v) for k, v in fixes.items()) if i is not None}
+    if first is not None:
+        fx2.update({str(p): fixes[str(first + p)] for p in range(n) if str(first + p) in fixes})
+    out["fixes"] = fx2
+    if "emojis" in res:
+        out["emojis"] = [{**x, "i": _int(x.get("i")) + n} for x in res.get("emojis") or [] if isinstance(x, dict) and _int(x.get("i")) is not None]
+    return out
+
+
+def version_hook(plan, meta, hook_type, question=""):
+    """(plan, meta) of one version with its hook type (meta["hookType"] goes into the clip-result body). The teaser is
+    already in the plan (look_plan); zoom / question only change what is drawn on top. Anything broken: title."""
+    try:
+        plan, meta = dict(plan), dict(meta)
+        text = (plan.get("hook") or {}).get("text") or meta.get("hook") or ""
+        if hook_type == "teaser" and plan.get("hookType") != "teaser":
+            hook_type = "title"
+        if hook_type == "question" and question:
+            plan["hookMode"] = "question"
+            plan["hook"] = {"text": question, "e": QUESTION_SEC}
+            meta["hook"] = question
+        elif hook_type == "zoom":
+            plan["hookMode"] = "zoom"
+            if text:
+                plan["hook"] = {"text": text, "e": max(2.0, float((plan.get("hook") or {}).get("e") or 0.0))}
+            zs = plan.get("zooms") or []
+            if not (len(zs) == 1 and zs[0].get("level") == 0):  # the layout allows zooms: punch in on the face
+                add_zoom(plan, 0.0, min(ZOOM_HOOK_SEC, float(plan.get("duration") or 9) / 3), 2, False)
+                plan["zooms"] = [{**z, "mode": "punch"} if z["s"] == 0 and z["level"] == 2 else z for z in plan["zooms"]]
+        elif hook_type != "teaser":
+            hook_type = "title"
+        plan["hookType"] = meta["hookType"] = hook_type
+    except Exception as e:
+        print("hook type failed, keeping the title:", type(e).__name__, e, flush=True)
+        meta = {**meta, "hookType": "title"}
+    return plan, meta
 
 
 def add_zoom(plan, a, b, level, shake):
@@ -2322,6 +2605,12 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
     # per moment: which caption / hook each version gets (its own post text and title, see rotate_texts)
     cap_rot = [rotate_texts([ci for ci, _ in p], len(c.get("captions") or [])) for p, c in zip(plans, picks)]
     hook_rot = [rotate_texts([ci for ci, _ in p], len(c.get("hooks") or [])) for p, c in zip(plans, picks)]
+    # per moment: the hook type (opening of the first ~2 s) of each version – rotated independently of the hook text
+    q_rot = [[version_question(c, hk) for hk in hr] for c, hr in zip(picks, hook_rot)]
+    room = [{ci: teaser_room(cuts[m][ci][1], cuts[m][ci][2], hi) for ci in {ci for ci, _ in p}} for m, p in enumerate(plans)]
+    type_rot = [rotate_hook_types([{"title", "zoom"} | ({"teaser"} if room[m][ci] else set()) | ({"question"} if q_rot[m][v] else set())
+                                   for v, (ci, _) in enumerate(p)], hook_rot[m]) for m, p in enumerate(plans)]
+    last_type = {}  # moment -> hook type its last version really got
     fx_used = {}  # (moment, cut index) -> effects its versions already have
     total = min(target, sum(len(p) for p in plans))
     via = "moments" if per <= 1 else "looks"
@@ -2386,6 +2675,8 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                     "cut": cuts[m][cur_ci][0]}  # which cut of the moment: "orig", "24s", "24s-2s", "orig+4s" …
             if isinstance(plan.get("fx"), str):  # the effect of this version (no effect: field left out)
                 body["fx"] = plan["fx"]
+            if plan.get("hookType") in HOOK_TYPES:  # how the first ~2 s look (title / teaser / zoom / question)
+                body["hookType"] = plan["hookType"]
             accent = plan.get("accent") if isinstance(plan.get("accent"), str) else look.get("accent")
             if isinstance(accent, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", accent):
                 body["accent"] = accent.upper()
@@ -2395,7 +2686,8 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
             code, j = post("clip-result", body)
             if code != 200:
                 raise ClipError(f"Video nicht angenommen ({code}: {j.get('error')})")
-            print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')} fx {plan.get('fx') or '-'}] "
+            print(f"video {idx} done: moment {m} v{v} cut {cuts[m][cur_ci][0]} [{body['style']} {body.get('accent', '-')} fx {plan.get('fx') or '-'} "
+                  f"hook {body.get('hookType', '-')}: {body.get('hook') or '-'}] "
                   f"{meta['duration']:.0f}s in {time.time() - t0:.0f}s", flush=True)
             if not ARGS.no_upload:
                 drop_files(final, poster)
@@ -2447,15 +2739,23 @@ def render_variants(serve, picks, sents, src, preset_id, captions, lang, cfg, t_
                 print("clip charge refused:", j.get("error"))
                 timed_out = True  # stop – the server no longer accepts videos
                 break
+            ht = type_rot[m][v]
             try:
                 had = fx_used.setdefault((m, cur_ci), set())
-                plan = plan0 if li == 0 else look_plan(state, look["style"], {**look, "v": v, "avoid": had})
+                if li == 0 and ht != "teaser":
+                    plan = plan0
+                else:
+                    plan = look_plan(state, look["style"], {**look, "v": v, "avoid": had, "hookType": ht})
                 had.add(plan.get("fx"))
             except Exception as e:
                 print(f"video {idx} failed:", type(e).__name__, e, flush=True)
                 post("clip-result", {"ok": False, "index": idx})
                 continue
+            if ht == "teaser" and plan.get("hookType") != "teaser":  # no fitting line / no room after all
+                ht = hook_type_fallback("teaser", last_type.get(m), type_rot[m][v + 1] if v + 1 < len(type_rot[m]) else None, bool(q_rot[m][v]))
+            last_type[m] = ht
             plan, meta_v = version_texts(c, plan, meta, cap_rot[m][v], hook_rot[m][v])
+            plan, meta_v = version_hook(plan, meta_v, ht, q_rot[m][v])
             plan = version_music(plan, m, v)
             if len(pending) >= RENDER_PARALLEL:
                 done_, _ = fwait(list(pending), return_when=FIRST_COMPLETED)

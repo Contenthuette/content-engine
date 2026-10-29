@@ -7,8 +7,9 @@ export type Zoom = {
   e: number;
   /** 0 = as shot, 1 = closer, 2 = close-up on the face */
   level: 0 | 1 | 2;
-  /** cut = jump at the start (talking-head jump cut), push = smooth move into the level */
-  mode: 'cut' | 'push';
+  /** cut = jump at the start (talking-head jump cut), push = smooth move into the level, punch = fast snap in
+   * (~0.25 s, MASS CLIPZ hook type „zoom“) */
+  mode: 'cut' | 'push' | 'punch';
   shake?: boolean;
 };
 
@@ -56,4 +57,12 @@ export type Plan = {
   /** CLIPPERZ Pro "Emojis in Untertiteln": an emoji pops up with word i (picture src, e.g. lib/emoji/fire.webp) above /
    * below / next to the caption, never over the face. Without it no emojis (old behaviour). */
   emojis?: {i: number; e: string; src: string}[];
+  /** MASS CLIPZ hook type (29.10.2026), default off: how the hook is drawn in the first ~2 s.
+   * zoom = the hook word by word, bigger and bolder (with a punch zoom from the worker); question = the hook (a question)
+   * on a full-width bar at the top, captions keep running. Without it the style's own hook title (old behaviour). */
+  hookMode?: 'zoom' | 'question';
+  /** Worker label of the opening (title | teaser | zoom | question) – info only. */
+  hookType?: string;
+  /** MASS CLIPZ teaser: second where the clip starts after the preview – a short light flash there. Without it none. */
+  flashAt?: number;
 };
