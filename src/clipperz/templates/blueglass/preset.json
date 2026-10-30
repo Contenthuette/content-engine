@@ -4,6 +4,7 @@
     "about": "Blaue Glas-UI auf der Brust des Sprechers: dreistufige Typo (kleine kursive Zuleitung, SCHLÜSSELWORT fett-kursiv im Blau-Verlauf, kleiner Nachsatz), jede Einstellung landet unscharf und leicht vergrößert, Hook als Fortschritts-Widget mit Crash-Zoom, Layoutbruch in eine App-Kachel mit Chat-Zeilen, Checkliste mit Cursor, Pillen mit Emojis, Polaroid und Sucher für eigene Bilder, blaues Glasband unten. Kühler, gesättigter Look.",
     "composition": "EditzBlueGlass",
     "planner": "blueglass",
+    "agent": true,
     "captions": true,
     "emphasis": "phrase",
     "cap": {"font": "poppins", "weight": 800, "upper": true, "size": 124, "words": 4, "y": 0.6, "style": "custom", "color": "#36A5F5", "track": -0.02},

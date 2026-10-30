@@ -1251,9 +1251,19 @@ def apply_ops(plan, res, job):
             drop.update(range(max(0, a), min(n - 1, b) + 1))
         except (TypeError, ValueError, IndexError):
             pass
-    if drop and len(drop) < n - 2:
+    # cut_times (EDITZ agent): raw time ranges, e.g. a dead pause between two words; words inside them go too
+    extra = []
+    for rng in res.get("cut_times", []) or []:
+        try:
+            a, b = float(rng[0]), float(rng[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if 0 <= a < b <= plan["duration"]:
+            extra.append((a, b))
+            drop.update(k for k, w in enumerate(words) if w["s"] < b and w["e"] > a)
+    if (drop or extra) and len(drop) < n - 2:
         dur = plan["duration"]
-        cuts, i = [], 0
+        cuts, i = list(extra), 0
         while i < n:
             if i in drop:
                 j = i
@@ -1265,8 +1275,14 @@ def apply_ops(plan, res, job):
                 i = j + 1
             else:
                 i += 1
+        merged = []
+        for a, b in sorted(cuts):
+            if merged and a <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+            else:
+                merged.append((a, b))
         iv, t = [], 0.0
-        for a, b in cuts:
+        for a, b in merged:
             if a - t > 0.05:
                 iv.append((round(t, 3), round(a, 3)))
             t = b
@@ -1553,11 +1569,21 @@ def main():
     apply_customer_look(plan, cfg)
     plan = template_extend(plan, pr, {"words": words_cut, "duration": out_dur, "items": items, "broll_rel": broll_rel, "res": res,
                                       "focus": focus, "job": job, "pub": pub, "cfg": cfg, "llm": llm_json})
+    agent = None
+    if pr.get("agent"):  # EDITZ agent: Claude looks at the video and corrects the blind template plan (worker/editz_agent.py)
+        try:
+            import editz_agent
+            agent = editz_agent.start(sys.modules[__name__], plan, pr, preset_id, {"words": words_cut, "duration": out_dur, "items": items,
+                                      "broll_rel": broll_rel, "job": job, "pub": pub, "cfg": cfg})
+            if agent:
+                plan = agent.direct(plan)
+        except Exception as e:
+            print("agent failed, template plan renders:", type(e).__name__, e)
     try:
         level_sfx(plan, os.path.join(pub, "main.mp4"), pr.get("sfxVol", 0.4))
     except Exception as e:
         print("sfx levelling failed:", e)
-    if pr.get("depth"):  # text behind the speaker needs the cut-out; without it the style still renders (text in front)
+    if pr.get("depth") and not plan.get("fg"):  # text behind the speaker needs the cut-out; without it the style still renders (text in front)
         report(note="Person wird freigestellt (Text hinter dir)…")
         try:
             cutout(os.path.join(pub, "main.mp4"), os.path.join(pub, "fg.webm"))
@@ -1565,11 +1591,16 @@ def main():
             plan["outScale"] = 1  # the cut-out is 1080p
         except Exception as e:
             print("cut-out failed, rendering without it:", e)
+    if agent:
+        plan = agent.review(plan)
     print(f"plan: {len(plan['zooms'])} zooms, {len(plan['broll'])} b-roll, {len(plan['inserts'])} beats, hook: {plan['hook']}, focus: {focus}")
 
     report(note=f"Video wird gerendert ({pr['label']})…", stats={"inSec": in_dur, "outSec": out_dur, "broll": len(plan["broll"])})
     final = os.path.join(W, "final.mp4")
     render(plan, final)
+    if agent:
+        plan = agent.final_check(plan, final, lambda p: render(p, final))
+        agent.close()
     report(note="Fertiges Video wird hochgeladen…")
     url = upload(final)
     try:  # plan + media for corrections by prompt

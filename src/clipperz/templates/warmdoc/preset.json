@@ -4,6 +4,7 @@
     "about": "Warmes Gespräch, das ständig in die echte Welt schaut: warmes mattes Grading mit braunem Verlauf unten, nur harte Schnitte zwischen drei Kamera-Ausschnitten, Silhouetten-Blitz als Hook, kleine Zuleitung + großes Schlüsselwort (Anton) mit Orange-Chip und Balken, Aufzählungen als wachsende Chip-Reihe, B-Roll auf jedem konkreten Wort.",
     "composition": "EditzWarmDoc",
     "planner": "warmdoc",
+    "agent": true,
     "captions": true,
     "cap": {
       "style": "custom",

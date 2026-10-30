@@ -4,6 +4,7 @@
     "about": "Magazin-Look: pro Satzteil EIN riesiges schmales Schlüsselwort in Lime, das sich Buchstabe für Buchstabe aufbaut, davor kleine Handschrift-Wörter; harte Wechsel zwischen Sprecher und weißer Bühne mit Fensterlicht (Leitobjekt dreht sich, Wörter auf einem Bogen darum, 3D-Lime-Band), Benachrichtigungs-Pille und freigestelltes Porträt mit dem Wort hinter dem Kopf. Keine Zeilen-Untertitel, keine Zooms.",
     "composition": "EditzLimeEditorial",
     "planner": "limeeditorial",
+    "agent": true,
     "captions": true,
     "depth": true,
     "emphasis": "phrase",

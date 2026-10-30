@@ -4,6 +4,7 @@
     "about": "Bewegte Magazinseite: kleine dünne Grotesk-Wörter um EIN großes Serif-Kursiv-Schlüsselwort in Gold, wechselnde Positionen (Brust, über und neben dem Kopf), zwei Einstellungsgrößen mit harten Schnitten und Blur-Zooms, Bild-Tafeln, Filmstreifen und Raster für Aufzählungen, riesiges Wort hinter dem Kopf bei der Pointe, warmes Pfirsich-Grading.",
     "composition": "EditzEditorial",
     "planner": "editorial",
+    "agent": true,
     "captions": true,
     "cap": {
       "style": "custom",

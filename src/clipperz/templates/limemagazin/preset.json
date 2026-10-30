@@ -4,6 +4,7 @@
     "about": "Podcast als Magazin: eine einzige Akzentfarbe (Lime) trägt alles. Untertitel in Phrasen – dünne Grotesk-Versalien Wort für Wort, darunter EIN Schlüsselwort in kursiver Serif, Lime mit Glow und gezeichneter Linie. Der Sprecher bleibt fast immer sichtbar, aber die Welt um ihn wechselt: Farbwash-Karte wird Poster, Bild kippt nach hinten und Icons kreisen um die Karte, Karte mit langem Schatten, Split mit deinen Fotos/Clips, App-Ansicht mit Cursor und Textspalte. Jump-Cuts eng ↔ normal, kein Wackeln, kein Blitz.",
     "composition": "EditzLimeMagazin",
     "planner": "limemagazin",
+    "agent": true,
     "captions": true,
     "depth": false,
     "emphasis": "phrase",
