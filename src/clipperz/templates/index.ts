@@ -9,6 +9,7 @@ import {calcWarmDoc, EditzWarmDoc} from './warmdoc/WarmDoc';
 import {LimeEditorial} from './limeeditorial/LimeEditorial';
 import {LimeMagazin} from './limemagazin/LimeMagazin';
 import {BlueGlass} from './blueglass/BlueGlass';
+import {NoirNews} from './noirnews/NoirNews';
 
 export type TemplateComp = {
   id: string;
@@ -23,4 +24,5 @@ export const TEMPLATES: TemplateComp[] = [
   {id: 'EditzLimeEditorial', component: LimeEditorial, calculateMetadata: calcClipperz},
   {id: 'EditzLimeMagazin', component: LimeMagazin, calculateMetadata: calcClipperz},
   {id: 'EditzBlueGlass', component: BlueGlass, calculateMetadata: calcClipperz},
+  {id: 'EditzNoirNews', component: NoirNews, calculateMetadata: calcClipperz},
 ];

@@ -1,0 +1,106 @@
+{
+  "noirnews": {
+    "label": "Noir News",
+    "about": "Dunkler Nachrichten-Look (Deal, Zahl, Wette): zerdrückte Schwärzen, entsättigtes warmes Grau, Vignette und feine Scanlines über allem. Kleine ruhige Untertitel (Inter, Wort für Wort mit Blur, Namen als Paar mit Serif-kursivem Lime-Wort), riesige schwarze Wörter mit weißem Echo HINTER der freigestellten Person, Collage-Salve mit Auswahlrahmen im Hook, News-Artikelseite mit Foto-Karte, Kachel-Reveal auf dunklem Karopapier, Draufsicht-Collage auf oranger Schneidematte, Sprecher freigestellt vor wechselnden Hintergründen (Silhouetten-Blitz), ruhige Creme-Endkarte. Harte Skalen-Sprünge an Satzgrenzen.",
+    "composition": "EditzNoirNews",
+    "planner": "noirnews",
+    "captions": true,
+    "depth": true,
+    "emphasis": "word",
+    "cap": {
+      "style": "custom",
+      "font": "inter",
+      "weight": 500,
+      "size": 46,
+      "words": 4,
+      "y": 0.72,
+      "color": "#FFFFFF",
+      "gap": 0.45,
+      "reveal": "word",
+      "anim": {
+        "type": "blur",
+        "dur": 0.1,
+        "from": 0.9
+      },
+      "key": {
+        "font": "serif",
+        "color": "#BCCD01",
+        "italic": true
+      },
+      "shadow": "soft"
+    },
+    "accents": [
+      "#BCCD01"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 1,
+      "maxLevel": 2,
+      "drift": 0.04,
+      "shake": false,
+      "levels": [
+        1.18,
+        1.32
+      ]
+    },
+    "cut": {
+      "head": 0.04,
+      "tail": 0.06,
+      "keepGap": 0.08
+    },
+    "broll": "cut",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-01"
+      ],
+      "tr": [],
+      "defaults": {}
+    },
+    "hook": "none",
+    "progress": false,
+    "music": null,
+    "musicVol": 0,
+    "sfx": {
+      "broll": [],
+      "zoom": [],
+      "hook": [],
+      "end": []
+    },
+    "sfxVol": 0.34,
+    "grade": "eq=contrast=1.12:saturation=0.74:gamma=0.95:brightness=-0.025,curves=all='0/0 0.12/0.05 0.5/0.46 0.85/0.88 1/0.96',colorbalance=rs=-0.02:bs=0.03:rh=0.03:bh=-0.02,eq=brightness=-0.05:gamma=0.86:saturation=0.7:contrast=1.06,curves=all='0/0.02 0.5/0.46 0.8/0.72 1/0.84',colorbalance=rs=-0.03:gs=-0.01:bs=0.03:rm=-0.02:bm=0.02:rh=0.02:bh=-0.01,noise=alls=5:allf=t",
+    "nn": {
+      "capFont": "Inter",
+      "capWeight": 500,
+      "capSize": 46,
+      "capGap": 0.45,
+      "capY": 0.72,
+      "serif": "Instrument Serif",
+      "bigFont": "Inter",
+      "bigWeight": 900,
+      "levels": [
+        1,
+        1.18,
+        1.32
+      ],
+      "drift": 0.04,
+      "pal": {
+        "ink": "#0F0C0C",
+        "char": "#322E2E",
+        "umber": "#695243",
+        "stone": "#847E79",
+        "sand": "#B5AEA3",
+        "cream": "#EAE5DB",
+        "lime": "#BCCD01",
+        "lilac": "#8A86C0",
+        "navy": "#1B2029",
+        "mat": "#B4561F",
+        "yellow": "#E8D400"
+      },
+      "scan": 0.06,
+      "vignette": 0.62,
+      "halation": 0.2
+    }
+  }
+}
