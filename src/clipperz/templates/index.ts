@@ -3,6 +3,8 @@
 import type React from 'react';
 import type {CalculateMetadataFunction} from 'remotion';
 import type {Plan} from '../types';
+import {calcClipperz} from '../ClipperzEdit';
+import {LimeEditorial} from './limeeditorial/LimeEditorial';
 
 export type TemplateComp = {
   id: string;
@@ -12,4 +14,5 @@ export type TemplateComp = {
 
 export const TEMPLATES: TemplateComp[] = [
   // one line per template, e.g. {id: 'EditzEditorial', component: Editorial, calculateMetadata: calcClipperz},
+  {id: 'EditzLimeEditorial', component: LimeEditorial, calculateMetadata: calcClipperz},
 ];
