@@ -69,10 +69,12 @@ type Layout = {lines: Line[]; treat: Treat | null; w: number; h: number; keySize
 
 const smallW = (s: string, size: number) => s.length * size * 0.56;
 const keyW = (s: string, size: number, treat: Treat) => {
-  const caps = treat === 'cream' || treat === 'scramble' || treat === 'bar';
+  const caps = s === s.toUpperCase();
   return s.length * size * (caps ? (treat === 'scramble' ? 0.76 : 0.68) : 0.5) + (treat === 'gold' || treat === 'scramble' ? 0 : size * 0.6);
 };
-const keySizeOf = (treat: Treat) => ED.key * (treat === 'rust' ? 0.72 : treat === 'cream' ? 0.7 : treat === 'bar' || treat === 'bar2' ? 0.8 : 1);
+const keySizeOf = (treat: Treat) => ED.key * (treat === 'rust' ? 0.72 : treat === 'cream' ? 0.7 : treat === 'bar' || treat === 'bar2' ? 0.8 : treat === 'scramble' ? 1.25 : 1);
+/** Capitals only for short key words (a 20-letter compound in caps gets tiny). */
+const capsOf = (treat: Treat, s: string, n: number) => treat === 'scramble' || ((treat === 'cream' || (treat === 'bar' && n === 1)) && s.length <= 11);
 
 function splitSmall(toks: Tok[], max = 20): Tok[][] {
   if (!toks.length) return [];
@@ -114,7 +116,7 @@ function layoutOf(p: EPhrase, treat: Treat | null, onlySmall = false): Layout {
   for (const l of lines) {
     const s = l.toks.map((t) => t.text).join(' ');
     if (l.kind === 'key' && treat) {
-      w = Math.max(w, keyW(treat === 'scramble' || treat === 'cream' || (treat === 'bar' && l.toks.length === 1) ? s.toUpperCase() : s, ks, treat));
+      w = Math.max(w, keyW(capsOf(treat, s, l.toks.length) ? s.toUpperCase() : s, ks, treat));
       h += ks * (treat === 'gold' ? 0.98 : 1.18);
     } else {
       w = Math.max(w, smallW(s, small) * 1.05);
@@ -129,7 +131,8 @@ type Place = {cx: number; cy: number; scale: number; slot: string; light?: boole
 /** Rotates chest → above the head → chest → beside the head; falls back when there is no room. Never over the face. */
 function placeOf(plan: Plan, p: EPhrase, L: Layout, n: number): Place {
   const fb = faceSpan(plan, p.s, p.e);
-  const want = n === 0 ? 'chest' : (['chest', 'top', 'chest', 'side'] as const)[n % 4];
+  // phrases without a key word are thin small type: only over the body (chest / shoulder), never on the wall
+  const want = n === 0 ? 'chest' : !L.treat ? (n % 2 ? 'high' : 'chest') : (['chest', 'top', 'chest', 'side'] as const)[n % 4];
   const tryTop = (): Place | null => {
     const room = fb.top - 26 - ED.topMin;
     const sc = Math.min(1, (W - SAFE.left - SAFE.right) / L.w, room / L.h);
@@ -158,11 +161,20 @@ function placeOf(plan: Plan, p: EPhrase, L: Layout, n: number): Place {
     const sc = Math.min(1, ((W - SAFE.left - SAFE.right) * 0.86) / L.w);
     const hh = (L.h * sc) / 2;
     const bw = L.w * sc;
-    const cy = Math.min(H - SAFE.bottom - hh, fb.chin + 22 + hh);
+    const cy = Math.min(H - SAFE.bottom - hh, fb.chin + 30 + hh);
+    // shifted a little off the centre line (over the collar / shoulder, not out onto the wall)
     const left = Math.floor(n / 4) % 2 === 0;
-    return {cx: left ? SAFE.left + 6 + bw / 2 : W - SAFE.right - 6 - bw / 2, cy, scale: sc, slot: 'shoulder'};
+    const cx0 = fb.cx + (left ? -1 : 1) * Math.min(W * 0.12, Math.max(0, (W - SAFE.left - SAFE.right - bw) / 2));
+    const cx = Math.max(SAFE.left + bw / 2, Math.min(W - SAFE.right - bw / 2, cx0));
+    return {cx, cy, scale: sc, slot: 'shoulder'};
   };
-  const pl = want === 'top' ? tryTop() ?? trySide() ?? shoulder() : want === 'side' ? trySide() ?? shoulder() : chest();
+  // high chest: right under the chin, centred (thin small type stays on the body)
+  const high = (): Place => {
+    const sc = Math.min(1, (W - SAFE.left - SAFE.right) / L.w);
+    const hh = (L.h * sc) / 2;
+    return {cx: fb.cx, cy: Math.min(H - SAFE.bottom - hh, fb.chin + 40 + hh), scale: sc, slot: 'high'};
+  };
+  const pl = want === 'top' ? tryTop() ?? trySide() ?? shoulder() : want === 'side' ? trySide() ?? shoulder() : want === 'high' ? high() : chest();
   // brightness under the block (grid measured by the planner on the video at the wide framing): light walls get dark ink
   const v = lumUnder(plan, pl.cx - (L.w * pl.scale) / 2, pl.cy - (L.h * pl.scale) / 2, L.w * pl.scale, L.h * pl.scale, p.s);
   return {...pl, light: v !== null && v > 0.56};
@@ -238,7 +250,7 @@ const KeyLine: React.FC<{toks: Tok[]; treat: Treat; size: number; t: number; see
   }
   if (treat === 'bar' || treat === 'bar2') {
     const kw = ease(t, at, 0.2, INOUT);
-    const caps = treat === 'bar' && toks.length === 1;
+    const caps = capsOf(treat, raw, toks.length);
     return (
       <div style={{...base, fontSize: size, margin: `${size * 0.06}px 0`, display: 'inline-block', background: treat === 'bar' ? PAL.brown : PAL.ink, color: '#FFF4E8',
         padding: `${size * 0.04}px ${size * 0.3}px ${size * 0.1}px`, clipPath: `inset(0 ${(1 - kw) * 100}% 0 0)`, letterSpacing: caps ? '0.005em' : '-0.02em'}}>
@@ -260,7 +272,7 @@ const KeyLine: React.FC<{toks: Tok[]; treat: Treat; size: number; t: number; see
     <div style={{...base, margin: `${size * 0.12}px 0`, display: 'inline-block', background: PAL.cream, color: PAL.outline, border: `3px solid ${PAL.outline}`, borderRadius: 14,
       padding: `${size * 0.06}px ${size * 0.3}px ${size * 0.12}px`, transform: `rotate(${lerp(kp, 0, -4)}deg) scale(${lerp(kp, 0.8, 1)})`, opacity: cl(kp * 3),
       letterSpacing: '0.005em', boxShadow: '0 10px 26px rgba(40,10,0,.25)'}}>
-      {raw.toUpperCase()}
+      {capsOf(treat, raw, toks.length) ? raw.toUpperCase() : raw}
     </div>
   );
 };
@@ -312,7 +324,7 @@ const Captions: React.FC<{plan: Plan; list: EPhrase[]; hidden: (t: number) => bo
   const out = ease(t, p.e - 0.08, 0.08);
   const ki = L.lines.findIndex((l) => l.kind === 'key');
   const lastSmall = L.lines.length - 1;
-  const underAt = p.toks[p.toks.length - 1].w.s;
+  const underAt = p.s + 0.12;
   const dbg = (plan as unknown as {ed?: {debug?: boolean}}).ed?.debug;
   const fbx = dbg ? faceBox(plan, t) : null;
   return (
@@ -374,7 +386,7 @@ const Behind: React.FC<{plan: Plan; x: Insert; front: boolean}> = ({plan, x, fro
   }, []).slice(0, 3);
   const longest = Math.max(1, ...lines.map((l) => l.length));
   const fb = faceBox(plan, x.s + 0.3);
-  let size = Math.min(front ? 150 : 280, (W - 40) / (longest * 0.7));
+  let size = Math.min(front ? 150 : 280, (W - 70) / (longest * 0.9));
   const blockH = lines.length * size * 0.86;
   // behind the head: the lower half disappears behind it; without the cut-out it stands above the head
   let cy = front ? fb.top - 20 - blockH / 2 : Math.max(ED.topMin - 60 + blockH / 2, fb.top + fb.fh * 0.25);
@@ -423,7 +435,7 @@ export const Editorial: React.FC<Plan> = (plan) => {
     ...inserts.filter((x) => FULLSCREEN.has(x.code)),
     ...(plan.broll ?? []).map((b, i) => ({s: b.s, e: b.e, code: 'ED-PLATE', props: {src: b.src, kind: b.kind, mode: (['full', 'behind', 'pill'] as const)[i % 3], bg: (['cream', 'cocoa', 'peach'] as const)[i % 3]}})),
   ], [inserts, plan.broll]);
-  const behinds = inserts.filter((x) => x.code === 'ED-BEHIND');
+  const behinds = React.useMemo(() => inserts.filter((x) => x.code === 'ED-BEHIND'), [inserts]);
   const card = inserts.find((x) => x.code === 'ED-CARD');
   const covered = (t: number) => plates.some((x) => t >= x.s && t < x.e);
   const inBehind = React.useCallback((t: number) => behinds.some((x) => t >= x.s && t < x.e), [behinds]);

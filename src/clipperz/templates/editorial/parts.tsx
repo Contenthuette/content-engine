@@ -76,7 +76,7 @@ export const Kicker: React.FC<{toks: Tok[]; T: number; color: string; size?: num
     {toks.map((x, j) => {
       const k = ease(T, x.w.s - ED.lead, 0.1);
       return <span key={x.i} style={{display: 'inline-block', marginLeft: j ? '0.26em' : 0, opacity: T < x.w.s - ED.lead ? 0 : cl(k * 1.4), filter: k < 1 ? `blur(${(1 - k) * 6}px)` : undefined,
-        ...(x.key ? {fontFamily: FONT.serif, fontStyle: 'italic', fontWeight: 700, letterSpacing: '-0.02em', fontSize: size * 1.25} : {})}}>{x.text}</span>;
+        ...(x.key ? {fontFamily: FONT.serif, fontStyle: 'italic', fontWeight: 700, letterSpacing: '-0.02em', fontSize: size * 1.25} : {})}}>{x.key ? x.text : x.text.toLowerCase()}</span>;
     })}
   </div>
 );

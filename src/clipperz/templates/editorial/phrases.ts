@@ -25,7 +25,8 @@ export function edPhrases(words: Word[], emphasis: number[]): EPhrase[] {
     const hasKey = cur.some((x) => x.key);
     const prev = words[i - 1];
     const keyAt = cur.findIndex((x) => x.key);
-    if (cur.length && ((prev && w.s - prev.e > 0.35) || cur.length >= 7 || (key && hasKey && !em.has(i - 1)) || (hasKey && !key && cur.length - keyAt > 3))) flush();
+    const inGroup = key && em.has(i - 1) && cur.length > 0 && cur[cur.length - 1].key; // never split a key word group
+    if (cur.length && ((prev && w.s - prev.e > 0.35) || (cur.length >= 6 && !inGroup) || (key && hasKey && !inGroup) || (hasKey && !key && cur.length - keyAt > 3))) flush();
     if (!text) {
       if (cur.length) cur[cur.length - 1].w = {...cur[cur.length - 1].w, e: w.e};
       return;
@@ -39,7 +40,7 @@ export function edPhrases(words: Word[], emphasis: number[]): EPhrase[] {
   const dur = (x: {toks: Tok[]}) => x.toks[x.toks.length - 1].w.e - x.toks[0].w.s;
   const keys = (x: {toks: Tok[]}) => (x.toks.some((t) => t.key) ? 1 : 0);
   const gap = (a: {toks: Tok[]}, b: {toks: Tok[]}) => b.toks[0].w.s - a.toks[a.toks.length - 1].w.e;
-  const fits = (a: {toks: Tok[]; q: boolean}, b: {toks: Tok[]}) => a.toks.length + b.toks.length <= 7 && keys(a) + keys(b) <= 1 && !a.q && gap(a, b) < 0.6;
+  const fits = (a: {toks: Tok[]; q: boolean}, b: {toks: Tok[]}) => a.toks.length + b.toks.length <= 6 && keys(a) + keys(b) <= 1 && !a.q && gap(a, b) < 0.6;
   const merged: {toks: Tok[]; q: boolean}[] = raw.map((p) => ({toks: [...p.toks], q: p.q}));
   for (let k = 0; k < merged.length; k++) {
     const p = merged[k];

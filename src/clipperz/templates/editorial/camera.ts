@@ -51,6 +51,6 @@ export function faceBox(plan: Plan, t: number) {
   const fh = f.h * H * S;
   const cx = S * f.x * W + tx;
   const cy = S * f.y * H + ty;
-  return {cx, cy, fh, top: cy - fh * 0.95, chin: cy + fh * 0.62, left: cx - fh * 0.62, right: cx + fh * 0.62};
+  return {cx, cy, fh, top: cy - fh * 0.95, chin: cy + fh * 0.7, left: cx - fh * 0.62, right: cx + fh * 0.62};
 }
 
