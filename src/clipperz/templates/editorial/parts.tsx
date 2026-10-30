@@ -67,6 +67,9 @@ function kickerNow(k: KickerSrc, T: number) {
   return {pre, post};
 }
 
+/** A lone short word after the plate word ("in") looks lost – only real phrase tails are shown. */
+const showPost = (kn: ReturnType<typeof kickerNow>) => !!kn && (kn.post.length > 1 || (kn.post[0]?.text.length ?? 0) > 4);
+
 export const Kicker: React.FC<{toks: Tok[]; T: number; color: string; size?: number; shadow?: boolean; style?: React.CSSProperties}> = ({toks, T, color, size = 50, shadow, style}) => (
   <div style={{fontFamily: FONT.sans, fontWeight: 300, fontSize: size, letterSpacing: '-0.035em', lineHeight: 1.05, color, whiteSpace: 'nowrap',
     textShadow: shadow ? '0 2px 10px rgba(0,0,0,.45)' : undefined, ...style}}>
@@ -118,7 +121,7 @@ export const Plate: React.FC<{x: Insert; kicker: KickerSrc; seed: number}> = ({x
             <div style={{position: 'absolute', inset: 0, color: 'rgba(255,236,210,.92)', mixBlendMode: 'overlay'}}>{word.toUpperCase()}</div>
             <div style={{position: 'absolute', inset: 0, color: 'rgba(255,240,220,.28)'}}>{word.toUpperCase()}</div>
           </div>
-          {kn?.post.length ? <Kicker toks={kn.post} T={T} color="#FFF6EC" shadow style={{marginTop: 10, transform: `translateX(${W * 0.12}px)`}} /> : null}
+          {showPost(kn) ? <Kicker toks={kn!.post} T={T} color="#FFF6EC" shadow style={{marginTop: 10, transform: `translateX(${W * 0.12}px)`}} /> : null}
         </div>
       </AbsoluteFill>
     );
@@ -136,7 +139,7 @@ export const Plate: React.FC<{x: Insert; kicker: KickerSrc; seed: number}> = ({x
           <div style={{fontFamily: FONT.serif, fontStyle: 'italic', fontWeight: 700, fontSize: size, lineHeight: 1, color: PAL.outline, background: PAL.cream, border: `3px solid ${PAL.outline}`,
             borderRadius: 14, padding: `${size * 0.06}px ${size * 0.3}px ${size * 0.12}px`, transform: `rotate(${lerp(kp, 0, -4)}deg) scale(${lerp(kp, 0.8, 1)})`, whiteSpace: 'nowrap',
             boxShadow: '0 12px 30px rgba(40,10,0,.28)'}}>{word.toUpperCase()}</div>
-          {kn && (kn.post.length > 1 || (kn.post[0]?.text.length ?? 0) > 4) ? <Kicker toks={kn.post} T={T} color={pal.small} size={46} style={{marginTop: 12}} /> : null}
+          {showPost(kn) ? <Kicker toks={kn!.post} T={T} color={pal.small} size={46} style={{marginTop: 12}} /> : null}
         </div>
       </AbsoluteFill>
     );
@@ -160,9 +163,9 @@ export const Plate: React.FC<{x: Insert; kicker: KickerSrc; seed: number}> = ({x
           {big}
         </div>
         <div style={card(W * 0.6, H * 0.36, wordY + size * 0.18 + H * 0.18, 1)}><Media src={pr.src!} /></div>
-        {kn?.post.length ? (
+        {showPost(kn) ? (
           <div style={{position: 'absolute', left: 0, right: 0, top: wordY + size * 0.45, display: 'flex', justifyContent: 'center', ...typo}}>
-            <Kicker toks={kn.post} T={T} color={bg === 'cocoa' ? pal.small : '#FFF6EC'} size={50} shadow={bg !== 'cocoa'} style={{transform: `translateX(${W * 0.16}px)`}} />
+            <Kicker toks={kn!.post} T={T} color={bg === 'cocoa' ? pal.small : '#FFF6EC'} size={50} shadow={bg !== 'cocoa'} style={{transform: `translateX(${W * 0.16}px)`}} />
           </div>
         ) : null}
       </AbsoluteFill>
@@ -180,7 +183,7 @@ export const Plate: React.FC<{x: Insert; kicker: KickerSrc; seed: number}> = ({x
       <div style={{position: 'absolute', left: 0, right: 0, top: wordY, transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', ...typo}}>
         {kn?.pre.length ? <Kicker toks={kn.pre} T={T} color={pal.small} size={56} style={{marginBottom: 4, transform: `translateX(${-W * 0.1}px)`}} /> : null}
         <div style={{transform: `rotate(${rot * 0.4}deg) scale(${lerp(ease(t, 0, 0.5), 0.94, 1)})`}}>{big}</div>
-        {kn?.post.length ? <Kicker toks={kn.post} T={T} color={pal.small} size={50} style={{marginTop: 4, transform: `translateX(${W * 0.12}px)`}} /> : null}
+        {showPost(kn) ? <Kicker toks={kn!.post} T={T} color={pal.small} size={50} style={{marginTop: 4, transform: `translateX(${W * 0.12}px)`}} /> : null}
       </div>
       <svg width={W} height={H} style={{position: 'absolute', left: 0, top: 0}}>
         <ellipse cx={W / 2} cy={wordY + size * 0.05} rx={ww / 2 + 50} ry={size * 0.62} fill="none" stroke={bg === 'cocoa' ? PAL.peach : PAL.rust2} strokeWidth={3}
