@@ -5,6 +5,7 @@ import type {CalculateMetadataFunction} from 'remotion';
 import type {Plan} from '../types';
 import {calcClipperz} from '../ClipperzEdit';
 import {Editorial} from './editorial/Editorial';
+import {calcWarmDoc, EditzWarmDoc} from './warmdoc/WarmDoc';
 
 export type TemplateComp = {
   id: string;
@@ -13,6 +14,7 @@ export type TemplateComp = {
 };
 
 export const TEMPLATES: TemplateComp[] = [
-  // one line per template, e.g. {id: 'EditzEditorial', component: Editorial, calculateMetadata: calcClipperz},
+  // one line per template
   {id: 'EditzEditorial', component: Editorial, calculateMetadata: calcClipperz},
+  {id: 'EditzWarmDoc', component: EditzWarmDoc, calculateMetadata: calcWarmDoc},
 ];
