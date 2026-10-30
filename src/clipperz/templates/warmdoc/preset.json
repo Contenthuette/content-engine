@@ -15,23 +15,60 @@
       "y": 0.6,
       "color": "#FFFFFF",
       "track": -0.015,
-      "key": {"font": "anton", "scale": 2.6, "color": "#FFFFFF"},
+      "key": {
+        "font": "anton",
+        "scale": 2.6,
+        "color": "#FFFFFF"
+      },
       "reveal": "word",
-      "anim": {"type": "fade", "dur": 0.1},
+      "anim": {
+        "type": "fade",
+        "dur": 0.1
+      },
       "shadow": "soft"
     },
     "emphasis": "phrase",
-    "accents": ["#B97345"],
-    "zoom": {"mode": "cut", "every": 1, "maxLevel": 2, "drift": 0, "shake": false, "levels": [1.25, 1.45]},
-    "broll": {"mode": "full", "in": "cut", "out": "cut", "kenBurns": 0.06},
-    "inserts": {"perMin": 0, "codes": {}, "bg": [], "tr": [], "defaults": {}},
+    "accents": [
+      "#B97345"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 1,
+      "maxLevel": 2,
+      "drift": 0,
+      "shake": false,
+      "levels": [
+        1.25,
+        1.45
+      ]
+    },
+    "broll": {
+      "mode": "full",
+      "in": "cut",
+      "out": "cut",
+      "kenBurns": 0.06
+    },
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [],
+      "tr": [],
+      "defaults": {}
+    },
     "hook": "none",
     "progress": false,
     "music": null,
     "musicVol": 0,
-    "sfx": {"broll": ["swish"], "zoom": [], "hook": [], "end": []},
+    "sfx": {
+      "broll": [
+        "swish"
+      ],
+      "zoom": [],
+      "hook": [],
+      "end": []
+    },
     "sfxVol": 0.25,
     "sfxMaxRepeat": 99,
-    "grade": "eq=contrast=1.08:saturation=1.02:gamma=0.93,colorchannelmixer=rr=1.0:rg=0.06:rb=0:gr=0.02:gg=0.93:gb=0:br=0:bg=0.04:bb=0.80,colorbalance=rs=0.06:bs=-0.06:rm=0.10:bm=-0.10:rh=0.05:bh=-0.08,curves=all='0/0.035 0.25/0.185 0.5/0.42 0.8/0.67 1/0.78',vignette=angle=0.4"
+    "grade": "eq=contrast=1.08:saturation=1.04:gamma=0.92,colorchannelmixer=rr=1.0:rg=0.07:rb=0:gr=0.02:gg=0.92:gb=0:br=0:bg=0.04:bb=0.78,colorbalance=rs=0.06:bs=-0.07:rm=0.11:bm=-0.11:rh=0.06:bh=-0.09,curves=all='0/0.035 0.25/0.175 0.5/0.40 0.8/0.64 1/0.75',vignette=angle=0.45"
   }
 }

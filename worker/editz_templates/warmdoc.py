@@ -234,6 +234,9 @@ def strobe_masks(ctx, frames=(0, 2, 4)):
         im = Image.fromarray(a, "L")
         glow = im.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(14))
         m = np.maximum(np.asarray(im, dtype=np.float32), np.asarray(glow, dtype=np.float32) * 0.85)
+        # the matte often takes the desk / lap along: fade the silhouette out towards the bottom (it sinks into the bottom fade)
+        ramp = np.clip((0.97 - np.linspace(0, 1, h)) / 0.25, 0, 1)[:, None]
+        m = m * ramp
         rgba = np.dstack([np.full((h, w, 3), 255, np.uint8), m.clip(0, 255).astype(np.uint8)])
         rel = f"{ctx['job']}/wd_strobe{k}.png"
         Image.fromarray(rgba, "RGBA").save(os.path.join(ctx["pub"], os.path.basename(rel)), optimize=True)

@@ -206,16 +206,16 @@ export const ChipList: React.FC<{title?: string; icon?: string; items: {text: st
           </span>
         </div>
       ) : null}
-      <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
+      <div style={{display: 'flex', flexWrap: 'wrap', gap: 14}}>
         {items.map((it, i) => {
           const a = at[i] ?? i * 0.5;
           if (t < a - F) return null;
           const k = ease(t, a - F, 5 * F);
           return (
-            <div key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 10, padding: '7px 24px 7px 7px', borderRadius: 999, background: '#F7EFE5',
+            <div key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 12, padding: '7px 26px 7px 7px', borderRadius: 999, background: '#F7EFE5',
               boxShadow: '0 6px 18px rgba(30,15,5,.25)', transform: `scale(${lerp(k, 0.85, 1)})`, transformOrigin: '0% 50%', opacity: cl(k * 2.5)}}>
-              <IconDot icon={it.icon || icon || '+'} size={44} bg={accent} />
-              <span style={{fontFamily: SANS, fontWeight: 600, fontSize: 36, color: '#8A4520', letterSpacing: '-0.01em', whiteSpace: 'nowrap'}}>{it.text}</span>
+              <IconDot icon={it.icon || icon || '+'} size={52} bg={accent} />
+              <span style={{fontFamily: SANS, fontWeight: 600, fontSize: 42, color: '#8A4520', letterSpacing: '-0.01em', whiteSpace: 'nowrap'}}>{it.text}</span>
             </div>
           );
         })}

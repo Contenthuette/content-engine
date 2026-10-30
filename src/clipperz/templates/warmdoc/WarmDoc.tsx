@@ -85,6 +85,8 @@ export const EditzWarmDoc: React.FC<Plan> = (plan) => {
     }
   }
 
+  // something opaque covers the whole frame (footage full/split, type card full/split)
+  const covered = broll.some((b) => t >= b.s + 1 / fps && t < b.e) || types.some((x) => t >= x.s + 1 / fps && t < x.e);
   const ph = list.find((p) => t >= p.s - 0.05 && t < p.e);
   const capHidden = types.some((x) => inWin(t, x));
   const chipNow = chips.find((x) => inWin(t, x));
@@ -93,7 +95,10 @@ export const EditzWarmDoc: React.FC<Plan> = (plan) => {
 
   return (
     <AbsoluteFill style={{background: '#000'}}>
-      <Speaker plan={plan} level={levelAt(plan, t)} strobe={strobeNow} />
+      {/* voice as its own track: the picture of the speaker is only decoded while it is visible (full-frame footage,
+          cards and splits cover it) – half the decoding work on 4K sources */}
+      <Audio src={asset(plan.video)} />
+      {covered ? null : <Speaker plan={plan} level={levelAt(plan, t)} strobe={strobeNow} muted />}
       <BottomFade />
 
       {broll.map((b, i) => {
