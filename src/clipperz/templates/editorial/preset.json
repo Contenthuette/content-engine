@@ -1,0 +1,75 @@
+{
+  "editorial": {
+    "label": "Editorial Podcast",
+    "about": "Bewegte Magazinseite: kleine dünne Grotesk-Wörter um EIN großes Serif-Kursiv-Schlüsselwort in Gold, wechselnde Positionen (Brust, über und neben dem Kopf), zwei Einstellungsgrößen mit harten Schnitten und Blur-Zooms, Bild-Tafeln, Filmstreifen und Raster für Aufzählungen, riesiges Wort hinter dem Kopf bei der Pointe, warmes Pfirsich-Grading.",
+    "composition": "EditzEditorial",
+    "planner": "editorial",
+    "captions": true,
+    "cap": {
+      "style": "custom",
+      "font": "montserrat",
+      "weight": 300,
+      "size": 46,
+      "lower": true,
+      "words": 6,
+      "y": "auto",
+      "color": "#FFFFFF",
+      "track": -0.03,
+      "reveal": "word",
+      "anim": {
+        "type": "blur",
+        "dur": 0.1,
+        "overshoot": false
+      },
+      "key": {
+        "font": "serif",
+        "weight": 400,
+        "italic": true,
+        "scale": 2.4,
+        "color": "#F7B733"
+      },
+      "shadow": "soft"
+    },
+    "accents": [
+      "#F4940C"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 1,
+      "maxLevel": 1,
+      "drift": 0.02,
+      "shake": false,
+      "levels": [
+        1.22,
+        1.25
+      ]
+    },
+    "broll": "cut",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-01"
+      ],
+      "tr": []
+    },
+    "hook": "editorial",
+    "progress": false,
+    "music": "music/hiphop92.mp3",
+    "musicVol": 0.05,
+    "sfx": {
+      "broll": [],
+      "zoom": [],
+      "hook": [],
+      "end": []
+    },
+    "sfxVol": 0.3,
+    "grade": "eq=contrast=1.08:saturation=1.08:gamma=0.98:brightness=-0.02,colorbalance=rs=0.06:gs=-0.02:bs=-0.05:rm=0.06:gm=-0.05:bm=-0.04:rh=0.04:gh=-0.04:bh=-0.05,curves=all='0/0 0.25/0.22 0.5/0.49 0.8/0.78 1/0.86'",
+    "depth": true,
+    "cut": {
+      "head": 0.03,
+      "tail": 0.05,
+      "keepGap": 0.06
+    }
+  }
+}
