@@ -389,11 +389,14 @@ def extend(plan, ctx):
                 break
 
     inserts = sorted(tl.beats, key=lambda b: b["s"])
+    kw_phr = sorted(words[ps[k][0]]["s"] - 0.03 for k in kw)
     kw_starts = sorted(words[ids[0]]["s"] for ids in kw.values())
-    for x in inserts:  # the push into the text column lands just before a key word, so the column has its big word
+    for x in inserts:  # the push into the text column lands on a phrase with a key word: big headline, ≥ 1.3 s to read
         if x["code"] == "LM-APP":
             d = x["e"] - x["s"]
-            push = next((t - 0.45 - x["s"] for t in kw_starts if 1.4 <= t - 0.45 - x["s"] <= d - 0.6), None)
+            push = next((t - x["s"] for t in kw_phr if 1.2 <= t - x["s"] <= d - 1.3), None)
+            if push is None:
+                push = next((t - 0.45 - x["s"] for t in kw_starts if 1.4 <= t - 0.45 - x["s"] <= d - 1.2), None)
             if push is not None:
                 x["props"]["push"] = round(push, 2)
             elif d < 4.2:
