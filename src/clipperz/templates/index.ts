@@ -6,6 +6,7 @@ import type {Plan} from '../types';
 import {calcClipperz} from '../ClipperzEdit';
 import {Editorial} from './editorial/Editorial';
 import {calcWarmDoc, EditzWarmDoc} from './warmdoc/WarmDoc';
+import {LimeEditorial} from './limeeditorial/LimeEditorial';
 
 export type TemplateComp = {
   id: string;
@@ -17,4 +18,5 @@ export const TEMPLATES: TemplateComp[] = [
   // one line per template
   {id: 'EditzEditorial', component: Editorial, calculateMetadata: calcClipperz},
   {id: 'EditzWarmDoc', component: EditzWarmDoc, calculateMetadata: calcWarmDoc},
+  {id: 'EditzLimeEditorial', component: LimeEditorial, calculateMetadata: calcClipperz},
 ];

@@ -1,0 +1,30 @@
+{
+  "limeeditorial": {
+    "label": "Lime Editorial",
+    "about": "Magazin-Look: pro Satzteil EIN riesiges schmales Schlüsselwort in Lime, das sich Buchstabe für Buchstabe aufbaut, davor kleine Handschrift-Wörter; harte Wechsel zwischen Sprecher und weißer Bühne mit Fensterlicht (Leitobjekt dreht sich, Wörter auf einem Bogen darum, 3D-Lime-Band), Benachrichtigungs-Pille und freigestelltes Porträt mit dem Wort hinter dem Kopf. Keine Zeilen-Untertitel, keine Zooms.",
+    "composition": "EditzLimeEditorial",
+    "planner": "limeeditorial",
+    "captions": true,
+    "depth": true,
+    "emphasis": "phrase",
+    "cap": {"font": "oswald", "weight": 400, "upper": true, "size": 250, "words": 4, "y": 0.69, "style": "custom", "color": "#D0E759", "track": 0},
+    "accents": ["#D0E759"],
+    "zoom": {"mode": "cut", "every": 1, "maxLevel": 1, "drift": 0, "shake": false, "levels": [1.06]},
+    "broll": "cut",
+    "inserts": {"perMin": 0, "codes": {}, "bg": ["BG-01"], "tr": [], "defaults": {}},
+    "hook": "none",
+    "progress": false,
+    "music": null,
+    "musicVol": 0,
+    "sfx": {"broll": [], "zoom": [], "hook": [], "end": []},
+    "sfxVol": 0.32,
+    "grade": "eq=contrast=1.10:saturation=0.90:gamma=0.97:brightness=-0.01,colorbalance=rs=0.03:gs=0.0:bs=-0.05:rh=-0.02:gh=0.0:bh=0.03,curves=all='0/0.02 0.3/0.25 0.7/0.74 1/0.96',noise=alls=4:allf=t",
+    "le": {
+      "kwFont": "Oswald", "kwWeight": 400, "kwSize": 250, "kwEm": 0.5, "kwContrast": 5, "kwY": 0.69, "kwMaxW": 0.8,
+      "handFont": "Caveat", "handSize": 48,
+      "stageFont": "Playfair Display", "stageWeight": 900, "stageCondense": 0.72, "stageEm": 0.74,
+      "jump": 1.06,
+      "pal": {"lime": "#D0E759", "limeDark": "#98AA00", "limeLight": "#E2F27C", "ink": "#161717", "paper": "#F6F7F6", "violet": "#6A4BE0", "grey": "#C0BEB9"}
+    }
+  }
+}
