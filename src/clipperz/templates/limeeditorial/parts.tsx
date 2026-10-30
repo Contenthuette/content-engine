@@ -274,7 +274,7 @@ export const HeroObject: React.FC<{src: string; t: number; cx: number; cy: numbe
 };
 
 /** No photo: the speaker himself, live, inside a glossy sphere on the stage (lips keep moving). */
-export const VideoOrb: React.FC<{src: string; t: number; cx: number; cy: number; size: number; focus: {x: number; y: number; h: number}}> = ({src, t, cx, cy, size, focus}) => {
+export const VideoOrb: React.FC<{src: string; t: number; cx: number; cy: number; size: number; focus: {x: number; y: number; h: number}; trim?: number}> = ({src, t, cx, cy, size, focus, trim = 0}) => {
   const faceH = focus.h > 0.03 ? focus.h * H : 0.16 * H;
   const s = Math.max(size / W, Math.min(1.6, (size * 0.5) / faceH));
   const vw = W * s;
@@ -290,7 +290,7 @@ export const VideoOrb: React.FC<{src: string; t: number; cx: number; cy: number;
         background: 'rgba(40,40,36,.32)', filter: 'blur(26px)'}} />
       <div style={{position: 'absolute', left: cx - size / 2, top: cy - size / 2 + bob, width: size, height: size, borderRadius: '50%', overflow: 'hidden',
         boxShadow: '40px 60px 70px rgba(30,30,25,.30)'}}>
-        <OffthreadVideo src={asset(src)} muted style={{position: 'absolute', left: x, top: y, width: vw, height: vh, objectFit: 'cover'}} />
+        <OffthreadVideo src={asset(src)} trimBefore={trim || undefined} muted style={{position: 'absolute', left: x, top: y, width: vw, height: vh, objectFit: 'cover'}} />
         <div style={{position: 'absolute', inset: 0, borderRadius: '50%',
           background: 'radial-gradient(circle at 34% 28%, rgba(255,255,255,.34) 0%, rgba(255,255,255,0) 32%), radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 58%, rgba(0,0,0,.42) 100%)'}} />
       </div>

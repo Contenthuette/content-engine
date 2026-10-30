@@ -119,7 +119,8 @@ function splitHook(text: string) {
 
 // ---------- speaker ----------
 
-const Speaker: React.FC<{plan: Plan; t: number; jump: number; fg?: boolean; kb?: number; dy?: number}> = ({plan, t, jump, fg, kb = 1, dy = 0}) => {
+// trim: frames to skip when the speaker is rendered inside an insert <Sequence> (keeps lips in sync with the voice)
+const Speaker: React.FC<{plan: Plan; t: number; jump: number; fg?: boolean; kb?: number; dy?: number; trim?: number}> = ({plan, t, jump, fg, kb = 1, dy = 0, trim = 0}) => {
   const z = plan.zooms.find((x) => t >= x.s && t < x.e);
   const S = (z && z.level > 0 ? jump : 1) * kb;
   const ox = (plan.focus.x || 0.5) * 100;
@@ -127,8 +128,8 @@ const Speaker: React.FC<{plan: Plan; t: number; jump: number; fg?: boolean; kb?:
   return (
     <AbsoluteFill style={{overflow: 'hidden', transform: `${dy ? `translateY(${dy}px) ` : ''}scale(${S})`, transformOrigin: `${ox}% ${oy}%`}}>
       {fg && plan.fg
-        ? <OffthreadVideo src={asset(plan.fg)} transparent muted style={{width: W, height: H, objectFit: 'cover'}} />
-        : <OffthreadVideo src={asset(plan.video)} muted={!!fg} style={{width: W, height: H, objectFit: 'cover'}} />}
+        ? <OffthreadVideo src={asset(plan.fg)} trimBefore={trim || undefined} transparent muted style={{width: W, height: H, objectFit: 'cover'}} />
+        : <OffthreadVideo src={asset(plan.video)} trimBefore={trim || undefined} muted={!!fg} style={{width: W, height: H, objectFit: 'cover'}} />}
     </AbsoluteFill>
   );
 };
@@ -253,7 +254,7 @@ const Stage: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, look})
     <AbsoluteFill>
       <WhiteStage t={t} strength={0.12} />
       {ribbon !== 'none' ? <Ribbon id={`le-r-${Math.round(x.s * 100)}`} d={RIBBON_PATHS[ribbon as Exclude<RibbonPath, 'arch'>] ?? RIBBON_PATHS.arc} t={t} at={0.42} dur={0.5} width={118} pal={look.pal} /> : null}
-      {hero === 'orb' ? <VideoOrb src={plan.video} t={t} cx={cx} cy={cy} size={size} focus={plan.focus} /> : null}
+      {hero === 'orb' ? <VideoOrb src={plan.video} t={t} cx={cx} cy={cy} size={size} focus={plan.focus} trim={Math.round(x.s * fps)} /> : null}
       {(hero === 'object' || hero === 'card') && p.src ? <HeroObject src={p.src} t={t} cx={cx} cy={cy} size={size} card={hero === 'card'} /> : null}
       <ArcWords words={arc} t={t} cx={cx} cy={cy} r={arcR} family={look.handFont} size={46} color={look.pal.ink} />
       {word ? (
@@ -333,7 +334,7 @@ const Portrait: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, loo
   const archCy = fy + fh * 0.55 + dy;
   const person = photo
     ? layer(<Img src={asset(p.src!)} style={{width: W, height: H, objectFit: 'cover'}} />)
-    : plan.fg ? <Speaker plan={plan} t={T} jump={1} fg kb={kb} dy={dy} /> : null;
+    : plan.fg ? <Speaker plan={plan} t={T} jump={1} fg kb={kb} dy={dy} trim={Math.round(x.s * fps)} /> : null;
   // the word sits on top of the head: the cap/hair covers only its lower quarter (reference „MEN“); short words lean right
   const headTop = headTop0 + dy;
   const wordW = chars * size * look.kwEm;
@@ -352,7 +353,7 @@ const Portrait: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, loo
       {photo && p.bg
         ? layer(<Img src={asset(p.bg)} style={{width: W, height: H, objectFit: 'cover', filter: dark ? 'brightness(.35) saturate(.6)' : 'brightness(.75) saturate(.8)'}} />)
         : !hasCut
-          ? <><Speaker plan={plan} t={T} jump={look.jump} kb={kb} /><AbsoluteFill style={{background: 'radial-gradient(ellipse at 50% 35%, rgba(0,0,0,.15) 0%, rgba(0,0,0,.62) 100%)'}} /></>
+          ? <><Speaker plan={plan} t={T} jump={look.jump} kb={kb} trim={Math.round(x.s * fps)} /><AbsoluteFill style={{background: 'radial-gradient(ellipse at 50% 35%, rgba(0,0,0,.15) 0%, rgba(0,0,0,.62) 100%)'}} /></>
           : <StudioBackdrop tone={dark ? 'black' : 'slate'} />}
       {!dark ? <Ribbon id={`le-a-${Math.round(x.s * 100)}`} d={arcPath(archCx, archCy, W * 0.36, -80, 150)} t={t} at={0.02} dur={8 / 30} width={135} pal={look.pal} shadow={0.35} shadowOffset={[30, 40]} /> : null}
       {behind}
