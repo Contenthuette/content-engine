@@ -21,6 +21,30 @@ import requests
 W = os.path.abspath(os.environ.get("CLIPPERZ_WORKDIR", "w"))
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PRESETS = json.load(open(os.path.join(REPO, "src", "clipperz", "presets.json"), encoding="utf-8"))
+# EDITZ templates (Leif 30.10.2026: 9 reference styles): each lives in src/clipperz/templates/<id>/ with a preset.json
+# ({"<id>": {…preset…, "composition": "<Remotion id>", "planner": "<module>"}}), its own Remotion composition and an
+# optional planner worker/editz_templates/<module>.py with extend(plan, ctx) -> plan (template-specific beats/layouts).
+import glob as _glob
+for _f in sorted(_glob.glob(os.path.join(REPO, "src", "clipperz", "templates", "*", "preset.json"))):
+    try:
+        PRESETS.update(json.load(open(_f, encoding="utf-8")))
+    except Exception as _e:  # a broken template must never take the other styles down
+        print("template preset skipped:", os.path.basename(os.path.dirname(_f)), type(_e).__name__, _e)
+
+
+def template_extend(plan, pr, ctx):
+    """Runs the template's planner (if any). Failures keep the generic plan so the video still renders."""
+    mod = pr.get("planner")
+    if not mod:
+        return plan
+    try:
+        import importlib
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        m = importlib.import_module(f"editz_templates.{mod}")
+        return m.extend(plan, ctx) or plan
+    except Exception as e:
+        print(f"template planner {mod} failed, generic plan:", type(e).__name__, e, flush=True)
+        return plan
 
 
 def _fill(d, base):
@@ -879,6 +903,7 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         "outScale": 2 if src_min >= 2160 else 1,
         "accent": accent,
         "captions": bool(captions),
+        "composition": pr.get("composition", "ClipperzEdit"),
     }
 
 
@@ -889,7 +914,7 @@ def render(plan, dst):
     with open(plan_path, "w", encoding="utf-8") as fh:
         json.dump(plan, fh, ensure_ascii=False)
     raw = os.path.join(W, "render.mp4")
-    cmd = ["npx", "remotion", "render", "src/clipperz/index.ts", "ClipperzEdit", raw, f"--props={plan_path}",
+    cmd = ["npx", "remotion", "render", "src/clipperz/index.ts", plan.get("composition") or "ClipperzEdit", raw, f"--props={plan_path}",
            f"--concurrency={max(1, (os.cpu_count() or 2))}", "--codec=h264", "--crf=19", "--audio-codec=aac", "--log=error"]
     if plan.get("outScale", 1) > 1:  # 4K source -> 4K output (sharp captions and graphics)
         cmd.append(f"--scale={plan['outScale']}")
@@ -1526,6 +1551,8 @@ def main():
     plan = build_plan(words_cut, out_dur, items, preset_id, cfg.get("captions", pr["captions"]), focus, res, f"{job}/main.mp4", broll_rel,
                       hi_res=min(src_size(cut_path)) >= 1440, src_min=min(src_size(cut_path)))
     apply_customer_look(plan, cfg)
+    plan = template_extend(plan, pr, {"words": words_cut, "duration": out_dur, "items": items, "broll_rel": broll_rel, "res": res,
+                                      "focus": focus, "job": job, "pub": pub, "cfg": cfg, "llm": llm_json})
     try:
         level_sfx(plan, os.path.join(pub, "main.mp4"), pr.get("sfxVol", 0.4))
     except Exception as e:
