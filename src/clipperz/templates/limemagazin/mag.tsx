@@ -176,9 +176,9 @@ export const Caption: React.FC<{plan: Plan; ps: PhraseInfo[]; t: number; look: M
   const kwSize = Math.min(look.kwSize * scale, maxW / (chars * look.kwEm));
   const leadColor = scheme === 'light' || scheme === 'split' ? pal.lead : scheme === 'paper' ? pal.leadDark : pal.ink;
   const leadShadow = scheme === 'light' || scheme === 'split' ? '0 1px 2px rgba(0,0,0,.5), 0 0 18px rgba(0,0,0,.35)' : undefined;
-  const kwColor = scheme === 'ink' ? pal.ink : scheme === 'paper' ? shade(pal.key, -0.1) : pal.key;
+  const kwColor = pal.key;
   const kwShadow = scheme === 'ink' ? undefined
-    : scheme === 'paper' ? `0 3px 0 ${pal.limeDeep}, 0 0 18px ${pal.lime}88`
+    : scheme === 'paper' ? `0 3px 0 ${shade(pal.limeDeep, -0.3)}, 0 0 18px ${pal.lime}88`
       : scheme === 'split' ? `0 3px 0 ${shade(pal.limeDeep, -0.35)}, 0 0 22px rgba(0,0,0,.45)`
         : `0 0 16px ${pal.lime}66, 0 2px 6px rgba(0,0,0,.35)`;
   const kwAt = p.kw.length ? words[p.kw[0]].s - 0.05 : 0;
@@ -198,7 +198,8 @@ export const Caption: React.FC<{plan: Plan; ps: PhraseInfo[]; t: number; look: M
         <div style={{position: 'relative', marginTop: lead.length ? -kwSize * 0.1 : 0, marginLeft: -kwSize * 0.03, ...reveal(t, kwAt, 4)}}>
           {lines.map((l, j) => (
             <div key={j} style={{fontFamily: look.kwFont, fontStyle: 'italic', fontWeight: 400, fontSize: kwSize, lineHeight: 0.86, letterSpacing: '-0.03em',
-              color: kwColor, textShadow: kwShadow, whiteSpace: 'nowrap', WebkitTextStroke: scheme === 'ink' ? undefined : `${Math.max(0.6, kwSize / 90)}px ${kwColor}`}}>{l}</div>
+              textShadow: kwShadow, whiteSpace: 'nowrap', paintOrder: 'stroke fill', WebkitTextStroke: scheme === 'ink' ? undefined : scheme === 'paper' ? `${Math.max(1.2, kwSize / 70)}px ${shade(pal.limeDeep, -0.45)}` : `${Math.max(0.6, kwSize / 90)}px ${kwColor}`,
+              color: scheme === 'ink' ? pal.ink : kwColor}}>{l}</div>
           ))}
           {under ? (
             <div style={{position: 'absolute', left: kwSize * 0.06, right: kwSize * 0.12, bottom: -kwSize * 0.1, height: Math.max(3, kwSize * 0.045), background: scheme === 'ink' ? pal.ink : pal.lime,

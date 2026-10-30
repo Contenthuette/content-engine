@@ -212,9 +212,10 @@ export const Card: React.FC<BeatProps> = ({plan, x, u, look, ps, t, prev}) => {
       {/* long 45° shadow (grey-blue → transparent) */}
       <svg width={W} height={H} style={{position: 'absolute', inset: 0}}>
         <defs>
-          <linearGradient id={`lm-ls-${Math.round(x.s * 100)}`} x1={x0} y1={y1 - 200} x2={x0 + L * 0.9} y2={y1 + L} gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#56658A" stopOpacity={0.7} />
-            <stop offset="1" stopColor="#5E6E92" stopOpacity={0} />
+          <linearGradient id={`lm-ls-${Math.round(x.s * 100)}`} x1={x0} y1={y1 - 40} x2={x0 + L * 0.35} y2={y1 + L} gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#4F5D82" stopOpacity={0.8} />
+            <stop offset="0.55" stopColor="#6A789C" stopOpacity={0.32} />
+            <stop offset="1" stopColor="#6A789C" stopOpacity={0} />
           </linearGradient>
           <filter id="lm-ls-b"><feGaussianBlur stdDeviation={5} /></filter>
         </defs>
@@ -279,7 +280,8 @@ export const Split: React.FC<BeatProps> = ({plan, x, u, look, ps, t, prev, next}
 
 // ---------- LM-APP ----------
 
-type AppProps = {cta?: string; draft?: string; counts?: {likes?: string; comments?: string; shares?: string}; column?: boolean};
+type AppProps = {cta?: string; draft?: string; counts?: {likes?: string; comments?: string; shares?: string}; column?: boolean;
+  /** seconds after the start when the push into the text column happens (planner: just before a key word) */ push?: number};
 
 const NAV: Record<string, string> = {
   home: 'M4 11 L12 4 L20 11 L20 20 L14.5 20 L14.5 14.5 L9.5 14.5 L9.5 20 L4 20 Z',
@@ -304,7 +306,7 @@ export const App: React.FC<BeatProps> = ({plan, x, u, look, ps, t}) => {
   const column = p.column !== false && d >= 3.2;
   // shrink_to_app (6 frames, in-out), later push left into the editorial column (6 frames, 8 px blur), wipe back to full frame (3 frames)
   const k = ease(u, 0, fr(6), (z) => (z < 0.5 ? 4 * z * z * z : 1 - Math.pow(-2 * z + 2, 3) / 2));
-  const pushAt = column ? Math.max(1.6, d * 0.5) : Infinity;
+  const pushAt = column ? (typeof p.push === 'number' && p.push >= 1.2 && p.push <= d - 0.6 ? p.push : Math.max(1.6, d * 0.5)) : Infinity;
   const kp = ease(u, pushAt, fr(6), EXPO);
   const pushBlur = Math.sin(cl((u - pushAt) / fr(6)) * Math.PI) * 8;
   const wipe = ease(u, d - fr(3), fr(3));
@@ -383,7 +385,7 @@ export const App: React.FC<BeatProps> = ({plan, x, u, look, ps, t}) => {
     <div style={{position: 'absolute', inset: 0, overflow: 'hidden', background: '#FFFFFF'}}>
       {ui}
       {column && u >= pushAt ? (
-        <Caption plan={plan} ps={ps} t={t} look={look} scheme="ink" scale={0.86} x={W * 0.6} y={H * 0.26} align="left" maxW={W * 0.37} />
+        <Caption plan={plan} ps={ps} t={t} look={look} scheme="ink" scale={0.86} x={W * 0.53} y={H * 0.27} align="left" maxW={W * 0.42} />
       ) : null}
       {wipe > 0 ? (
         <div style={{position: 'absolute', left: lerp(wipe, W, 0), top: 0, width: W, height: H, overflow: 'hidden', boxShadow: '-20px 0 40px rgba(0,0,0,.2)'}}>

@@ -23,7 +23,7 @@ ICONS = ["person", "check", "bolt", "clock", "euro", "house", "tool", "chat", "h
 END = re.compile(r"[.,!?;:…]$")
 GAP = 1.0          # speaker time between two beat groups (reference: ≥ 2 s, but short videos need the room)
 ADJ = {("LM-ORBIT", "LM-CARD"), ("LM-CARD", "LM-ORBIT"), ("LM-SPLIT", "LM-SPLIT"), ("LM-CARD", "LM-SPLIT")}  # may follow without speaker
-DUR = {"LM-POSTER": (1.2, 2.1, 1.6), "LM-ORBIT": (1.6, 3.0, 2.3), "LM-CARD": (1.4, 2.6, 2.0), "LM-SPLIT": (1.2, 2.4, 1.8), "LM-APP": (3.0, 6.0, 4.4)}
+DUR = {"LM-POSTER": (1.2, 2.1, 1.6), "LM-ORBIT": (1.6, 3.0, 2.3), "LM-CARD": (1.4, 2.6, 2.0), "LM-SPLIT": (1.2, 2.4, 1.8), "LM-APP": (3.0, 6.0, 5.0)}
 TYPES = {"orbit": "LM-ORBIT", "karte": "LM-CARD", "card": "LM-CARD", "split": "LM-SPLIT", "app": "LM-APP"}
 
 
@@ -389,6 +389,15 @@ def extend(plan, ctx):
                 break
 
     inserts = sorted(tl.beats, key=lambda b: b["s"])
+    kw_starts = sorted(words[ids[0]]["s"] for ids in kw.values())
+    for x in inserts:  # the push into the text column lands just before a key word, so the column has its big word
+        if x["code"] == "LM-APP":
+            d = x["e"] - x["s"]
+            push = next((t - 0.45 - x["s"] for t in kw_starts if 1.4 <= t - 0.45 - x["s"] <= d - 0.6), None)
+            if push is not None:
+                x["props"]["push"] = round(push, 2)
+            elif d < 4.2:
+                x["props"]["column"] = False
     plan["inserts"] = inserts
     plan["emphasis"] = sorted({i for ids in kw.values() for i in ids})
     plan["broll"] = []  # uploads live in the splits / the poster phone
@@ -441,7 +450,8 @@ def sounds(plan, words, ps, kw, inserts):
             add(s + 0.02, "swish", 0.24)
         elif x["code"] == "LM-APP":
             column = x["props"].get("column", True) is not False and d >= 3.2
-            push = max(1.6, d * 0.5) if column else 1e9
+            pp = x["props"].get("push")
+            push = (pp if isinstance(pp, (int, float)) and 1.2 <= pp <= d - 0.6 else max(1.6, d * 0.5)) if column else 1e9
             click = min(push - 0.45, max(1.0, d * 0.32))
             add(s + 0.02, "whoosh2", 0.26)
             add(s + click, "tap", 0.34)
