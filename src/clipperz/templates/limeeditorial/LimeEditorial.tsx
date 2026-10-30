@@ -257,7 +257,7 @@ const Stage: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, look})
         <div style={{position: 'absolute', left: cx, top: wy, transform: 'translate(-50%, -50%)'}}>
           <LetterBuild text={word} t={t - Math.max(0.05, kwAt - 0.12)} step={1.6} family={look.stageFont} weight={look.stageWeight} size={wsize}
             color={look.pal.ink} condense={look.stageCondense} seed={11} order="jitter" blur={6} firstShadow={`-${Math.round(wsize * 0.07)}px ${Math.round(wsize * 0.02)}px 0 ${look.pal.violet}`}
-            style={{lineHeight: 1}} />
+            style={{lineHeight: 1, WebkitTextStroke: `${Math.max(4, Math.round(wsize * 0.035))}px ${look.pal.paper}`, paintOrder: 'stroke fill'}} />
         </div>
       ) : null}
     </AbsoluteFill>
