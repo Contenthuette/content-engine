@@ -246,8 +246,8 @@ const Tile: React.FC<{plan: Plan; x: Insert; pal: BluePal}> = ({plan, x, pal}) =
   const kin = INOUT(cl(t / (8 * FR)));
   const kout = INOUT(cl((d - t) / (6 * FR)));
   const k = Math.min(kin, kout);
-  const tw = W * 0.36;
-  const tcy = H * 0.3;
+  const tw = W * 0.42;
+  const tcy = H * 0.28;
   const rect = {x: lerp(k, 0, W / 2 - tw / 2), y: lerp(k, 0, tcy - tw / 2), w: lerp(k, W, tw), h: lerp(k, H, tw), r: lerp(k, 0, tw * 0.24)};
   const fx = (plan.focus?.x || 0.5) * W;
   const fy = (plan.focus?.y || 0.33) * H + H * 0.05;
@@ -337,7 +337,7 @@ const Chest: React.FC<{plan: Plan; x: Insert; pal: BluePal; capY: number}> = ({p
           <ProgressCard t={t} dur={crash ? Math.min(d, 1.5) : d} p={p} pal={pal} width={CARD_W} videoSrc={plan.video} focus={plan.focus} />
         </div>
         {p.emoji ? <EmojiBurst t={t} at={crash ? 0.5 : 0.35} x={crash ? W / 2 + CARD_W * 0.22 : Math.min(W - 120, barX)} y={top + cardH * (crash ? 0.3 : 0.5)} src={emojiSrc(p.emoji, 'money_with_wings')}
-          n={crash ? 5 : 4} size={crash ? 76 : 86} spread={crash ? 0.6 : 1} dir={crash ? -1 : 1} /> : null}
+          n={crash ? 5 : 4} size={crash ? 84 : 86} spread={crash ? 0.55 : 1} dir={crash ? -1 : 1} /> : null}
       </AbsoluteFill>
     );
   }

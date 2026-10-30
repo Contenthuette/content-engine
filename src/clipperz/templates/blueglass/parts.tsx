@@ -85,8 +85,8 @@ export const glassDark = (r = 999): React.CSSProperties => ({
 export const EmojiBurst: React.FC<{t: number; at: number; x: number; y: number; src: string; n?: number; size?: number; spread?: number; dir?: number; seed?: number}> = ({t, at, x, y, src, n = 4, size = 92, spread = 1, dir = 1, seed = 3}) => (
   <>
     {Array.from({length: n}).map((_, i) => {
-      const s = at + i * 0.17;
-      const k = (t - s) / 0.55;
+      const s = at + i * 0.15;
+      const k = (t - s) / 0.8;
       if (k < 0 || k > 1) return null;
       const r1 = rnd(seed + i * 7);
       const r2 = rnd(seed + i * 13);
@@ -324,7 +324,7 @@ export const Viewfinder: React.FC<{t: number; src: string; kind?: string; pal: B
 
 /** Torn paper sheets close in from outside to frame the picture (6 frames), then drift. */
 export const PaperFrame: React.FC<{t: number; dur: number; seed?: number}> = ({t, dur, seed = 5}) => {
-  const n = 18;
+  const n = 30;
   const k = ease(t, 0, 7 * FR, EXPO);
   const out = ease(t, dur - 6 * FR, 6 * FR, EXPO);
   return (
@@ -332,12 +332,13 @@ export const PaperFrame: React.FC<{t: number; dur: number; seed?: number}> = ({t
       {Array.from({length: n}).map((_, i) => {
         const a = (i / n) * Math.PI * 2 + rnd(seed + i) * 0.3;
         // a point on an ellipse around the frame edge
-        const ex = W / 2 + Math.cos(a) * W * 0.68;
-        const ey = H / 2 + Math.sin(a) * H * 0.6;
+        const ring = 0.55 + 0.1 * rnd(seed + i * 31);
+        const ex = W / 2 + Math.cos(a) * W * ring;
+        const ey = H / 2 + Math.sin(a) * H * (ring - 0.03);
         const far = 1.7 - 0.7 * (k - out);
         const x = W / 2 + (ex - W / 2) * far + Math.sin(t * 1.3 + i) * 10;
         const y = H / 2 + (ey - H / 2) * far + Math.cos(t * 1.1 + i) * 10;
-        const w = 190 + 130 * rnd(seed + i * 3);
+        const w = 150 + 120 * rnd(seed + i * 3);
         const h = w * (1.2 + 0.3 * rnd(seed + i * 5));
         const rot = (rnd(seed + i * 11) - 0.5) * 120 + t * (rnd(seed + i * 2) - 0.5) * 40;
         const jag = Array.from({length: 9}).map((__, j) => `${(j / 8) * 100}% ${rnd(seed + i * 17 + j) * 6}%`).join(', ');
@@ -411,12 +412,15 @@ export const AppBackground: React.FC<{pal: BluePal}> = ({pal}) => (
 
 /** Hand-drawn ellipse around a word (drawn on in ~0.3 s). */
 export const Scribble: React.FC<{t: number; w: number; h: number; color: string}> = ({t, w, h, color}) => {
-  const len = Math.PI * (w + h) * 0.9;
+  const len = Math.PI * (w + h) * 1.1;
   const k = ease(t, 0, 0.35, EXPO);
+  const W2 = w + 60;
+  const H2 = h + 44;
+  // loose hand-drawn loop around the text box (text sits at x 30…30+w, y 22…22+h)
+  const d = `M${30 + w * 0.15} ${H2 - 2} C ${-6} ${H2 - 6}, ${-4} ${4}, ${30 + w * 0.5} ${2} C ${W2 + 8} ${0}, ${W2 + 10} ${H2 - 10}, ${30 + w * 0.72} ${H2} C ${30 + w * 0.45} ${H2 + 4}, ${20} ${H2 - 4}, ${12} ${H2 * 0.45}`;
   return (
-    <svg width={w + 40} height={h + 30} viewBox={`0 0 ${w + 40} ${h + 30}`} style={{position: 'absolute', left: -20, top: -15, overflow: 'visible'}}>
-      <path d={`M${w * 0.12 + 20} ${h + 8} C ${-10} ${h}, ${0} ${8}, ${w * 0.5 + 20} 6 C ${w + 30} 4, ${w + 50} ${h * 0.7}, ${w * 0.7 + 20} ${h + 14} C ${w * 0.45} ${h + 22}, ${w * 0.2} ${h + 18}, 30 ${h * 0.6}`}
-        fill="none" stroke={color} strokeWidth={4} strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - k)} opacity={0.85} />
+    <svg width={W2} height={H2 + 8} viewBox={`0 0 ${W2} ${H2 + 8}`} style={{position: 'absolute', left: -30, top: -22, overflow: 'visible'}}>
+      <path d={d} fill="none" stroke={color} strokeWidth={4} strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - k)} opacity={0.85} />
     </svg>
   );
 };
