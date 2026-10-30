@@ -32,7 +32,7 @@ export type NnLook = {
 };
 const DEFAULT_LOOK: NnLook = {
   pal: NOIR, capFont: 'Inter', capWeight: 500, capSize: 46, capGap: 0.45, capY: 0.72, serif: 'Instrument Serif',
-  bigFont: 'Inter', bigWeight: 900, levels: [1, 1.18, 1.32], drift: 0.04, scan: 0.06, vignette: 0.62, halation: 0.2,
+  bigFont: 'Inter', bigWeight: 900, levels: [1, 1.18, 1.32], drift: 0.04, scan: 0.06, vignette: 0.4, halation: 0.2,
 };
 const lookOf = (plan: Plan): NnLook => {
   const nn = ((plan.style as Record<string, unknown> | undefined)?.nn ?? {}) as Partial<NnLook>;
