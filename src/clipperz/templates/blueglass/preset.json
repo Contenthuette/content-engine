@@ -1,0 +1,28 @@
+{
+  "blueglass": {
+    "label": "Blue Glass",
+    "about": "Blaue Glas-UI auf der Brust des Sprechers: dreistufige Typo (kleine kursive Zuleitung, SCHLÜSSELWORT fett-kursiv im Blau-Verlauf, kleiner Nachsatz), jede Einstellung landet unscharf und leicht vergrößert, Hook als Fortschritts-Widget mit Crash-Zoom, Layoutbruch in eine App-Kachel mit Chat-Zeilen, Checkliste mit Cursor, Pillen mit Emojis, Polaroid und Sucher für eigene Bilder, blaues Glasband unten. Kühler, gesättigter Look.",
+    "composition": "EditzBlueGlass",
+    "planner": "blueglass",
+    "captions": true,
+    "emphasis": "phrase",
+    "cap": {"font": "poppins", "weight": 800, "upper": true, "size": 124, "words": 4, "y": 0.6, "style": "custom", "color": "#36A5F5", "track": -0.02},
+    "accents": ["#36A5F5"],
+    "zoom": {"mode": "cut", "every": 1, "maxLevel": 1, "drift": 0, "shake": false, "levels": [1.2]},
+    "broll": "cut",
+    "inserts": {"perMin": 0, "codes": {}, "bg": ["BG-01"], "tr": [], "defaults": {}},
+    "hook": "title",
+    "progress": false,
+    "music": null,
+    "musicVol": 0,
+    "sfx": {"broll": [], "zoom": [], "hook": [], "end": []},
+    "sfxVol": 0.34,
+    "grade": "eq=contrast=1.08:saturation=1.22:gamma=0.98,colorbalance=rs=-0.04:gs=0.00:bs=0.06:rm=-0.03:gm=0.00:bm=0.05:rh=-0.05:gh=0.00:bh=0.07,curves=all='0/0 0.25/0.21 0.75/0.80 1/1',unsharp=5:5:0.6:5:5:0",
+    "bg": {
+      "levels": [1.2],
+      "blurCut": {"scale": 0.08, "blur": 14, "frames": 5},
+      "crash": {"scale": 1.9, "ui": 1.6, "blur": 12, "at": 0.3},
+      "keySize": 124, "leadSize": 46, "tailSize": 36, "maxW": 0.84
+    }
+  }
+}
