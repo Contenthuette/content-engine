@@ -55,8 +55,8 @@
     },
     "hook": "editorial",
     "progress": false,
-    "music": "music/hiphop92.mp3",
-    "musicVol": 0.05,
+    "music": null,
+    "musicVol": 0,
     "sfx": {
       "broll": [],
       "zoom": [],
