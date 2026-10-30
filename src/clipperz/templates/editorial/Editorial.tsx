@@ -177,10 +177,11 @@ function placeOf(plan: Plan, p: EPhrase, L: Layout, n: number): Place {
   const pl = want === 'top' ? tryTop() ?? trySide() ?? shoulder() : want === 'side' ? trySide() ?? shoulder() : want === 'high' ? high() : chest();
   // brightness under the block (grid measured by the planner on the video at the wide framing): light walls get dark ink
   const v = lumUnder(plan, pl.cx - (L.w * pl.scale) / 2, pl.cy - (L.h * pl.scale) / 2, L.w * pl.scale, L.h * pl.scale, p.s);
-  return {...pl, light: v !== null && v > 0.56};
+  return {...pl, light: v !== null && v >= 0.8};
 }
 
-/** Mean brightness of the source under an output rect at time t (null without the planner's grid). */
+/** Share of light cells (brightness > 0.55) of the source under an output rect at time t (null without the planner's grid).
+ * Dark ink only where the block sits (almost) entirely on light ground – white with shadow survives mixed ground, dark ink does not. */
 function lumUnder(plan: Plan, x: number, y: number, w: number, h: number, t: number): number | null {
   const g = (plan as unknown as {ed?: {grid?: {w: number; h: number; v: number[]}}}).ed?.grid;
   if (!g || !g.v?.length) return null;
@@ -190,7 +191,7 @@ function lumUnder(plan: Plan, x: number, y: number, w: number, h: number, t: num
   let n = 0;
   for (let r = Math.max(0, Math.floor(y0 * g.h)); r <= Math.min(g.h - 1, Math.floor(y1 * g.h)); r++) {
     for (let c = Math.max(0, Math.floor(x0 * g.w)); c <= Math.min(g.w - 1, Math.floor(x1 * g.w)); c++) {
-      sum += g.v[r * g.w + c];
+      sum += g.v[r * g.w + c] > 0.55 ? 1 : 0;
       n++;
     }
   }
@@ -359,7 +360,7 @@ const HookKicker: React.FC<{plan: Plan}> = ({plan}) => {
   const fb = faceBox(plan, 0.2);
   const top = Math.max(ED.topMin - 30, Math.min(260, fb.top - 140));
   const lum = lumUnder(plan, SAFE.left + 100, top, W - SAFE.left - SAFE.right - 200, 60, 0.2);
-  const ink = lum !== null && lum > 0.56 ? PAL.brown : '#FFF6EC';
+  const ink = lum !== null && lum >= 0.8 ? PAL.brown : '#FFF6EC';
   return (
     <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
       opacity: k * (1 - out), filter: `blur(${(1 - k) * 8 + out * 8}px)`}}>

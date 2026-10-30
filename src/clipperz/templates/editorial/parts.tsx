@@ -237,7 +237,7 @@ export const Strip: React.FC<{x: Insert}> = ({x}) => {
     <AbsoluteFill>
       <Paper bg="cream" t={t} seed={4} />
       {items.map((it, i) => {
-        const cx = anchor + (i - pos) * (pw + gap);
+        const cx = anchor + (i - pos) * (pw + gap) + (1 - shrink) * (W / 2 - anchor); // frame_shrink starts centred
         const first = i === 0;
         const sc = first ? lerp(shrink, H / ph * 1.02, 1) : 1;
         const cy = H * 0.52;
