@@ -93,7 +93,11 @@ export const LimeMagazin: React.FC<Plan> = (plan) => {
         );
       })}
 
-      {plan.sfx.map((s, i) => (
+      {plan.sfx.filter((s) => {
+        // sounds of a beat („of“: its code) stay silent once a revision removed that beat
+        const of = (s as {of?: string}).of;
+        return !of || plan.inserts.some((x) => x.code === of && s.t >= x.s - 0.15 && s.t <= x.e + 0.15);
+      }).map((s, i) => (
         <Sequence key={'s' + i} from={fr(s.t)} durationInFrames={fr(1.5)} layout="none">
           <Audio src={asset(`lib/sfx/s_${s.name}.wav`)} volume={(fr2) => s.vol * (talking(s.t + fr2 / fps) ? 0.6 : 1)} />
         </Sequence>

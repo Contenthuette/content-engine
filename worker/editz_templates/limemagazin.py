@@ -426,38 +426,39 @@ def zooms(words, ps, duration):
 
 def sounds(plan, words, ps, kw, inserts):
     """Glass on the wash, sparkle on the star, pops on the pucks, swish/slide on layout changes, tap on the click.
-    Soft pops on key words on the full frame. Never two hits within 0.18 s."""
+    Soft pops on key words on the full frame. Never two hits within 0.18 s. Beat sounds carry "of": <code> – the renderer
+    drops them when a revision removed that beat."""
     out = []
     dur = plan["duration"]
 
-    def add(t, name, vol=0.3):
+    def add(t, name, vol=0.3, of=None):
         if t < 0 or t > dur - 0.12 or any(abs(x["t"] - t) < 0.18 for x in out):
             return
-        out.append({"t": round(t, 3), "name": name, "vol": vol})
+        out.append({"t": round(t, 3), "name": name, "vol": vol, **({"of": of} if of else {})})
     for x in inserts:
-        s, d = x["s"], x["e"] - x["s"]
-        if x["code"] == "LM-POSTER":
-            add(s + 0.02, "glass", 0.32)
-            add(s + 0.3, "sparkle", 0.28)
-            add(s + 0.5, "swish", 0.26)
-        elif x["code"] == "LM-ORBIT":
-            add(s + 0.02, "whoosh3", 0.28)
+        s, d, c = x["s"], x["e"] - x["s"], x["code"]
+        if c == "LM-POSTER":
+            add(s + 0.02, "glass", 0.32, c)
+            add(s + 0.3, "sparkle", 0.28, c)
+            add(s + 0.5, "swish", 0.26, c)
+        elif c == "LM-ORBIT":
+            add(s + 0.02, "whoosh3", 0.28, c)
             for j, n in enumerate(("bubble", "pop", "bubble", "pop")):
-                add(s + 0.47 + j * 0.2, n, 0.2)
-        elif x["code"] == "LM-CARD":
-            add(s + 0.02, "slide", 0.26)
-        elif x["code"] == "LM-SPLIT":
-            add(s + 0.02, "swish", 0.24)
-        elif x["code"] == "LM-APP":
+                add(s + 0.47 + j * 0.2, n, 0.2, c)
+        elif c == "LM-CARD":
+            add(s + 0.02, "slide", 0.26, c)
+        elif c == "LM-SPLIT":
+            add(s + 0.02, "swish", 0.24, c)
+        elif c == "LM-APP":
             column = x["props"].get("column", True) is not False and d >= 3.2
             pp = x["props"].get("push")
             push = (pp if isinstance(pp, (int, float)) and 1.2 <= pp <= d - 0.6 else max(1.6, d * 0.5)) if column else 1e9
             click = min(push - 0.45, max(1.0, d * 0.32))
-            add(s + 0.02, "whoosh2", 0.26)
-            add(s + click, "tap", 0.34)
+            add(s + 0.02, "whoosh2", 0.26, c)
+            add(s + click, "tap", 0.34, c)
             if column:
-                add(s + push, "swish", 0.24)
-            add(x["e"] - 0.08, "slide2", 0.22)
+                add(s + push, "swish", 0.24, c)
+            add(x["e"] - 0.08, "slide2", 0.22, c)
     inside = lambda t: any(x["s"] - 0.05 <= t < x["e"] for x in inserts)
     for k, ids in sorted(kw.items()):
         t = words[ids[0]]["s"] - 0.05
