@@ -7,6 +7,7 @@ import {calcClipperz} from '../ClipperzEdit';
 import {Editorial} from './editorial/Editorial';
 import {calcWarmDoc, EditzWarmDoc} from './warmdoc/WarmDoc';
 import {LimeEditorial} from './limeeditorial/LimeEditorial';
+import {LimeMagazin} from './limemagazin/LimeMagazin';
 
 export type TemplateComp = {
   id: string;
@@ -19,4 +20,5 @@ export const TEMPLATES: TemplateComp[] = [
   {id: 'EditzEditorial', component: Editorial, calculateMetadata: calcClipperz},
   {id: 'EditzWarmDoc', component: EditzWarmDoc, calculateMetadata: calcWarmDoc},
   {id: 'EditzLimeEditorial', component: LimeEditorial, calculateMetadata: calcClipperz},
+  {id: 'EditzLimeMagazin', component: LimeMagazin, calculateMetadata: calcClipperz},
 ];

@@ -1,0 +1,30 @@
+{
+  "limemagazin": {
+    "label": "Lime Magazin",
+    "about": "Podcast als Magazin: eine einzige Akzentfarbe (Lime) trägt alles. Untertitel in Phrasen – dünne Grotesk-Versalien Wort für Wort, darunter EIN Schlüsselwort in kursiver Serif, Lime mit Glow und gezeichneter Linie. Der Sprecher bleibt fast immer sichtbar, aber die Welt um ihn wechselt: Farbwash-Karte wird Poster, Bild kippt nach hinten und Icons kreisen um die Karte, Karte mit langem Schatten, Split mit deinen Fotos/Clips, App-Ansicht mit Cursor und Textspalte. Jump-Cuts eng ↔ normal, kein Wackeln, kein Blitz.",
+    "composition": "EditzLimeMagazin",
+    "planner": "limemagazin",
+    "captions": true,
+    "depth": false,
+    "emphasis": "phrase",
+    "cap": {"font": "inter-tight", "weight": 300, "upper": true, "size": 50, "words": 5, "y": 0.6, "style": "custom", "color": "#ECECEC", "track": -0.01},
+    "accents": ["#C1EB47"],
+    "zoom": {"mode": "cut", "every": 1, "maxLevel": 1, "drift": 0.02, "shake": false, "levels": [1.12, 1.3]},
+    "broll": "cut",
+    "inserts": {"perMin": 0, "codes": {}, "bg": ["BG-01"], "tr": [], "defaults": {}},
+    "hook": "none",
+    "progress": false,
+    "music": null,
+    "musicVol": 0,
+    "sfx": {"broll": [], "zoom": [], "hook": [], "end": []},
+    "sfxVol": 0.3,
+    "grade": "eq=contrast=1.10:saturation=0.86:brightness=0.015:gamma=1.00,colorbalance=rs=0.02:gs=0.00:bs=-0.01:rm=0.03:gm=0.00:bm=-0.02:rh=-0.02:gh=0.015:bh=0.00,curves=all='0/0 0.12/0.07 0.55/0.60 0.9/0.96 1/1',unsharp=5:5:0.4:5:5:0",
+    "lm": {
+      "leadFont": "Inter Tight", "leadWeight": 300, "leadSize": 50,
+      "kwFont": "Instrument Serif", "kwSize": 124, "kwEm": 0.5,
+      "titleFont": "Inter Tight", "titleWeight": 800,
+      "capY": 0.6, "zoomNormal": 1.12, "zoomTight": 1.3, "drift": 0.02,
+      "pal": {"lime": "#C1EB47", "key": "#CDE75B", "keyLight": "#DFF07F", "limeDeep": "#7E9A1E", "ink": "#111111", "paper": "#EFF4F3", "lead": "#ECECEC", "leadDark": "#2E3231"}
+    }
+  }
+}
