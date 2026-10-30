@@ -358,3 +358,52 @@ export const StudioBackdrop: React.FC<{tone?: 'slate' | 'black'}> = ({tone = 'sl
 export const BottomShade: React.FC<{strength?: number}> = ({strength = 0.72}) => (
   <AbsoluteFill style={{background: `linear-gradient(to top, rgba(0,0,0,${strength}) 0%, rgba(0,0,0,${strength * 0.45}) 16%, rgba(0,0,0,0) 34%)`}} />
 );
+
+// ---------- long German compounds: two lines instead of a tiny word ----------
+
+/** Heads of German compounds where a break reads naturally (HANDWERKS-/BETRIEB, IMMOBILIEN-/VERWALTUNG). */
+const HEADS = ['VERWALTUNG', 'BETRIEBE', 'BETRIEB', 'UNTERNEHMEN', 'UNTERNEHMER', 'AGENTUR', 'AGENTUREN', 'LEISTUNG', 'LEISTUNGEN', 'BERATUNG',
+  'FÖRDERUNG', 'ENTWICKLUNG', 'MANAGEMENT', 'MARKETING', 'PROZESSE', 'PROZESS', 'SYSTEME', 'SYSTEM', 'KUNDEN', 'ARBEIT', 'TECHNIK', 'MEISTER',
+  'HANDWERK', 'GESCHÄFT', 'WACHSTUM', 'STRATEGIE', 'SOFTWARE', 'AUFTRÄGE', 'AUFTRAG', 'GEBÄUDE', 'ANLAGEN', 'PLANUNG', 'LÖSUNG', 'LÖSUNGEN',
+  'BRANCHE', 'MITARBEITER', 'ZUKUNFT', 'GEWINN', 'UMSATZ', 'PERSONAL', 'BAUSTELLE', 'BAUSTELLEN', 'INTELLIGENCE', 'INTELLIGENZ'];
+const VOWEL = /[AEIOUÄÖÜY]/;
+
+/** One line up to `max` letters; longer words break at a compound head, a hyphen or a syllable near the middle. */
+export function splitWord(word: string, max = 11): string[] {
+  const w = word.trim();
+  if (w.length <= max) return [w];
+  const sp = w.indexOf(' ');
+  if (sp > 0) return [w.slice(0, sp), w.slice(sp + 1)];
+  const hy = w.indexOf('-');
+  if (hy >= 3 && w.length - hy - 1 >= 3) return [w.slice(0, hy + 1), w.slice(hy + 1)];
+  const up = w.toUpperCase();
+  for (const head of HEADS) {
+    const k = up.lastIndexOf(head);
+    if (k >= 4 && k + head.length >= up.length - 2 && up.length - k >= 4) return [w.slice(0, k) + '-', w.slice(k)];
+  }
+  // syllable break: before a consonant that sits between two vowels (AUTOMA-TISIERUNG), as close to the middle as possible
+  let best = -1;
+  for (let i = 4; i <= w.length - 4; i++) {
+    if (!VOWEL.test(up[i]) && VOWEL.test(up[i - 1]) && VOWEL.test(up[i + 1] ?? '') && (best < 0 || Math.abs(i - w.length / 2) < Math.abs(best - w.length / 2))) best = i;
+  }
+  if (best < 0) best = Math.round(w.length / 2);
+  return [w.slice(0, best) + '-', w.slice(best)];
+}
+
+/** Several lines of LetterBuild that build one after the other like one word. */
+export const WordLines: React.FC<Omit<LetterBuildProps, 'text'> & {lines: string[]; align?: 'center' | 'flex-start' | 'flex-end'; gap?: number}> = ({lines, align = 'center', gap = -0.06, ...p}) => {
+  const total = lines.reduce((n, l) => n + Array.from(l).length, 0);
+  const step = Math.min(p.step ?? 2.5, 19 / Math.max(1, total));
+  const fps = p.fps ?? 30;
+  let before = 0;
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: align}}>
+      {lines.map((l, i) => {
+        const off = before;
+        before += Array.from(l).length;
+        return <LetterBuild key={i} {...p} text={l} step={step} t={p.t - (off * step) / fps} seed={(p.seed ?? 1) + i * 13} firstShadow={i ? undefined : p.firstShadow}
+          style={{...p.style, marginTop: i ? p.size * gap : 0}} />;
+      })}
+    </div>
+  );
+};

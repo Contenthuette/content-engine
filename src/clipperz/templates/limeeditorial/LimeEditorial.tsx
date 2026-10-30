@@ -15,7 +15,7 @@ import {byCode} from '../../../lib/registry';
 import {EntryView, SfxCtx} from '../../../lib/Catalog';
 import {asset, C} from '../../../lib/core';
 import type {Insert, Plan, Word} from '../../types';
-import {arcPath, ArcWords, BottomShade, cl, ContrastDefs, H, Handwrite, HeroObject, LetterBuild, LIME, lerp, Palette, PillNotice, Ribbon,
+import {arcPath, ArcWords, splitWord, WordLines, BottomShade, cl, ContrastDefs, H, Handwrite, HeroObject, LetterBuild, LIME, lerp, Palette, PillNotice, Ribbon,
   RIBBON_PATHS, RibbonPath, StudioBackdrop, Timed, useFontsReady, VideoOrb, W, WhiteStage} from './parts';
 
 // ---------- look (overridable per preset: style.le) ----------
@@ -88,11 +88,11 @@ export function segments(words: Word[]): number[][] {
 /** Contrast filter sized to the word: erosion ≈ 2 % of the font size (5 px at 250 px). */
 const Contrast: React.FC<{look: LeLook; size: number}> = ({look, size}) => {
   if (!look.kwContrast) return null;
-  const ry = Math.max(1, Math.round(look.kwContrast * (size / 250) * 10) / 10);
+  const ry = Math.max(1, Math.round(look.kwContrast * 0.85 * (size / 250) * 10) / 10);
   return <ContrastDefs id={`le-c-${Math.round(ry * 10)}`} ry={ry} />;
 };
 const contrastUrl = (look: LeLook, size: number) =>
-  look.kwContrast ? `url(#le-c-${Math.round(Math.max(1, Math.round(look.kwContrast * (size / 250) * 10) / 10) * 10)})` : undefined;
+  look.kwContrast ? `url(#le-c-${Math.round(Math.max(1, Math.round(look.kwContrast * 0.85 * (size / 250) * 10) / 10) * 10)})` : undefined;
 
 const clean = (w: string) => w.replace(/[„“"«»()]/g, '').replace(/[.,!?;:…]+$/, '');
 const hasText = (w: string) => /[\p{L}\p{N}]/u.test(w);
@@ -137,8 +137,9 @@ const Speaker: React.FC<{plan: Plan; t: number; jump: number; fg?: boolean; kb?:
 
 const KeywordBlock: React.FC<{t: number; lead: Timed[]; word: string; wordAt: number; tail: Timed[]; look: LeLook; seed: number; y?: number;
   color?: string; glow?: string | null; leadColor?: string}> = ({t, lead, word, wordAt, tail, look, seed, y, color, glow, leadColor}) => {
-  const chars = Math.max(3, word.length);
-  const size = Math.min(look.kwSize, (W * look.kwMaxW) / (chars * look.kwEm));
+  const lines = splitWord(word);
+  const chars = Math.max(3, ...lines.map((l) => l.length));
+  const size = Math.min(look.kwSize * (lines.length > 1 ? 0.92 : 1), (W * look.kwMaxW) / (chars * look.kwEm));
   const hand = look.handSize;
   const shadow = '0 2px 10px rgba(0,0,0,.45)';
   return (
@@ -149,7 +150,7 @@ const KeywordBlock: React.FC<{t: number; lead: Timed[]; word: string; wordAt: nu
           style={{alignSelf: 'flex-end', marginBottom: -size * 0.04, marginRight: size * 0.02}} />
       ) : null}
       {word ? (
-        <LetterBuild text={word} t={t - wordAt} family={look.kwFont} weight={look.kwWeight} size={size} color={color ?? look.pal.lime} glow={glow}
+        <WordLines lines={lines} t={t - wordAt} family={look.kwFont} weight={look.kwWeight} size={size} color={color ?? look.pal.lime} glow={glow}
           seed={seed} filter={contrastUrl(look, size)} />
       ) : null}
       {tail.length ? (
@@ -243,8 +244,10 @@ const Stage: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, look})
     arc = src.map((i) => ({w: clean(plan.words[i].w), s: Math.max(0.12, plan.words[i].s - x.s - 0.04)}));
   }
   const arcR = hero === 'none' ? 330 : size / 2 + 58;
-  const wsize = Math.min(230, (W * 0.86) / (Math.max(3, word.length) * look.stageEm * look.stageCondense));
-  const wy = hero === 'none' ? cy + 40 : cy + size * 0.43;
+  const wlines = splitWord(word);
+  const wsize = Math.min(wlines.length > 1 ? 200 : 230, (W * 0.86) / (Math.max(3, ...wlines.map((l) => l.length)) * look.stageEm * look.stageCondense));
+  // like WORLD in the reference: in front of the object, overlapping only its lower edge
+  const wy = hero === 'none' ? cy + 40 : cy + size * 0.5 + (wlines.length > 1 ? wsize * 0.25 : 0);
   const ribbon = p.ribbon ?? 'arc';
   return (
     <AbsoluteFill>
@@ -254,9 +257,9 @@ const Stage: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, look})
       {(hero === 'object' || hero === 'card') && p.src ? <HeroObject src={p.src} t={t} cx={cx} cy={cy} size={size} card={hero === 'card'} /> : null}
       <ArcWords words={arc} t={t} cx={cx} cy={cy} r={arcR} family={look.handFont} size={46} color={look.pal.ink} />
       {word ? (
-        <div style={{position: 'absolute', left: cx, top: wy, transform: 'translate(-50%, -50%)'}}>
-          <LetterBuild text={word} t={t - Math.max(0.05, kwAt - 0.12)} step={1.6} family={look.stageFont} weight={look.stageWeight} size={wsize}
-            color={look.pal.ink} condense={look.stageCondense} seed={11} order="jitter" blur={6} firstShadow={`-${Math.round(wsize * 0.07)}px ${Math.round(wsize * 0.02)}px 0 ${look.pal.violet}`}
+        <div style={{position: 'absolute', left: cx, top: wy, transform: 'translate(-50%, -50%)', zIndex: 5}}>
+          <WordLines lines={wlines} t={t - Math.max(0.05, kwAt - 0.12)} step={1.6} family={look.stageFont} weight={look.stageWeight} size={wsize}
+            color={look.pal.ink} condense={look.stageCondense} seed={11} order="jitter" blur={6} gap={-0.1} firstShadow={`-${Math.round(wsize * 0.07)}px ${Math.round(wsize * 0.02)}px 0 ${look.pal.violet}`}
             style={{lineHeight: 1, WebkitTextStroke: `${Math.max(4, Math.round(wsize * 0.035))}px ${look.pal.paper}`, paintOrder: 'stroke fill'}} />
         </div>
       ) : null}
@@ -312,9 +315,10 @@ const Portrait: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, loo
   const lead: Timed[] = typeof p.lead === 'string' && p.lead.trim()
     ? p.lead.trim().split(/\s+/).slice(0, 5).map((w, i) => ({w, s: 0.08 + i * 0.08}))
     : before.slice(-3).map((i) => ({w: clean(plan.words[i].w), s: Math.max(0.05, Math.min(plan.words[i].s - x.s - 0.05, kwAt - 0.25))}));
-  const chars = Math.max(3, word.length);
+  const plines = splitWord(word);
+  const chars = Math.max(3, ...plines.map((l) => l.length));
   const dark = variant === 'dark' || !hasCut;
-  const size = Math.min(dark ? look.kwSize : 280, (W * (dark ? look.kwMaxW : 0.88)) / (chars * look.kwEm));
+  const size = Math.min(dark ? look.kwSize : plines.length > 1 ? 210 : 280, (W * (dark ? look.kwMaxW : 0.88)) / (chars * look.kwEm));
   const wordAt = Math.max(0.12, kwAt - 0.15);
   const layer = (child: React.ReactNode) => (
     <AbsoluteFill style={{transform: `scale(${kb})`, transformOrigin: `${(fx / W) * 100}% ${(fy / H) * 100}%`}}>{child}</AbsoluteFill>
@@ -322,9 +326,10 @@ const Portrait: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, loo
   // arch: slate studio, lime arch behind the shoulders, white word behind the head (sandwich)
   const archCx = fx + W * 0.14;
   // room above the head for the word: the person moves down until the cap/hair covers only the word's lower quarter
-  const capH = size * 0.74;
+  const capH = size * 0.74 + (plines.length - 1) * size * 0.86; // height of the word block
   const headTop0 = fy - fh * 1.05 * kb;
-  const dy = !dark && !photo ? Math.max(0, Math.min(H * 0.16, 215 + capH * 0.8 - headTop0)) : 0;
+  const capLine = size * 0.74;
+  const dy = !dark && !photo ? Math.max(0, Math.min(H * 0.18, 215 + capH - capLine * 0.22 - headTop0)) : 0;
   const archCy = fy + fh * 0.55 + dy;
   const person = photo
     ? layer(<Img src={asset(p.src!)} style={{width: W, height: H, objectFit: 'cover'}} />)
@@ -333,13 +338,13 @@ const Portrait: React.FC<{plan: Plan; x: Insert; look: LeLook}> = ({plan, x, loo
   const headTop = headTop0 + dy;
   const wordW = chars * size * look.kwEm;
   const wx = chars <= 7 ? Math.min(W - 40 - wordW / 2, fx + W * 0.16) : W / 2;
-  const wy = Math.max(215 + capH / 2, headTop - capH * 0.25);
+  const wy = Math.max(215 + capH / 2, headTop + capLine * 0.22 - capH / 2);
   const behind = !dark ? (
     <div style={{position: 'absolute', left: Math.max(40 + wordW / 2, wx), top: wy, transform: 'translate(-50%, -50%)',
       display: 'flex', flexDirection: 'column', alignItems: 'stretch'}}>
       {lead.length ? <Handwrite words={lead} t={t} family={look.handFont} size={look.handSize} color="rgba(255,255,255,.95)" style={{alignSelf: 'flex-end', marginBottom: -size * 0.03}} /> : null}
       <Contrast look={look} size={size} />
-      <LetterBuild text={word} t={t - wordAt} family={look.kwFont} weight={look.kwWeight} size={size} color="#FFFFFF" seed={23} filter={contrastUrl(look, size)} />
+      <WordLines lines={plines} t={t - wordAt} family={look.kwFont} weight={look.kwWeight} size={size} color="#FFFFFF" seed={23} filter={contrastUrl(look, size)} />
     </div>
   ) : null;
   return (
