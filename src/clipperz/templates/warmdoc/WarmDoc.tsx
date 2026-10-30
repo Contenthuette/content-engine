@@ -58,7 +58,7 @@ export const EditzWarmDoc: React.FC<Plan> = (plan) => {
     const em = new Set(plan.emphasis || []);
     let n = 0;
     (plan.emphasis || []).slice().sort((a, b) => a - b).forEach((i) => {
-      if (!em.has(i - 1)) m.set(i, n++);
+      if (!em.has(i - 1) || /[.!?,;:]$/.test(plan.words[i - 1]?.w || '')) m.set(i, n++);
     });
     return m;
   }, [plan.emphasis]);

@@ -355,7 +355,8 @@ export const Caption: React.FC<{ph: WdPhrase; look: KeyLook; mode: CapMode; t: n
       const color = look.variant === 'peach' ? PAL.peach : '#fff';
       const size = left ? Math.min(78, maxW / (Math.max(...text.split(' ').map((x) => x.length)) * 0.66)) : Math.min(132, maxW / (text.length * 0.46));
       kwNode = (
-        <div style={{display: 'flex', flexDirection: 'column', alignItems: left ? 'flex-start' : 'center', transform: left ? undefined : 'translateX(-28px)'}}>
+        <div style={{display: 'flex', justifyContent: left ? 'flex-start' : 'center', transform: left ? undefined : 'translateX(-28px)'}}>
+         <div style={{display: 'inline-flex', flexDirection: 'column', alignItems: left ? 'flex-start' : 'center'}}>
           <div style={{fontFamily: left ? SANS : 'Anton', fontWeight: left ? 800 : 400, fontSize: size, lineHeight: left ? 1.02 : 0.98, color, textAlign: left ? 'left' : 'center',
             letterSpacing: left ? '-0.025em' : '-0.005em', textShadow: '0 4px 20px rgba(0,0,0,.35)', maxWidth: maxW}}>
             {kw.map((x, k) => {
@@ -366,6 +367,7 @@ export const Caption: React.FC<{ph: WdPhrase; look: KeyLook; mode: CapMode; t: n
           </div>
           {look.underline && show ? <div style={{height: 5, marginTop: 6, width: `${ease(t, k0 + 2 * F, 6 * F) * 100}%`, maxWidth: maxW, background: PAL.chip, borderRadius: 2,
             alignSelf: left ? 'flex-start' : 'center'}} /> : null}
+         </div>
         </div>
       );
     }
