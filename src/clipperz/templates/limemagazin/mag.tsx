@@ -138,15 +138,31 @@ export const phraseAt = (ps: PhraseInfo[], t: number) => ps.find((p) => t >= p.s
 
 export type Scheme = 'light' | 'paper' | 'ink' | 'split';
 
+const VOW = /[AEIOUÄÖÜY]/;
+/** splitWord (compound heads, hyphens) – but never a second line that starts with a vowel (UNTERN-EHMEN): then break inside the
+ * consonant cluster before the next vowel, nearest to the middle (UNTER-NEHMEN), never inside CH / CK / SCH. */
+export function breakWord(word: string, max: number): string[] {
+  const r = splitWord(word, max);
+  if (r.length < 2 || !VOW.test(r[1][0]?.toUpperCase() ?? '')) return r;
+  const up = word.toUpperCase();
+  let best = -1;
+  for (let i = 3; i <= up.length - 3; i++) {
+    const ok = !VOW.test(up[i - 1]) && !VOW.test(up[i]) && VOW.test(up[i + 1] ?? '') && VOW.test(up.slice(0, i - 1))
+      && !['CH', 'CK'].includes(up.slice(i - 1, i + 1)) && up.slice(i - 2, i + 1) !== 'SCH' && up.slice(i, i + 3) !== 'SCH' && up.slice(i, i + 2) !== 'CH';
+    if (ok && (best < 0 || Math.abs(i - up.length / 2) < Math.abs(best - up.length / 2))) best = i;
+  }
+  return best > 0 ? [word.slice(0, best) + '-', word.slice(best)] : r;
+}
+
 /** Key word lines: long German compounds break at a compound head (never shrink to a tiny word), several words wrap by words. */
-export function kwLines(text: string): string[] {
+export function kwLines(text: string, max = 13): string[] {
   const ws = text.split(/\s+/).filter(Boolean);
-  if (ws.length === 1) return splitWord(ws[0], 13);
+  if (ws.length === 1) return breakWord(ws[0], max);
   const lines: string[] = [];
   for (const w of ws) {
     const last = lines[lines.length - 1];
-    if (last !== undefined && (last + ' ' + w).length <= 13) lines[lines.length - 1] = last + ' ' + w;
-    else lines.push(...(w.length > 13 ? splitWord(w, 13) : [w]));
+    if (last !== undefined && (last + ' ' + w).length <= max) lines[lines.length - 1] = last + ' ' + w;
+    else lines.push(...(w.length > max ? breakWord(w, max) : [w]));
   }
   return lines;
 }
@@ -160,7 +176,11 @@ const reveal = (t: number, at: number, blur = 3) => {
  * lime with glow, underline drawn from the left on every 2nd key word), words after it as a small tail line.
  * Words fade in on their spoken time; the block blurs out in 4 frames when the phrase ends. */
 export const Caption: React.FC<{plan: Plan; ps: PhraseInfo[]; t: number; look: MagLook; scheme?: Scheme; scale?: number; x: number; y: number;
-  align?: 'left' | 'center'; maxW?: number; anchor?: 'top' | 'bottom'}> = ({plan, ps, t, look, scheme = 'light', scale = 1, x, y, align = 'center', maxW = W * 0.84, anchor = 'top'}) => {
+  align?: 'left' | 'center'; maxW?: number; anchor?: 'top' | 'bottom';
+  /** key word size relative to `scale` (editorial column: bigger) */ kwScale?: number;
+  /** key word stands from the phrase start (editorial column headline), else it appears on its spoken time */ kwEarly?: boolean;
+  /** letters per key-word line before a compound breaks (narrow column: fewer, so the word can stay big) */ kwMax?: number}> = (
+  {plan, ps, t, look, scheme = 'light', scale = 1, x, y, align = 'center', maxW = W * 0.84, anchor = 'top', kwScale = 1, kwEarly = false, kwMax = 13}) => {
   const p = phraseAt(ps, t);
   if (!p || !plan.captions && !p.kw.length) return null;
   const words = plan.words;
@@ -171,18 +191,19 @@ export const Caption: React.FC<{plan: Plan; ps: PhraseInfo[]; t: number; look: M
   const tail = plan.captions && p.kw.length ? p.idx.filter((i) => i > p.kw[p.kw.length - 1]) : [];
   const leadSize = look.leadSize * scale;
   const kwText = p.kw.map((i) => upper(words[i].w).replace(/[.,!?;:…]+$/, '')).join(' ');
-  const lines = kwText ? kwLines(kwText) : [];
+  const lines = kwText ? kwLines(kwText, kwMax) : [];
   const chars = Math.max(4, ...lines.map((l) => l.length));
-  const kwSize = Math.min(look.kwSize * scale, maxW / (chars * look.kwEm));
+  const kwSize = Math.min(look.kwSize * scale * kwScale, maxW / (chars * look.kwEm));
+  // light backgrounds (paper card, editorial column): the key word is dark ink with a lime glow + lime underline – lime on white is unreadable
+  const dark = scheme === 'paper' || scheme === 'ink';
   const leadColor = scheme === 'light' || scheme === 'split' ? pal.lead : scheme === 'paper' ? pal.leadDark : pal.ink;
   const leadShadow = scheme === 'light' || scheme === 'split' ? '0 1px 2px rgba(0,0,0,.5), 0 0 18px rgba(0,0,0,.35)' : undefined;
-  const kwColor = pal.key;
-  const kwShadow = scheme === 'ink' ? undefined
-    : scheme === 'paper' ? `0 3px 0 ${shade(pal.limeDeep, -0.3)}, 0 0 18px ${pal.lime}88`
+  const kwColor = dark ? pal.ink : pal.key;
+  const kwShadow = dark ? `0 0 ${Math.round(kwSize * 0.22)}px ${pal.lime}AA, 0 0 ${Math.round(kwSize * 0.08)}px ${pal.lime}88`
       : scheme === 'split' ? `0 3px 0 ${shade(pal.limeDeep, -0.35)}, 0 0 22px rgba(0,0,0,.45)`
         : `0 0 16px ${pal.lime}66, 0 2px 6px rgba(0,0,0,.35)`;
-  const kwAt = p.kw.length ? words[p.kw[0]].s - 0.05 : 0;
-  const under = p.kw.length > 0 && p.ord % 2 === 1;
+  const kwAt = p.kw.length ? (kwEarly ? p.s + 0.08 : words[p.kw[0]].s - 0.05) : 0;
+  const under = p.kw.length > 0 && (dark || p.ord % 2 === 1);
   const uk = ease(t, kwAt + 0.12, 8 / 30);
   const wordSpan = (i: number) => (
     <span key={i} style={{display: 'inline-block', marginRight: '0.26em', ...reveal(t, words[i].s - 0.05)}}>{upper(words[i].w)}</span>
@@ -195,15 +216,15 @@ export const Caption: React.FC<{plan: Plan; ps: PhraseInfo[]; t: number; look: M
       width: 'max-content', maxWidth: maxW}}>
       {lead.length ? <div style={leadStyle}>{lead.map(wordSpan)}</div> : null}
       {lines.length ? (
-        <div style={{position: 'relative', marginTop: lead.length ? -kwSize * 0.1 : 0, marginLeft: -kwSize * 0.03, ...reveal(t, kwAt, 4)}}>
+        <div style={{position: 'relative', marginTop: lead.length ? -kwSize * 0.04 : 0, marginLeft: -kwSize * 0.03, ...reveal(t, kwAt, 4)}}>
           {lines.map((l, j) => (
-            <div key={j} style={{fontFamily: look.kwFont, fontStyle: 'italic', fontWeight: 400, fontSize: kwSize, lineHeight: 0.86, letterSpacing: '-0.03em',
-              textShadow: kwShadow, whiteSpace: 'nowrap', paintOrder: 'stroke fill', WebkitTextStroke: scheme === 'ink' ? undefined : scheme === 'paper' ? `${Math.max(1.2, kwSize / 70)}px ${shade(pal.limeDeep, -0.45)}` : `${Math.max(0.6, kwSize / 90)}px ${kwColor}`,
-              color: scheme === 'ink' ? pal.ink : kwColor}}>{l}</div>
+            <div key={j} style={{fontFamily: look.kwFont, fontStyle: 'italic', fontWeight: 400, fontSize: kwSize, lineHeight: 1.0, letterSpacing: '-0.03em',
+              marginTop: j ? kwSize * 0.02 : 0, textShadow: kwShadow, whiteSpace: 'nowrap', paintOrder: 'stroke fill', color: kwColor,
+              WebkitTextStroke: `${Math.max(0.6, kwSize / (dark ? 110 : 90))}px ${kwColor}`}}>{l}</div>
           ))}
           {under ? (
-            <div style={{position: 'absolute', left: kwSize * 0.06, right: kwSize * 0.12, bottom: -kwSize * 0.1, height: Math.max(3, kwSize * 0.045), background: scheme === 'ink' ? pal.ink : pal.lime,
-              transform: `scaleX(${uk})`, transformOrigin: 'left center', boxShadow: scheme === 'ink' ? undefined : `0 0 10px ${pal.lime}88`}} />
+            <div style={{position: 'absolute', left: kwSize * 0.06, right: kwSize * 0.12, bottom: kwSize * 0.03, height: Math.max(3, kwSize * (dark ? 0.07 : 0.045)), background: pal.lime,
+              transform: `scaleX(${uk})`, transformOrigin: 'left center', boxShadow: `0 0 10px ${pal.lime}88`}} />
           ) : null}
         </div>
       ) : null}

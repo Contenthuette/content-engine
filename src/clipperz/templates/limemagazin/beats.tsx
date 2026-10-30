@@ -42,15 +42,15 @@ export const Poster: React.FC<BeatProps> = ({plan, x, u, look}) => {
   const pal = look.pal;
   const wash = p.wash !== false;
   const plate = {x: W * 0.055, y: H * 0.465, w: W * 0.89, h: H * 0.49, r: W * 0.06};
-  // color_wash_card (2 + 4 + 3 frames): wash, shrink into the plate, footage gone
-  const kW = wash ? ease(u, 0, fr(2)) : 1;
-  const kS = wash ? ease(u, fr(2), fr(5), EXPO) : 1;
-  const kF = wash ? ease(u, fr(4), fr(5)) : 1;
-  const cx = lerp(kS, 0, plate.x);
-  const cy = lerp(kS, 0, plate.y);
-  const cw = lerp(kS, W, plate.w);
-  const ch = lerp(kS, H, plate.h);
-  const drop = wash ? Math.sin(cl((u - fr(5)) / fr(4)) * Math.PI) : 0; // the card dips down-left and settles as the plate
+  // color_wash_card: the speaker stays clearly visible the whole time – lime wash comes in (0–3 f), the frame shrinks into a
+  // rounded card (3–8 f), the card drops out to the lower left (8–14 f) and uncovers the lime plate of the poster
+  const kW = wash ? ease(u, 0, fr(3)) : 1;
+  const kS = wash ? ease(u, fr(3), fr(5), EXPO) : 1;
+  const kD = wash ? ease(u, fr(8), fr(6), (z) => z * z * z) : 1;
+  const card = {w: lerp(kS, W, W * 0.72), h: lerp(kS, H, H * 0.72)};
+  const cardX = lerp(kS, 0, (W - W * 0.72) / 2) + lerp(kD, 0, -W * 0.7);
+  const cardY = lerp(kS, 0, H * 0.1) + lerp(kD, 0, H * 0.75);
+  const plateK = wash ? ease(u, fr(7), fr(6), EXPO) : 1;
   const title = (p.title || 'Vor allem eins.').trim();
   const tl = title.split(/\s+/);
   const tLines = tl.length >= 2 ? [tl.slice(0, Math.ceil(tl.length / 2)).join(' '), tl.slice(Math.ceil(tl.length / 2)).join(' ')] : [title];
@@ -80,24 +80,26 @@ export const Poster: React.FC<BeatProps> = ({plan, x, u, look}) => {
           {lines.map((l, j) => <div key={j}>{l}</div>)}
         </div>
       ) : null}
-      {/* the lime plate = the washed footage card */}
-      <div style={{position: 'absolute', left: cx - drop * W * 0.04, top: cy + drop * H * 0.03, width: cw, height: ch, borderRadius: lerp(kS, 0, plate.r), overflow: 'hidden',
-        transform: `rotate(${-drop * 3}deg)`, background: pal.lime, boxShadow: kS > 0.5 ? `0 30px 60px ${shade(pal.lime, -0.5)}33` : undefined}}>
-        {kF < 1 ? (
-          <div style={{position: 'absolute', inset: 0, opacity: 1 - kF}}>
-            <VideoBox plan={plan} w={cw} h={ch} zoom={look.zoomTight} />
-            <div style={{position: 'absolute', inset: 0, background: pal.lime, mixBlendMode: 'color', opacity: 0.85 * kW}} />
-            <div style={{position: 'absolute', inset: 0, background: pal.lime, opacity: 0.32 * kW + 0.5 * kS}} />
-          </div>
-        ) : (
-          <svg width={cw} height={ch} style={{position: 'absolute', inset: 0}}>
-            {[0.22, 0.42, 0.62].map((r, j) => (
-              <rect key={j} x={cw * (0.5 - r)} y={ch * (0.5 - r * 0.9)} width={cw * r * 2} height={ch * r * 1.8} rx={30} fill="none" stroke={shade(pal.lime, 0.25)} strokeWidth={2} opacity={0.6}
-                transform={`rotate(${45} ${cw / 2} ${ch / 2})`} />
-            ))}
-          </svg>
-        )}
+      {/* the lime plate of the poster (uncovered by the dropping card) */}
+      <div style={{position: 'absolute', left: plate.x, top: plate.y, width: plate.w, height: plate.h, borderRadius: plate.r, overflow: 'hidden', background: pal.lime,
+        opacity: cl(plateK * 2), transform: `scale(${lerp(plateK, 0.92, 1)})`, boxShadow: `0 30px 60px ${shade(pal.lime, -0.5)}33`}}>
+        <svg width={plate.w} height={plate.h} style={{position: 'absolute', inset: 0}}>
+          {[0.22, 0.42, 0.62].map((r, j) => (
+            <rect key={j} x={plate.w * (0.5 - r)} y={plate.h * (0.5 - r * 0.9)} width={plate.w * r * 2} height={plate.h * r * 1.8} rx={30} fill="none" stroke={shade(pal.lime, 0.25)} strokeWidth={2} opacity={0.6}
+              transform={`rotate(${45} ${plate.w / 2} ${plate.h / 2})`} />
+          ))}
+        </svg>
       </div>
+      {/* the washed footage card: speaker clearly visible (lime tint on top, never more than ~55 %) */}
+      {wash && kD < 1 ? (
+        <div style={{position: 'absolute', left: cardX, top: cardY, width: card.w, height: card.h, borderRadius: lerp(kS, 0, 48), overflow: 'hidden', zIndex: 3,
+          transform: `rotate(${-8 * kD}deg)`, transformOrigin: '30% 70%', filter: kD > 0.05 ? `blur(${kD * 6}px)` : undefined,
+          boxShadow: kS > 0.2 ? `0 40px 80px rgba(40,60,10,${0.3 * kS})` : undefined}}>
+          <VideoBox plan={plan} w={card.w} h={card.h} zoom={look.zoomTight} />
+          <div style={{position: 'absolute', inset: 0, background: pal.lime, mixBlendMode: 'multiply', opacity: 0.55 * kW}} />
+          <div style={{position: 'absolute', inset: 0, background: pal.lime, opacity: 0.14 * kW}} />
+        </div>
+      ) : null}
       {/* the object: phone with the speaker (or an uploaded photo) slides in from the lower right */}
       {phoneK > 0 ? (
         <div style={{position: 'absolute', left: lerp(phoneK, W * 0.95, W * 0.12), top: lerp(phoneK, H * 1.05, H * 0.42), transform: `rotate(${lerp(phoneK, -32, -17)}deg)`,
@@ -385,7 +387,7 @@ export const App: React.FC<BeatProps> = ({plan, x, u, look, ps, t}) => {
     <div style={{position: 'absolute', inset: 0, overflow: 'hidden', background: '#FFFFFF'}}>
       {ui}
       {column && u >= pushAt ? (
-        <Caption plan={plan} ps={ps} t={t} look={look} scheme="ink" scale={0.86} x={W * 0.53} y={H * 0.27} align="left" maxW={W * 0.42} />
+        <Caption plan={plan} ps={ps} t={t} look={look} scheme="ink" scale={1.1} kwScale={1.1} kwMax={9} kwEarly x={W * 0.51} y={H * 0.22} align="left" maxW={W * 0.46} />
       ) : null}
       {wipe > 0 ? (
         <div style={{position: 'absolute', left: lerp(wipe, W, 0), top: 0, width: W, height: H, overflow: 'hidden', boxShadow: '-20px 0 40px rgba(0,0,0,.2)'}}>
