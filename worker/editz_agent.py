@@ -42,9 +42,9 @@ FILL = {"und", "oder", "aber", "also", "dann", "halt", "eben", "ja", "nein", "so
         "im", "am", "an", "zu", "zum", "zur", "auf", "aus", "wie", "was", "wer", "sei", "nicht", "noch", "schon", "mal", "auch", "nur", "sehr",
         "dass", "wenn", "weil", "heißt", "machen", "macht", "haben", "hat", "vor", "allem", "eurem", "euren", "unser", "unsere", "mein",
         "dein", "sein", "kann", "können", "muss", "will", "gibt", "äh", "ähm", "hm", "okay", "ok", "genau", "quasi", "irgendwie", "einfach",
-        "wirklich", "eigentlich", "denn", "doch", "da", "hier", "dort", "jetzt", "eins"}
+        "wirklich", "eigentlich", "denn", "doch", "da", "hier", "dort", "jetzt"}
 ALL_OPS = ("keyword", "word", "hook", "insert_remove", "insert_move", "insert_props", "insert_add", "broll_add", "broll_remove",
-           "broll_move", "zoom", "cut", "pause", "style", "sfx", "focus")
+           "broll_move", "zoom", "cut", "pause", "silence", "style", "sfx", "focus")
 
 
 class AgentStop(Exception):
@@ -273,13 +273,25 @@ def contact_sheets(frames, out_dir, tag, per=PER_SHEET, cols=3):
             except Exception:
                 d.rectangle([x, y, x + TILE_W, y + TILE_H], outline=(200, 60, 60), width=3)
                 d.text((x + 10, y + 10), "kein Bild", fill=(220, 80, 80), font=f1)
-            d.text((x + 4, y + TILE_H + 4), top, fill=(255, 214, 90), font=f1)
+            d.text((x + 4, y + TILE_H + 4), (_wrap(d, top, f1, TILE_W - 8, 1) or [""])[0], fill=(255, 214, 90), font=f1)
             for li, ln in enumerate(_wrap(d, text, f2, TILE_W - 8, 2)):
                 d.text((x + 4, y + TILE_H + 26 + li * 19), ln, fill=(225, 225, 225), font=f2)
         p = os.path.join(out_dir, f"{tag}_{k // per + 1}.jpg")
         sheet.save(p, quality=72)
         out.append((p, sheet.size))
     return out
+
+
+def _original(it):
+    """The uploaded file (uncropped) for the thumbnail sheet; the worker's own copy is a 9:16 crop."""
+    try:
+        from editz_templates.limeeditorial import find_original
+        p = find_original(it)
+        if p and os.path.exists(p) and not p.lower().endswith((".heic", ".heif")):
+            return p
+    except Exception:
+        pass
+    return it.get("path")
 
 
 def b64(path):
@@ -360,6 +372,31 @@ class Stills:
             self.proc = None
 
 
+def find_silences(ce, video, words, min_len=0.3, q=None):
+    """Quiet stretches (audio envelope below the speech threshold) between the first and the last word. Whisper often
+    stretches a word over a hesitation („eine … Marketing“) – these are the dead seconds a cutter would remove."""
+    try:
+        env = ce.energy_env(video)
+    except Exception as e:
+        print("agent: audio envelope failed:", e)
+        return []
+    if not env or not words:
+        return []
+    db, hop = env["db"], getattr(ce, "ENV_HOP", 0.01)
+    q = q if q is not None else env["q"]  # the first measurement's threshold: re-cut videos have a different noise floor
+    lo, hi = int(words[0]["s"] / hop), min(len(db), int(words[-1]["e"] / hop))
+    out, start = [], None
+    for i in range(lo, hi + 1):
+        quiet = i < hi and db[i] < q
+        if quiet and start is None:
+            start = i
+        elif not quiet and start is not None:
+            if (i - start) * hop >= min_len:
+                out.append((round(start * hop, 2), round(i * hop, 2)))
+            start = None
+    return out
+
+
 # ---------- plan helpers ----------
 
 def _letters(w):
@@ -392,8 +429,7 @@ def transcript(words, emphasis):
     em = set(emphasis or [])
     lines = []
     for sg in sentences(words):
-        lines.append(f"[{words[sg[0]]['s']:.2f}-{words[sg[-1]]['e']:.2f}] " +
-                     " ".join(f"{words[i]['w']}#{i}{'*' if i in em else ''}" for i in sg))
+        lines.append(" ".join(f"{words[i]['w']}#{i}{'*' if i in em else ''}@{words[i]['s']:.2f}" for i in sg) + f" (bis {words[sg[-1]]['e']:.2f})")
     return "\n".join(lines)
 
 
@@ -445,7 +481,7 @@ def visual_events(plan, look):
     return sorted(set(round(t, 2) for t in ev if 0 <= t <= plan["duration"]))
 
 
-def hints(plan, look, head=None, repeats=None):
+def hints(plan, look, head=None, repeats=None, silences=None):
     """Deterministic findings the model must look at (not necessarily errors)."""
     ws, out = plan["words"], []
     n = len(ws)
@@ -471,6 +507,10 @@ def hints(plan, look, head=None, repeats=None):
             out.append(f"Wort #{i} „{w['w']}“ hat keine Dauer (Erkennungsfehler / verschluckt?).")
         elif (L <= 4 and d > 0.6) or (d > 1.2 and d > 0.12 * L + 0.5):
             out.append(f"Wort #{i} „{w['w']}“ dauert {d:.2f} s – gedehnt, versteckter Versprecher/Pause?")
+    for a, b in (silences or []):
+        inside = [i for i, w in enumerate(ws) if w["s"] < b and w["e"] > a]
+        where = f" (in Wort #{inside[0]} „{ws[inside[0]]['w']}“, Zeitstempel zu lang)" if inside else ""
+        out.append(f"Stille {a:.2f}–{b:.2f} s ({b - a:.1f} s){where} – op silence?")
     for a, b in (repeats or []):
         out.append(f"Doppelung Wörter #{a}-#{b} „{' '.join(ws[k]['w'] for k in range(a, b + 1))}“.")
     cov = [x for x in plan.get("inserts", []) if look["codes"].get(x.get("code"), {}).get("cover")]
@@ -490,7 +530,7 @@ def key_time(plan, i, nxt):
     """When key word i is fully on screen (letter builds need ~0.085 s per letter), before the next visual change."""
     w = plan["words"][i]
     t = w["s"] + 0.2 + 0.085 * len(_letters(w["w"]))
-    return max(w["s"] + 0.1, min(t, nxt - 0.06))
+    return max(w["s"] + 0.1, min(t, w["e"] + 0.15, nxt - 0.06))
 
 
 def check_times(plan, look, limit=MAX_CHECK_FRAMES):
@@ -545,6 +585,7 @@ OPS_DOC = (
     "- {\"op\":\"zoom\",\"start\":s,\"end\":s,\"level\":Stufe} – Einstellungsgröße in dem Bereich (Stufen siehe DNA)\n"
     "- {\"op\":\"cut\",\"from\":Wortindex,\"to\":Wortindex} – gesprochene Wörter herausschneiden (Versprecher, Doppelung, Füllwort)\n"
     "- {\"op\":\"pause\",\"after\":Wortindex} – tote Pause nach diesem Wort herausschneiden\n"
+    "- {\"op\":\"silence\",\"start\":s,\"end\":s} – gemessene Stille (siehe Hinweise „Stille“, auch mitten in gedehnten Wörtern) herausschneiden\n"
     "- {\"op\":\"style\",\"key\":\"…\",\"value\":Zahl} – nur Stellschrauben aus \"tune\" der DNA (gilt fürs ganze Video)\n"
     "- {\"op\":\"sfx\",\"t\":s,\"name\":\"…\"} – Sound aus der Liste der DNA\n"
     "- {\"op\":\"focus\"} – Kopfposition der Personenmaske übernehmen (wenn Orb/Porträt/Zoom am falschen Ort sitzt)\n"
@@ -568,11 +609,13 @@ def _int(v):
 class Ctx:
     """What the validator needs to know about the edit."""
 
-    def __init__(self, job, pub, items=None, broll_rel=None, head=None):
+    def __init__(self, job, pub, items=None, broll_rel=None, head=None, silences=None):
         self.job, self.pub = job, pub
         self.items = items or []
         self.broll_rel = broll_rel or []
         self.head = head
+        self.silences = silences or []  # [(s, e)] measured quiet stretches inside the speech (audio envelope)
+        self.silence_q = None
 
     def files(self):
         """Picture files of this job the model may reference (uploads and the template's derivatives)."""
@@ -580,7 +623,7 @@ class Ctx:
             return []
         out = []
         for f in sorted(os.listdir(self.pub)):
-            if re.search(r"\.(jpe?g|png|webp|mp4)$", f, re.I) and f not in ("main.mp4",) and not f.startswith("still"):
+            if re.search(r"\.(jpe?g|png|webp|mp4)$", f, re.I) and not f.startswith(("main", "fg", "still", "render")):
                 out.append(f)
         return out
 
@@ -746,6 +789,20 @@ def validate(ops, plan, look, ctx, allow_cut=True):
                     o["after"] = a
                 if cut_s > 0.15 * dur:
                     raise ValueError("zu viel geschnitten (> 15 %)")
+            elif kind == "silence":
+                if not allow_cut:
+                    raise ValueError("Schnitte in dieser Runde nicht erlaubt")
+                s, e = _num(o.get("start")), _num(o.get("end"))
+                hit = next(((a, b) for a, b in ctx.silences if s is not None and e is not None and a - 0.15 <= s < e <= b + 0.15), None)
+                if not hit:
+                    raise ValueError("dort ist keine gemessene Stille")
+                s, e = max(s, hit[0]) + 0.05, min(e, hit[1]) - 0.05  # keep a breath of air on both sides
+                if e - s < 0.2:
+                    raise ValueError("Stille zu kurz")
+                cut_s += e - s
+                if cut_s > 0.15 * dur:
+                    raise ValueError("zu viel geschnitten (> 15 %)")
+                o.update(start=round(s, 3), end=round(e, 3))
             elif kind == "style":
                 key, v = str(o.get("key") or ""), _num(o.get("value"))
                 rng = look.get("tune", {}).get(key)
@@ -860,6 +917,8 @@ def apply(ce, plan, ops, look, ctx):
             a, b = ws[o["after"]]["e"] + 0.06, ws[o["after"] + 1]["s"] - 0.04
             if b - a > 0.15:
                 res["cut_times"].append([round(a, 3), round(b, 3)])
+        elif k == "silence":
+            res["cut_times"].append([o["start"], o["end"]])
         elif k == "style":
             st = plan.setdefault("style", {})
             path = o["key"].split(".")
@@ -876,18 +935,52 @@ def apply(ce, plan, ops, look, ctx):
     res = {k: v for k, v in res.items() if v}
     changed = set()
     if res:
-        before = len(plan["words"])
         cut_iv = None
         if res.get("remove") or res.get("cut_times"):
-            cut_iv = True
+            cut_iv = _cut_ranges(plan, res)
+            _clear_cuts(plan, cut_iv)
+        hook_e = (plan.get("hook") or {}).get("e")
         plan, changed = ce.apply_ops(plan, res, ctx.job)
-        if cut_iv and len(plan["words"]) != before:
+        if cut_iv and plan.get("hook") and hook_e:
+            plan["hook"]["e"] = round(max(0.6, hook_e - sum(max(0.0, min(b, hook_e) - a) for a, b in cut_iv if a < hook_e)), 2)
+        if cut_iv:
             changed_t.append(-2)  # cut: times shifted, the next round looks at everything again
+            ctx.silences = find_silences(ce, os.path.join(ctx.pub, "main.mp4"), plan["words"], q=ctx.silence_q) if ctx.pub else []
     plan["inserts"] = sorted(plan.get("inserts", []), key=lambda x: (x["s"], x["e"]))
     plan["broll"] = sorted(plan.get("broll", []), key=lambda x: x["s"])
     plan["sfx"] = sorted(plan.get("sfx", []), key=lambda x: x["t"])
     tidy(plan, look)
     return plan, changed, changed_t
+
+
+def _cut_ranges(plan, res):
+    """Time ranges a cut removes (same rules as clipperz_edit.apply_ops)."""
+    ws, n, dur = plan["words"], len(plan["words"]), plan["duration"]
+    out = [(float(a), float(b)) for a, b in res.get("cut_times", [])]
+    drop = set()
+    for a, b in res.get("remove", []):
+        drop.update(range(max(0, a), min(n - 1, b) + 1))
+    i = 0
+    while i < n:
+        if i in drop:
+            j = i
+            while j + 1 < n and j + 1 in drop:
+                j += 1
+            out.append((ws[i - 1]["e"] + 0.05 if i else 0.0, ws[j + 1]["s"] - 0.04 if j + 1 < n else dur))
+            i = j + 1
+        else:
+            i += 1
+    return sorted(out)
+
+
+def _clear_cuts(plan, ranges):
+    """A beat/picture must not start or end inside a cut (apply_ops would drop it): move its edge out of the cut."""
+    for x in plan.get("inserts", []) + plan.get("broll", []):
+        for a, b in ranges:
+            if a - 0.001 <= x["s"] < b:
+                x["s"] = round(b + 0.002, 3)
+            if a < x["e"] <= b + 0.001:
+                x["e"] = round(a - 0.002, 3)
 
 
 def set_zoom(zooms, s, e, level, dur):
@@ -931,7 +1024,7 @@ SYSTEM = (
     "überlappend, kein Text auf Händen oder Gesicht. Schlüsselwort nie ein Füllwort (und, also, eins, halt, machen …), sondern das "
     "Wort mit Gewicht. Bild/Element passt zum GESAGTEN Wort im selben Moment. Keine leeren/kaputten Frames. Tempo: nie länger als "
     "2,5 s ohne neuen visuellen Zustand, aber auch keine Hektik ohne Grund. Schnitte: Versprecher, Doppelungen, tote Pausen raus. "
-    "Nur Bilder, die der Nutzer hochgeladen hat (kein Stock, keine KI-Bilder), keine Musik, kein Weißblitz.\n\n"
+    "Nur Bilder, die der Nutzer hochgeladen hat (kein Stock, keine KI-Bilder), keine Musik, kein heller Vollbild-Blitz.\n\n"
     "Antworte NUR mit einem JSON-Objekt, ohne Text drumherum."
 )
 
@@ -1053,7 +1146,7 @@ class EditAgent:
             reps = self.ce._repeats(plan["words"])
         except Exception:
             pass
-        return hints(plan, self.look, self.ctx.head, reps)
+        return hints(plan, self.look, self.ctx.head, reps, self.ctx.silences)
 
     # ----- 1. Regie -----
     def direct(self, plan):
@@ -1075,7 +1168,7 @@ class EditAgent:
                 for k, (p, wh) in enumerate(contact_sheets(frames, self.work, "regie_raw", per=8, cols=4))]
         thumbs = []
         for i, it in enumerate(self.ctx.items[:12]):
-            p = it.get("thumb") or it.get("path")
+            p = it.get("thumb") or _original(it)
             if p and os.path.exists(p):
                 thumbs.append((p, f"Upload {i}", f"{it.get('name', '')}"))
         if thumbs:
@@ -1088,7 +1181,7 @@ class EditAgent:
             "Wörter). Behalte, was gut ist – ändere, was falsch oder schwach ist.\n\n"
             f"=== LOOK-DNA ===\n{self._look_text()}\n\n"
             f"=== AKTUELLER PLAN (von der Vorlage) ===\n{summarize(plan, self.look)}\n{self._head_text()}\n\n"
-            f"=== TRANSKRIPT (Wort#Index, * = Schlüsselwort, [Start-Ende] in s) ===\n{transcript(plan['words'], plan.get('emphasis'))}\n\n"
+            f"=== TRANSKRIPT (Wort#Index, * = Schlüsselwort, @Startzeit in s; eine Zeile pro Satz) ===\n{transcript(plan['words'], plan.get('emphasis'))}\n\n"
             f"{self._files_text()}\n\n"
             "=== AUTOMATISCHE HINWEISE (prüfen, nicht blind übernehmen) ===\n" + ("\n".join(self._hints(plan)) or "(keine)") + "\n\n"
             f"{OPS_DOC}\n\n"
@@ -1135,7 +1228,8 @@ class EditAgent:
             text = (
                 f"SCHRITT 2 – PRÜFRUNDE {rnd}/{self.max_rounds}. Das sind echte Stills des aktuellen Plans. Prüfe jedes Bild hart:\n"
                 "1. Gesicht/Mund frei? 2. Text komplett lesbar – nichts abgeschnitten, verdeckt, überlappend, nicht auf Händen/Gesicht? "
-                "3. Schlüsselwort ≠ Füllwort, trägt die Aussage? 4. Passt das Bild/Element zum gesagten Wort? 5. Leere/kaputte Frames? "
+                "3. Schlüsselwort ≠ Füllwort, trägt die Aussage? 4. Passt das Bild/Element zum gesagten Wort? 5. Leere/kaputte Frames, "
+                "heller/weißer Vollbild-Blitz (Fehler!)? "
                 "6. Tempo (kein Stillstand > 2,5 s)? 7. Sieht es aus wie der Look (DNA)?\n"
                 "ok = true nur, wenn du das so einem zahlenden Kunden ausliefern würdest. Bei Problemen: konkrete Ops, die es beheben "
                 "(kein Problem ohne Op, außer es ist mit den Ops nicht lösbar – dann in issues sagen).\n"
@@ -1254,7 +1348,15 @@ def start(ce, plan, pr, preset_id, ctx_dict):
             head, _ = _head_focus(ctx_dict, plan)
         except Exception as e:
             print("agent: head matte failed:", type(e).__name__, e)
-        ctx = Ctx(ctx_dict["job"], ctx_dict["pub"], ctx_dict.get("items"), ctx_dict.get("broll_rel"), head)
+        main = os.path.join(ctx_dict["pub"], "main.mp4")
+        q = None
+        try:
+            q = ce.energy_env(main)["q"]
+        except Exception:
+            pass
+        ctx = Ctx(ctx_dict["job"], ctx_dict["pub"], ctx_dict.get("items"), ctx_dict.get("broll_rel"), head,
+                  find_silences(ce, main, plan["words"], q=q))
+        ctx.silence_q = q
         return EditAgent(ce, plan, ctx, pr, preset_id, llm=llm, work=getattr(ce, "W", None))
     except Exception as e:
         print("agent could not start, template plan renders:", type(e).__name__, e)

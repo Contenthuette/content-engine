@@ -4,6 +4,7 @@
     "about": "Dunkler Nachrichten-Look (Deal, Zahl, Wette): zerdrückte Schwärzen, entsättigtes warmes Grau, Vignette und feine Scanlines über allem. Kleine ruhige Untertitel (Inter, Wort für Wort mit Blur, Namen als Paar mit Serif-kursivem Lime-Wort), riesige schwarze Wörter mit weißem Echo HINTER der freigestellten Person, Collage-Salve mit Auswahlrahmen im Hook, News-Artikelseite mit Foto-Karte, Kachel-Reveal auf dunklem Karopapier, Draufsicht-Collage auf oranger Schneidematte, Sprecher freigestellt vor wechselnden Hintergründen (Silhouetten-Blitz), ruhige Creme-Endkarte. Harte Skalen-Sprünge an Satzgrenzen.",
     "composition": "EditzNoirNews",
     "planner": "noirnews",
+    "agent": true,
     "captions": true,
     "depth": true,
     "emphasis": "word",

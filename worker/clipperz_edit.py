@@ -1260,7 +1260,14 @@ def apply_ops(plan, res, job):
             continue
         if 0 <= a < b <= plan["duration"]:
             extra.append((a, b))
-            drop.update(k for k, w in enumerate(words) if w["s"] < b and w["e"] > a)
+            for k, w in enumerate(words):
+                if w["s"] >= a - 0.01 and w["e"] <= b + 0.01:
+                    drop.add(k)
+                elif w["s"] < b and w["e"] > a:  # silence inside a stretched word: the word keeps its spoken part
+                    if a - w["s"] >= w["e"] - b:
+                        w["e"] = round(a - 0.005, 3)
+                    else:
+                        w["s"] = round(b + 0.005, 3)
     if (drop or extra) and len(drop) < n - 2:
         dur = plan["duration"]
         cuts, i = list(extra), 0

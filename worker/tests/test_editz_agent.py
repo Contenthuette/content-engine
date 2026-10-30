@@ -55,7 +55,7 @@ LOOK = ea.load_look("limeeditorial")
 
 
 def test_every_look_dna_parses():
-    for lid in ("editorial", "warmdoc", "limeeditorial", "blueglass", "limemagazin"):
+    for lid in ("editorial", "warmdoc", "limeeditorial", "blueglass", "limemagazin", "noirnews"):
         lk = ea.load_look(lid)
         assert lk["codes"], lid
         assert "```json" not in lk["text"] and len(lk["text"]) > 400
@@ -81,7 +81,7 @@ def test_validate_rejects_bad_ops_and_clamps_times():
     ops = [
         {"op": "explode"},
         {"op": "insert_add", "code": "XX-NOPE", "start": 4, "end": 5},
-        {"op": "keyword", "add": [p["words"].index(next(w for w in p["words"] if w["w"] == "eins,"))]},  # filler only
+        {"op": "keyword", "add": [p["words"].index(next(w for w in p["words"] if w["w"] == "allem"))]},  # filler only
         {"op": "insert_move", "i": 0, "start": 2.5, "end": 9.0},          # too long → clamped to the code's max
         {"op": "insert_add", "code": "LE-PILL", "start": 11, "end": 12},  # second pill: max_count 1
         {"op": "insert_props", "i": 0, "props": {"hero": "card", "src": "nothere.jpg"}},
@@ -145,14 +145,18 @@ def test_pause_cut_recuts_main_and_shifts_everything():
         _test_video(os.path.join(pub, "main.mp4"), 9.0)
         ws = [{"s": 0.1, "e": 0.5, "w": "Hallo"}, {"s": 0.6, "e": 1.0, "w": "liebe"}, {"s": 2.2, "e": 2.7, "w": "Leute."}]
         p = {"duration": 9.0, "video": "job/agenttest_pause/main.mp4", "words": ws, "emphasis": [2], "zooms": [{"s": 0, "e": 9.0, "level": 0}],
-             "broll": [], "inserts": [{"s": 2.3, "e": 2.9, "code": "LE-PILL", "props": {"text": "x", "icon": "chat"}}], "hook": None, "sfx": [{"t": 2.3, "name": "click", "vol": 0.3}]}
+             "broll": [], "inserts": [{"s": 2.3, "e": 2.9, "code": "LE-PILL", "props": {"text": "x", "icon": "chat"}},
+                         {"s": 1.5, "e": 4.0, "code": "LE-STAGE", "props": {"hero": "orb"}}], "hook": {"text": "Hallo LEUTE", "e": 2.6}, "sfx": [{"t": 2.3, "name": "click", "vol": 0.3}]}
         c = ea.Ctx("job/agenttest_pause", pub)
         ok, bad = ea.validate([{"op": "pause", "after": 1}], p, LOOK, c)
         assert ok and not bad
         new, changed, _ = ea.apply(ce, p, ok, LOOK, c)
         assert "job/agenttest_pause/main.mp4" in changed
         assert new["duration"] < 8.2 and len(new["words"]) == 3 and new["emphasis"] == [2]
-        assert new["words"][2]["s"] < 1.3 and new["inserts"][0]["s"] < 1.4 and new["sfx"][0]["t"] < 1.4
+        assert new["words"][2]["s"] < 1.3 and new["sfx"][0]["t"] < 1.4
+        assert [x["code"] for x in new["inserts"]] == ["LE-STAGE", "LE-PILL"]  # the stage started inside the cut: kept, moved out
+        assert new["inserts"][0]["s"] < 1.2 and new["inserts"][1]["s"] < 1.4
+        assert new["hook"]["e"] < 1.6  # hook end follows the cut
         d, _ = ce.probe(os.path.join(pub, "main.mp4"))
         assert abs(d - new["duration"]) < 0.15
     finally:
@@ -162,7 +166,7 @@ def test_pause_cut_recuts_main_and_shifts_everything():
 
 def test_hints_find_filler_keyword_dead_tempo_and_stretched_words():
     p = plan_of()
-    p["emphasis"] = [next(k for k, w in enumerate(p["words"]) if w["w"] == "eins,")]
+    p["emphasis"] = [next(k for k, w in enumerate(p["words"]) if w["w"] == "allem")]
     p["words"][20]["e"] = p["words"][20]["s"] + 1.6
     h = "\n".join(ea.hints(p, LOOK, {"x": 0.5, "y": 0.6, "h": 0.1}))
     assert "Füllwort" in h and "Tempo" in h and "gedehnt" in h and "Personenmaske" in h
