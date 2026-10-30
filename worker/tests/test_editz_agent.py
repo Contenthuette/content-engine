@@ -299,3 +299,14 @@ def test_contact_sheet_layout():
         frames.append((p, f"{k}.00 s", "ein sehr langer gesprochener Satz " * 4))
     sheets = ea.contact_sheets(frames, d, "t")
     assert len(sheets) == 2 and sheets[0][1][0] <= 1120
+
+
+def test_silence_op_only_on_measured_silence():
+    p = plan_of()
+    c = ctx()
+    c.silences = [(6.0, 6.6)]
+    ok, bad = ea.validate([{"op": "silence", "start": 6.0, "end": 6.6}, {"op": "silence", "start": 2.0, "end": 2.5}], p, LOOK, c)
+    assert len(ok) == 1 and ok[0]["start"] == 6.05 and ok[0]["end"] == 6.55
+    assert "keine gemessene Stille" in bad[0][1]
+    ok, bad = ea.validate([{"op": "silence", "start": 6.0, "end": 6.6}], p, LOOK, c, allow_cut=False)
+    assert not ok and bad
