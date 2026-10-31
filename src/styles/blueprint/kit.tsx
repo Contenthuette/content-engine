@@ -13,8 +13,25 @@ export const BP = {
   text: '#0B0B0F',
   sub: '#5E6470',
   ok: '#19C37D',
+  accent: '#0A66FF',
   sans: "'Inter Variable', Inter, sans-serif",
   serif: "'Instrument Serif', serif",
+  hand: "'Caveat', cursive",
+  stroke: 1,
+};
+
+/** Visual language of one reel. The Bauplan look (BP) is the default; EditzDirector passes its own per video, so every
+ * element (Ink, DimLine, Paper, title block …) draws in that video's colours, fonts and stroke weight. */
+export type Look = typeof BP;
+export const LookCtx = React.createContext<Look>(BP);
+export const useLook = () => React.useContext(LookCtx);
+
+/** '#RRGGBB' → 'rgba(r,g,b,a)' (falls back to the colour itself for anything else). */
+export const alpha = (c: string, a: number) => {
+  const m = /^#([0-9a-f]{6})$/i.exec(c || '');
+  if (!m) return c;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 };
 
 export const useT = () => {
@@ -51,7 +68,10 @@ export const enter = (k: number, dy = 26) => {
 };
 
 /** SVG path drawn by progress p (0..1) – uses pathLength=1 so any path works. */
-export const Ink: React.FC<{d: string; p: number; w?: number; color?: string; dash?: string; cap?: 'round' | 'butt' | 'square'; opacity?: number}> = ({d, p, w = 3, color = BP.ink, dash, cap = 'round', opacity = 1}) => {
+export const Ink: React.FC<{d: string; p: number; w?: number; color?: string; dash?: string; cap?: 'round' | 'butt' | 'square'; opacity?: number}> = ({d, p, w: w0 = 3, color: c0, dash, cap = 'round', opacity = 1}) => {
+  const L = useLook();
+  const color = c0 ?? L.ink;
+  const w = w0 * (L.stroke || 1);
   if (p <= 0) return null;
   if (dash) {
     // dashed construction lines: reveal with a mask-like clip using a second solid dash pattern is costly; fade+draw instead
@@ -70,7 +90,9 @@ export const Canvas: React.FC<{w?: number; h?: number; style?: React.CSSProperti
  * Dimension line (Maßlinie) the German way: extension lines, oblique 45° ticks at both ends, label centred above.
  * p draws the line; label fades in at the end. `off` pushes the line away from the measured edge (normal direction).
  */
-export const DimLine: React.FC<{x1: number; y1: number; x2: number; y2: number; off?: number; label?: string; p: number; color?: string; size?: number; labelColor?: string}> = ({x1, y1, x2, y2, off = 0, label, p, color = BP.ink, size = 28, labelColor = BP.text}) => {
+export const DimLine: React.FC<{x1: number; y1: number; x2: number; y2: number; off?: number; label?: string; p: number; color?: string; size?: number; labelColor?: string}> = ({x1, y1, x2, y2, off = 0, label, p, color: c0, size = 28, labelColor: lc0}) => {
+  const LK = useLook();
+  const color = c0 ?? LK.ink, labelColor = lc0 ?? LK.text;
   const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
   const nx = -dy / L, ny = dx / L; // normal
   const a = {x: x1 + nx * off, y: y1 + ny * off}, b = {x: x2 + nx * off, y: y2 + ny * off};
@@ -93,7 +115,7 @@ export const DimLine: React.FC<{x1: number; y1: number; x2: number; y2: number; 
       <Ink d={tick(b)} p={cl((p - 0.7) * 4)} w={3} color={color} cap="butt" />
       {label && (
         <text x={mid.x} y={mid.y} transform={`rotate(${up} ${mid.x} ${mid.y})`} textAnchor="middle" dominantBaseline="middle"
-          style={{fontFamily: BP.sans, fontWeight: 600, fontSize: size, letterSpacing: '0.12em', fill: labelColor, opacity: cl((p - 0.55) * 3)}}>
+          style={{fontFamily: LK.sans, fontWeight: 600, fontSize: size, letterSpacing: '0.12em', fill: labelColor, opacity: cl((p - 0.55) * 3)}}>
           {label}
         </text>
       )}
@@ -103,11 +125,13 @@ export const DimLine: React.FC<{x1: number; y1: number; x2: number; y2: number; 
 
 /** Drafting paper: off-white with a fine blue millimetre grid. `s` scales the grid (zoom feel), ox/oy shift it. */
 export const Paper: React.FC<{s?: number; ox?: number; oy?: number; opacity?: number}> = ({s = 1, ox = 0, oy = 0, opacity = 1}) => {
+  const L = useLook();
   const a = 24 * s, b = 120 * s;
+  const g1 = alpha(L.ink, 0.11), g2 = alpha(L.ink, 0.055);
   return (
-    <div style={{position: 'absolute', inset: 0, background: BP.paper, opacity}}>
+    <div style={{position: 'absolute', inset: 0, background: L.paper, opacity}}>
       <div style={{position: 'absolute', inset: 0,
-        backgroundImage: `linear-gradient(rgba(10,102,255,.11) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(10,102,255,.11) 1.5px, transparent 1.5px), linear-gradient(rgba(10,102,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(10,102,255,.055) 1px, transparent 1px)`,
+        backgroundImage: `linear-gradient(${g1} 1.5px, transparent 1.5px), linear-gradient(90deg, ${g1} 1.5px, transparent 1.5px), linear-gradient(${g2} 1px, transparent 1px), linear-gradient(90deg, ${g2} 1px, transparent 1px)`,
         backgroundSize: `${b}px ${b}px, ${b}px ${b}px, ${a}px ${a}px, ${a}px ${a}px`,
         backgroundPosition: `${ox}px ${oy}px, ${ox}px ${oy}px, ${ox}px ${oy}px, ${ox}px ${oy}px`}} />
       {/* paper tooth + soft light falloff so it is not a flat digital fill */}
@@ -117,7 +141,7 @@ export const Paper: React.FC<{s?: number; ox?: number; oy?: number; opacity?: nu
 };
 
 /** Corner crop marks (Schnittmarken) inset by m px. */
-export const CropMarks: React.FC<{m?: number; len?: number; p?: number; color?: string; w?: number; h?: number}> = ({m = 56, len = 46, p = 1, color = BP.text, w = 1080, h = 1920}) => (
+export const CropMarks: React.FC<{m?: number; len?: number; p?: number; color?: string; w?: number; h?: number}> = ({m = 56, len = 46, p = 1, color, w = 1080, h = 1920}) => (
   <Canvas w={w} h={h}>
     {[[m, m, 1, 1], [w - m, m, -1, 1], [m, h - m, 1, -1], [w - m, h - m, -1, -1]].map(([x, y, sx, sy], i) => (
       <g key={i}>

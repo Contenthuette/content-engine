@@ -65,12 +65,15 @@ class HttpLLM:
         self.url = f"{api.rstrip('/')}/edit-agent-llm?{auth}"
         self.timeout = timeout
 
-    def __call__(self, messages, max_tokens=4000):
+    def __call__(self, messages, max_tokens=4000, tier=None):
         import requests
         status = 0
+        body = {"messages": messages, "maxTokens": max_tokens, "temperature": 0.2}
+        if tier:  # route edit-agent-llm: "opus" (judgement) | "sonnet" (simple steps)
+            body["tier"] = tier
         for attempt in range(3):
             try:
-                r = requests.post(self.url, json={"messages": messages, "maxTokens": max_tokens, "temperature": 0.2}, timeout=self.timeout)
+                r = requests.post(self.url, json=body, timeout=self.timeout)
                 status = r.status_code
                 if status == 200:
                     j = r.json()
@@ -94,11 +97,11 @@ class RelayLLM:
         os.makedirs(directory, exist_ok=True)
         self.n = len(glob.glob(os.path.join(directory, "req_*")))
 
-    def __call__(self, messages, max_tokens=4000):
+    def __call__(self, messages, max_tokens=4000, tier=None):
         self.n += 1
         d = os.path.join(self.dir, f"req_{self.n:03d}")
         os.makedirs(d, exist_ok=True)
-        md, plain, k = [], [], 0
+        md, plain, k = ([f"<!-- tier: {tier} · maxTokens: {max_tokens} -->\n"] if tier else []), [], 0
         for m in messages:
             md.append(f"\n## {m['role']}\n")
             parts = m["content"] if isinstance(m["content"], list) else [{"type": "text", "text": m["content"]}]
@@ -118,7 +121,7 @@ class RelayLLM:
         with open(os.path.join(d, "prompt.md"), "w", encoding="utf-8") as fh:
             fh.write("".join(md))
         with open(os.path.join(d, "request.json"), "w", encoding="utf-8") as fh:
-            json.dump({"maxTokens": max_tokens, "messages": plain}, fh, ensure_ascii=False, indent=1)
+            json.dump({"maxTokens": max_tokens, "tier": tier, "messages": plain}, fh, ensure_ascii=False, indent=1)
         print(f"agent relay: waiting for {d}/resp.json", flush=True)
         t0 = time.time()
         resp = os.path.join(d, "resp.json")
@@ -145,8 +148,9 @@ class StubLLM:
         self.answers = answers
         self.calls = []
 
-    def __call__(self, messages, max_tokens=4000):
+    def __call__(self, messages, max_tokens=4000, tier=None):
         self.calls.append(messages)
+        self.tiers = getattr(self, "tiers", []) + [tier]
         if callable(self.answers):
             a = self.answers(messages)
         elif self.answers:
@@ -345,7 +349,7 @@ class Stills:
                 return None
         return None
 
-    def render(self, plan, times, tag):
+    def render(self, plan, times, tag, scale=None):
         if self.proc is None or self.proc.poll() is not None:
             self._start()
         self.n += 1
@@ -354,7 +358,7 @@ class Stills:
             json.dump(plan, fh, ensure_ascii=False)
         out = os.path.join(self.work, f"stills_{tag}")
         frames = [int(round(t * FPS)) for t in times]
-        self.proc.stdin.write(json.dumps({"props": pj, "frames": frames, "out": out, "scale": IMG_W / 1080, "quality": 70}) + "\n")
+        self.proc.stdin.write(json.dumps({"props": pj, "frames": frames, "out": out, "scale": scale or IMG_W / 1080, "quality": 70}) + "\n")
         self.proc.stdin.flush()
         res = self._read(120 + 25 * len(frames))
         os.remove(pj)

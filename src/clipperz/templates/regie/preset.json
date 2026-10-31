@@ -1,0 +1,82 @@
+{
+  "regie": {
+    "label": "Claude Regie",
+    "about": "Claude schneidet dein Video von Hand: eigene Leitidee pro Video, Schnitt Wort für Wort (Füller, Versprecher, Pausen), Grafik hinter dir per Freisteller, Fenster/Punch-Ins auf jedem Schnitt, Prüfrunden mit Standbildern – wie ein Cutter, nicht wie eine Vorlage.",
+    "captions": false,
+    "cap": {
+      "font": "inter",
+      "weight": 700,
+      "upper": false,
+      "size": 76,
+      "words": 4,
+      "y": 0.66,
+      "style": "blur",
+      "color": "#FFFFFF",
+      "track": -0.03
+    },
+    "accents": [
+      "#0A66FF",
+      "#19C37D",
+      "#FF3B30"
+    ],
+    "zoom": {
+      "mode": "push",
+      "every": 2,
+      "maxLevel": 1,
+      "drift": 0.04,
+      "shake": false
+    },
+    "broll": "dissolve",
+    "inserts": {
+      "perMin": 3,
+      "codes": {
+        "T-01": "Slam – ein Wort knallt rein (max. 10 Buchstaben) {text}",
+        "T-03": "Stagger – kurze Aussage, Buchstaben fliegen hoch {text}",
+        "T-07": "Blur-Wörter – ruhige Aussage 3–6 Wörter, ein Akzentwort {text, accent: Position des Akzentworts im Beat-Text, 0 = erstes Wort}",
+        "T-11": "Masken-Wipe – sauberer Reveal 1–2 Wörter {text}",
+        "T-13": "Pille – ein Schlüsselbegriff in Akzentfarbe {text, bg: Akzentfarbe}",
+        "T-16": "Zeile mit Pille – Satz + hervorgehobener Teil {text, pill}",
+        "T-17": "Serif-Unterstrich – editoriale Betonung 1–3 Wörter {text}",
+        "T-22": "Textmarker – Satzanfang + markiertes Wort {text, mark}",
+        "T-25": "Klammern – Fokuswort {text}",
+        "T-28": "Korrektur – falsch durchgestrichen → richtig {wrong, text}",
+        "T-30": "Odometer – Zahl rollt ein {to}"
+      },
+      "bg": [
+        "BG-01",
+        "BG-06",
+        "BG-02"
+      ],
+      "tr": [],
+      "defaults": {
+        "T-13": {
+          "size": 120
+        },
+        "T-16": {},
+        "T-01": {}
+      }
+    },
+    "hook": "none",
+    "progress": false,
+    "music": null,
+    "musicVol": 0,
+    "sfx": {
+      "broll": [
+        "swish",
+        "slide"
+      ],
+      "zoom": [],
+      "hook": [
+        "pop"
+      ],
+      "end": [
+        "chime"
+      ]
+    },
+    "sfxVol": 0.3,
+    "composition": "EditzDirector",
+    "director": true,
+    "fallback": "clean",
+    "grade": null
+  }
+}
