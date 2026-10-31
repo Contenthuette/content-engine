@@ -576,6 +576,13 @@ def bbox(e, look=None):
         n = len(str(int(max(abs(e["from"]), abs(e["to"]))))) + len(e.get("prefix", "")) + len(e.get("suffix", ""))
         x0, x1 = _xspan(e["x"], n * s * 0.6, e.get("align", "center"))
         return (x0, e["y"], x1, e["y"] + s * (1.3 if e.get("label") else 1.0))
+    if t == "vword":  # rotated -90° about (x, y): reads bottom→top, occupies x..x+0.8s and y-W..y
+        s = e["size"]
+        w = len(e["text"]) * s * cw * 0.97
+        return (e["x"], e["y"] - w, e["x"] + s * 0.8, e["y"])
+    if t == "numeral":  # (x, y) = baseline left
+        s = e["size"]
+        return (e["x"], e["y"] - s * 0.92, e["x"] + len(str(e["text"])) * s * 0.55, e["y"] + s * 0.08)
     if t == "captions":
         s, mw = e["size"], e.get("maxW", 900)
         x = e.get("x", 540)

@@ -1,7 +1,7 @@
 {
   "regie": {
-    "label": "Claude Regie",
-    "about": "Claude schneidet dein Video von Hand: eigene Leitidee pro Video, Schnitt Wort für Wort (Füller, Versprecher, Pausen), Grafik hinter dir per Freisteller, Fenster/Punch-Ins auf jedem Schnitt, Prüfrunden mit Standbildern – wie ein Cutter, nicht wie eine Vorlage.",
+    "label": "Regie",
+    "about": "Dein Video wird von Hand geschnitten: eigene Leitidee pro Video, Schnitt Wort für Wort (Füller, Versprecher, Pausen), Grafik hinter dir per Freisteller, Fenster/Punch-Ins auf jedem Schnitt, Prüfrunden mit Standbildern – wie ein Cutter, nicht wie eine Vorlage.",
     "captions": false,
     "cap": {
       "font": "inter",

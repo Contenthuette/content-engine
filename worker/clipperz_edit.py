@@ -1404,7 +1404,7 @@ def job_id():
 def run_director(cfg, pr, base, words, in_dur, items):
     """Claude Regie (worker/editz_director.py): the agent cuts, lays out, checks and renders the video itself.
     Returns True when the video is delivered, False → caller runs the normal pipeline."""
-    report(note="Claude Regie übernimmt: Material ansehen, schneiden, Leitidee, Plan, Prüfrunden…")
+    report(note="Regie übernimmt: Material ansehen, schneiden, Leitidee, Plan, Prüfrunden…")
     job = job_id()
     pub = os.path.join(REPO, "public", job)
     try:
@@ -1414,7 +1414,7 @@ def run_director(cfg, pr, base, words, in_dur, items):
         print("director failed, normal pipeline:", type(e).__name__, e, flush=True)
         res = None
     if not res:
-        report(note="Claude Regie nicht verfügbar – Standard-Schnitt läuft…")
+        report(note="Regie nicht verfügbar – Standard-Schnitt läuft…")
         return False
     final, plan = res
     report(note="Fertiges Video wird hochgeladen…")
@@ -1425,7 +1425,7 @@ def run_director(cfg, pr, base, words, in_dur, items):
         print("saving the plan for corrections failed:", e)
         plan_url, assets = None, []
     ds = plan.get("director_state") or {}
-    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig (Claude Regie)",
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig (Regie)",
            stats={"inSec": in_dur, "outSec": plan.get("dur"), "broll": len(items or []), "agentUsd": ds.get("spent_usd"), "agentCalls": ds.get("calls")})
     return True
 
@@ -1448,7 +1448,7 @@ def run_revision(cfg):
                     fh.write(chunk)
     if plan.get("director") and not isinstance(rv.get("plan"), dict):  # Claude Regie: the correction goes through the agent too
         import editz_director
-        report(note="Korrektur: Claude Regie setzt deine Anweisung um…")
+        report(note="Korrektur: Regie setzt deine Anweisung um…")
         res, note = editz_director.revise(sys.modules[__name__], plan, rv.get("prompt") or "", job)
         if not res:
             report(status="failed", error=note[:300])
