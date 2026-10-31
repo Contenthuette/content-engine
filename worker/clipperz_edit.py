@@ -1397,6 +1397,39 @@ def apply_direct(plan, ed, job):
     return plan, changed
 
 
+def job_id():
+    return f"job/{re.sub(r'[^A-Za-z0-9]', '', str(P['edit']))[:40] or 'edit'}"
+
+
+def run_director(cfg, pr, base, words, in_dur, items):
+    """Claude Regie (worker/editz_director.py): the agent cuts, lays out, checks and renders the video itself.
+    Returns True when the video is delivered, False → caller runs the normal pipeline."""
+    report(note="Regie übernimmt: Material ansehen, schneiden, Leitidee, Plan, Prüfrunden…")
+    job = job_id()
+    pub = os.path.join(REPO, "public", job)
+    try:
+        import editz_director
+        res = editz_director.run(sys.modules[__name__], cfg, job, pub, base, words, in_dur, items)
+    except Exception as e:  # never lose the edit over the agent
+        print("director failed, normal pipeline:", type(e).__name__, e, flush=True)
+        res = None
+    if not res:
+        report(note="Regie nicht verfügbar – Standard-Schnitt läuft…")
+        return False
+    final, plan = res
+    report(note="Fertiges Video wird hochgeladen…")
+    url = upload(final)
+    try:
+        plan_url, assets = save_job(plan, job)
+    except Exception as e:
+        print("saving the plan for corrections failed:", e)
+        plan_url, assets = None, []
+    ds = plan.get("director_state") or {}
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig (Regie)",
+           stats={"inSec": in_dur, "outSec": plan.get("dur"), "broll": len(items or []), "agentUsd": ds.get("spent_usd"), "agentCalls": ds.get("calls")})
+    return True
+
+
 def run_revision(cfg):
     rv = cfg["revise"]
     report(status="working", note="Korrektur: Schnittplan wird geladen…", runUrl=RUN_URL)
@@ -1413,6 +1446,18 @@ def run_revision(cfg):
             with open(dst, "wb") as fh:
                 for chunk in r.iter_content(1 << 20):
                     fh.write(chunk)
+    if plan.get("director") and not isinstance(rv.get("plan"), dict):  # Claude Regie: the correction goes through the agent too
+        import editz_director
+        report(note="Korrektur: Regie setzt deine Anweisung um…")
+        res, note = editz_director.revise(sys.modules[__name__], plan, rv.get("prompt") or "", job)
+        if not res:
+            report(status="failed", error=note[:300])
+            return
+        final, plan = res
+        url = upload(final)
+        plan_url, new_assets = save_job(plan, job, only=set())
+        report(status="done", resultUrl=url, planUrl=plan_url, assets=list(rv.get("assets") or []), note=note)
+        return
     if isinstance(rv.get("plan"), dict):  # edited by hand in the CLIPPERZ editor: no Claude needed
         plan, changed = apply_direct(plan, rv["plan"], job)
         note = "Änderungen aus dem Editor übernommen"
@@ -1472,7 +1517,8 @@ def main():
         return run_revision(cfg)
 
     # Learned styles bring their own cutting pace (style.cut); set it before the rough cut.
-    _pace = (PRESETS[register_style(cfg.get("preset"), cfg.get("styleConfig"))].get("cut") or {})
+    _pr0 = PRESETS[register_style(cfg.get("preset"), cfg.get("styleConfig"))]
+    _pace = (_pr0.get("cut") or {})
     global CUT_HEAD, CUT_TAIL, KEEP_GAP
     for name, key, lo, hi in (("CUT_HEAD", "head", 0.0, 0.25), ("CUT_TAIL", "tail", 0.0, 0.3), ("KEEP_GAP", "keepGap", 0.03, 0.6)):
         if isinstance(_pace.get(key), (int, float)):
@@ -1516,9 +1562,14 @@ def main():
 
     report(note="Rohschnitt: Sprache wird erkannt…")
     base = os.path.join(W, "base.mp4")
-    normalize(raw, base, cfg.get("rotate") or 0, hi=True)
+    # Claude Regie works on a 1080p proxy (one 4K decode, then only the proxy – shared 2-core runners)
+    normalize(raw, base, cfg.get("rotate") or 0, hi=not _pr0.get("director"))
     in_dur, _ = probe(base)
     words = transcribe(base)
+    if _pr0.get("director"):
+        if run_director(cfg, _pr0, base, words, in_dur, items):
+            return
+        cfg = {**cfg, "preset": _pr0.get("fallback") or "clean", "styleConfig": None}  # model down → the normal pipeline
     global ENV
     try:
         ENV = energy_env(base)
