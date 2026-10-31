@@ -119,7 +119,7 @@ def N(a, b):
 ELEMENTS = {
     "word": {"doc": "Schlüsselwort/Statement groß. Lange Wörter brechen an Kompositum-Grenzen um statt zu schrumpfen. x = Anker je align, y = Oberkante",
              "req": {"text": S(40), "x": X, "y": Y, "size": N(24, 420)},
-             "opt": {"weight": N(300, 900), "font": F, "color": C, "align": ALIGN, "maxW": N(200, 1080), "under": ("enum", ["none", "line", "marker", "box"]),
+             "opt": {"weight": N(300, 900), "font": F, "color": C, "align": ALIGN, "maxW": N(200, 1080), "deco": ("enum", ["none", "line", "marker", "box"]),
                      "anim": ANIM, "upper": B, "italic": B, "tracking": N(-0.1, 0.3), "underColor": C}},
     "lines": {"doc": "2–4 Zeilen Statement, gestaffelt; em-Zeilen in Akzent/Display", "req": {"lines": ("list", {"text": S(36), "em": B}, 4), "x": X, "y": Y, "size": N(24, 200)},
               "opt": {"gap": N(-0.2, 1), "align": ALIGN, "stagger": N(0, 1), "font": F, "emFont": F, "color": C, "emColor": C, "weight": N(300, 900), "emWeight": N(300, 900), "upper": B}},
@@ -129,10 +129,11 @@ ELEMENTS = {
     "stamp": {"doc": "Stempel knallt rein (x,y = Mitte)", "req": {"text": S(16), "x": X, "y": Y, "size": N(24, 200)}, "opt": {"rot": N(-30, 30), "color": C, "font": F}},
     "counter": {"doc": "Odometer-Zahl rollt from→to", "req": {"from": N(-1e6, 1e7), "to": N(-1e6, 1e7), "x": X, "y": Y, "size": N(30, 420)},
                 "opt": {"dur": N(0.2, 3), "prefix": S(4), "suffix": S(8), "decimals": N(0, 2), "font": F, "color": C, "align": ALIGN, "weight": N(300, 900), "label": S(24)}},
-    "captions": {"doc": "Untertitel IM LOOK gestaltet (nur wenn Kunde captions an hat; Phrasen setzt der Worker). y = Mitte",
+    "captions": {"doc": "Untertitel IM LOOK gestaltet (nur wenn Kunde captions an hat; Phrasen aus der Gegenprobe setzt der Worker – falsch erkannte "
+                        "Wörter mit replace [[\"falsch\", \"richtig\"], …] korrigieren). y = Mitte",
                  "req": {"y": Y, "size": N(30, 120)},
                  "opt": {"font": F, "weight": N(300, 900), "color": C, "emColor": C, "bg": ("enum", ["none", "box", "marker", "shadow"]), "boxColor": C, "upper": B,
-                         "maxW": N(400, 1040), "anim": ANIM, "x": X}},
+                         "maxW": N(400, 1040), "anim": ANIM, "x": X, "replace": ("pairs", 16)}},
     "dim": {"doc": "Maßlinie (DIN, 45°-Ticks), Label mittig", "req": {"x1": X, "y1": Y, "x2": X, "y2": Y},
             "opt": {"off": N(-200, 200), "label": S(24), "size": N(14, 80), "color": C, "dur": N(0.1, 2)}},
     "arrow": {"doc": "gezeichneter Pfeil/Verbinder durch Punkte", "req": {"points": ("points", 6)}, "opt": {"w": N(1, 20), "color": C, "head": B, "dur": N(0.1, 2)}},
@@ -309,6 +310,15 @@ def _check(spec, v, name, ctx):
         return [[_num(q, -300, 2220, name) for q in p] for p in v if isinstance(p, (list, tuple)) and len(p) == 4]
     if kind == "src":
         return ctx.resolve_src(v)
+    if kind == "pairs":  # caption corrections: what was said may be written exactly (incl. "ULTRA Intelligence")
+        if not isinstance(v, list) or len(v) > spec[1]:
+            raise Bad(f"{name}: Liste von [falsch, richtig] (≤ {spec[1]})")
+        out = []
+        for q in v:
+            if not (isinstance(q, (list, tuple)) and len(q) == 2 and all(isinstance(x, str) and 0 < len(x.strip()) <= 40 for x in q)):
+                raise Bad(f"{name}: [falsch, richtig] mit Text ≤ 40 Zeichen")
+            out.append([q[0].strip(), q[1].strip()])
+        return out
     if kind == "list":
         if not isinstance(v, list) or not (1 <= len(v) <= spec[2]):
             raise Bad(f"{name}: Liste mit 1…{spec[2]} Einträgen")
@@ -337,6 +347,9 @@ def clean_element(e, layer, ctx, dur):
         raise Bad(f"unbekannter Elementtyp {typ!r}")
     if layer == "wall" and typ in ("captions", "photo"):
         raise Bad(f"{typ} gehört auf das Blatt (sheet), nicht an die Wand")
+    if typ == "word" and isinstance(e.get("under"), str):  # old name of `deco` – `under` is the layer flag (below the footage)
+        e = {**e, "deco": e["under"]}
+        e.pop("under")
     out = {"type": typ}
     for k, spec in sp["req"].items():
         if k not in e:
@@ -457,7 +470,7 @@ def clean_plan(p, ctx, st):
                 if not st.captions:
                     probs.append("captions-Element entfernt: Kunde hat Untertitel AUS")
                     continue
-                ce_["phrases"] = st.phrases
+                ce_["phrases"] = fix_phrases(st.phrases, ce_.get("replace"))
             els.append(ce_)
         out[layer] = els
     fz = []
@@ -543,7 +556,7 @@ def bbox(e, look=None):
         ls = _wrap_n(e["text"], max(4, int(mw / (s * cw))))
         w = max(len(x) for x in ls) * s * cw
         x0, x1 = _xspan(e["x"], w, e.get("align", "center"))
-        return (x0, e["y"], x1, e["y"] + len(ls) * s * 0.98 + (24 if e.get("under") in ("line", "box") else 0))
+        return (x0, e["y"], x1, e["y"] + len(ls) * s * 0.98 + (24 if e.get("deco") in ("line", "box") else 0))
     if t == "lines":
         s, n = e["size"], len(e["lines"])
         w = max(len(l["text"]) * s * (1.18 if l.get("em") else 1) for l in e["lines"]) * cw
@@ -1271,6 +1284,9 @@ class Director:
 
     # ----- state text -----
     def status(self):
+        if self.revision:
+            return (f"KORREKTUR · Aufruf {self.n_calls() + 1}/{self.max_calls} · Kosten des Videos bisher ~{self.spent:.2f} $ (Deckel {CAP_HARD:.2f} $) · "
+                    f"Zeit {self.elapsed() / 60:.1f} min")
         need = self.missing()
         return (f"Aufruf {self.n_calls() + 1}/{self.max_calls} · Kosten bisher ~{self.spent:.2f} $ (ab {self.soft_cap():.2f} $ nur noch Final, Deckel {CAP_HARD:.2f} $) · "
                 f"Zeit {self.elapsed() / 60:.1f}/{self.minutes:.0f} min · Still-Runden {self.still_rounds} · "
@@ -1837,8 +1853,30 @@ class Director:
         return path
 
 
+def fix_phrases(phrases, pairs):
+    """Applies the model's caption corrections (misheard words) to the phrase texts; em indices follow the new words."""
+    if not pairs:
+        return phrases
+    out = []
+    for ph in phrases:
+        txt = ph["text"]
+        for a, b in pairs:
+            txt = re.sub(r"(?<!\w)" + re.escape(a) + r"(?!\w)", b, txt)
+        txt = re.sub(r"\s+", " ", txt).strip()
+        ws = txt.split()
+        out.append({**ph, "text": txt, "em": [max(range(len(ws)), key=lambda k: len(re.sub(r"\W", "", ws[k])))] if ws else []})
+    return out
+
+
 def phrases_of(words, max_words=4, gap=0.28):
     """Caption phrases from the re-transcribed cut: break at punctuation, pauses or 4 words (worker side, no model call)."""
+    joined = []
+    for w in words:  # whisper splits compounds ("Marketing" "-Agentur"): glue the hyphen part to the word before
+        if joined and w["w"].startswith("-") and w["s"] - joined[-1]["e"] < 0.15:
+            joined[-1] = {**joined[-1], "w": joined[-1]["w"] + w["w"], "e": w["e"]}
+        else:
+            joined.append(w)
+    words = joined
     out, cur = [], []
     for i, w in enumerate(words):
         cur.append(w)
@@ -1969,7 +2007,11 @@ def revise(ce, plan, prompt, job, llm=None):
         if not d.can_call():
             note = f"Korrektur nicht möglich: {d.stopped}"
             return None, note
-        times = sorted({0.3} | {round(min(raw["dur"] - 0.05, max(0.0, e["at"] + 0.4)), 2) for e in raw["sheet"] + raw["wall"]})
+        cand = sorted({0.3} | {round(min(raw["dur"] - 0.05, max(0.0, e["at"] + 0.4)), 2) for e in raw["sheet"] + raw["wall"]})
+        times = []
+        for t in cand:  # one still per visual state, at least 0.6 s apart (the hook alone has 4 elements in 0.5 s)
+            if not times or t - times[-1] >= 0.6:
+                times.append(t)
         if len(times) > 12:
             times = [times[int(k * len(times) / 12)] for k in range(12)]
         d.a_stills({"times": times})
@@ -1978,7 +2020,7 @@ def revise(ce, plan, prompt, job, llm=None):
             imgs, d.images = d.images, []
             text = d.prompt(f"KORREKTUR DES KUNDEN: „{prompt}“\nZeitangaben des Kunden beziehen sich auf das fertige Video. Ändere NUR, was verlangt ist "
                             "(+ was dadurch kaputtgeht). Erst patch_plan + stills an den geänderten Stellen; wenn die Stills passen: finish. "
-                            "cut/set_plan sind in der Korrektur gesperrt.")
+                            "cut/set_plan sind in der Korrektur gesperrt. Mit finish ein Feld \"note\": EIN Satz für den Kunden, was geändert wurde.")
             d.results = []
             res = d.ask(f"korrektur{rnd + 1}", text, imgs, max_tokens=2000)
             if not res:
@@ -1994,7 +2036,8 @@ def revise(ce, plan, prompt, job, llm=None):
                 d.results.append(str(d.act(a)))
             d.worklog.append(f"Korrektur: {str(res.get('thought') or '')[:200]}")
             if fin:
-                note = str(res.get("thought") or note)[:300]
+                note = str(res.get("note") or next((x.get("note") for x in res.get("actions") or [] if isinstance(x, dict) and x.get("note")), None)
+                           or note)[:300]
                 break
         plan2 = d.raw_plan
         autofix(plan2, st)

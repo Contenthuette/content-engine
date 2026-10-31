@@ -109,10 +109,10 @@ export const EditzDirector: React.FC<DirectorPlan> = (plan) => {
       <DirCtx.Provider value={L}>
         <AbsoluteFill style={{background: L.paper}}>
           <Ground L={L} />
-          {sheet.filter((e) => e.under).map((e, i) => (e.anchor ? <Anchored key={'u' + i} e={e} r={r} t={t} /> : draw(e, t, i)))}
+          {sheet.filter((e) => e.under === true).map((e, i) => (e.anchor ? <Anchored key={'u' + i} e={e} r={r} t={t} /> : draw(e, t, i)))}
           {/* freeze windows [a, b, at]: hide a blink / hold the end on a good frame (graphics keep moving) */}
           {fz ? <Freeze frame={Math.round(fz[2] * 30)}>{foot}</Freeze> : foot}
-          {sheet.filter((e) => !e.under).map((e, i) => (e.anchor ? <Anchored key={i} e={e} r={r} t={t} /> : draw(e, t, i)))}
+          {sheet.filter((e) => e.under !== true).map((e, i) => (e.anchor ? <Anchored key={i} e={e} r={r} t={t} /> : draw(e, t, i)))}
           {marksOn && <CropMarks m={60} p={1} color={full ? '#ffffff' : L.text} />}
           {L.grain > 0 && <Grain a={cl(L.grain, 0, 0.3)} />}
           {plan.audio && <Audio src={plan.audio.startsWith('http') ? plan.audio : staticFile(plan.audio)} />}

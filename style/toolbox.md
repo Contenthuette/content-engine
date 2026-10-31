@@ -31,3 +31,17 @@ gegradet (`cut.mov`) + Personen-Matte (`fg.webm`, RVM) – liegt NIE im Repo, so
 | bp_house | Illustration | Hausansicht um das Video-Fenster (Giebel, Kamin, Bodenlinie + Schraffur, Maßlinie mit Label) | gebaut |
 | bp_dim | Detail | Maßlinie nach DIN-Art (Schrägstrich-Enden, Hilfslinien, Label mittig gedreht) | gebaut |
 | bp_freeze | Schnitt | `freeze: [[a,b,at]]` hält nur das Footage (Blinzeln auf Frame 0, Schluss-Hold), Grafik läuft weiter | gebaut |
+
+## Claude Regie (EDITZ-Stil `regie`, 31.10. – `src/clipperz/director/`, Composition `EditzDirector`, Agent `worker/editz_director.py`)
+Jedes Kundenvideo wird vom Agenten wie der Handschnitt gebaut (eigene Leitidee pro Video, Schnitt mit Gegenprobe, Plan aus der
+Element-Bibliothek, Still-Runden, Draft-Frames an jedem Morph, Augen-Check, Final-Check). Look pro Video über `plan.look`
+(Farben, Schrift, Strich, Grund grid|dots|lines|plain|kraft|dark) – das Bauplan-Kit liest denselben Look (`LookCtx`).
+| Code | Rolle | Beschreibung | Status |
+|---|---|---|---|
+| dir_word | Typo | Schlüsselwort groß, Umbruch an Kompositum-Grenzen statt Schrumpfen, `deco` line/marker/box, anim rise/pop/wipe/type | gebaut |
+| dir_lines / dir_revise / dir_stamp / dir_counter | Typo | Zeilen gestaffelt · Revision (alt durchgestrichen raus vor neu, Regel 6) · Stempel · Odometer-Zahl | gebaut |
+| dir_captions | Untertitel | nur bei `captions: true`, im Look gestaltet (Box/Marker/Schatten), Phrasen aus der Gegenprobe, `replace` für Whisper-Fehler | gebaut |
+| dir_dim / dir_arrow / dir_circle / dir_marker / dir_frame / dir_callout | Linien | Maßlinie, Pfeil durch Punkte, Kringel, Textmarker, Rahmen mit Eck-Ticks, Beschriftung mit Führungslinie | gebaut |
+| dir_card / dir_list / dir_icon | Karten | Karte mit Linien-Icon, Checkliste (Haken beim Aussprechen), 47 eigene Linien-Icons (`icons.json`) | gebaut |
+| dir_photo | B-Roll | nur Kunden-Uploads: polaroid / card / window / full / split | gebaut |
+| dir_zoomthrough | Übergang | am Fenster verankerte Zeichnung mit `under: true` → Video wächst darüber (sonst zieht sie halbtransparent über das Video) | Regel |

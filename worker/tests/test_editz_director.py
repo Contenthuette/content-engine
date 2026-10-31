@@ -293,3 +293,27 @@ def test_http_backend_sends_tier(monkeypatch):
 def test_regie_preset_registered():
     pr = ce.PRESETS["regie"]
     assert pr["director"] is True and pr["composition"] == "EditzDirector" and pr["music"] is None and pr["fallback"] in ce.PRESETS
+
+
+def test_caption_corrections():
+    st = state(captions=True)
+    st.phrases = ed.phrases_of([{"w": w, "s": i * 0.3, "e": i * 0.3 + 0.25} for i, w in enumerate("für Bound Handwerksbetriebe.".split())])
+    p = good_plan()
+    p["sheet"].append({"type": "captions", "y": 1380, "size": 56, "replace": [["Bound", "Bau- und"], ["Ultraintelligence?", "ULTRA Intelligence?"]]})
+    plan, probs = ed.clean_plan(p, ed.Ctx(st), st)
+    cap = [e for e in plan["sheet"] if e["type"] == "captions"][0]
+    assert cap["phrases"][0]["text"] == "für Bau- und Handwerksbetriebe." and not probs
+
+
+def test_word_deco_never_becomes_layer_flag():
+    st = state()
+    p = good_plan()
+    p["sheet"][0]["under"] = "marker"   # old prop name
+    plan, _ = ed.clean_plan(p, ed.Ctx(st), st)
+    w = plan["sheet"][0]
+    assert w["deco"] == "marker" and "under" not in w
+
+
+def test_phrases_glue_hyphen_compounds():
+    ws = [{"w": "eine", "s": 0, "e": 0.2}, {"w": "Marketing", "s": 0.2, "e": 0.5}, {"w": "-Agentur", "s": 0.5, "e": 1.0}, {"w": "oder", "s": 1.0, "e": 1.2}]
+    assert ed.phrases_of(ws)[0]["text"] == "eine Marketing-Agentur oder"

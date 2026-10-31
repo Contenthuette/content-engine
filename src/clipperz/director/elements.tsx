@@ -69,9 +69,9 @@ const tx = (align?: string) => (align === 'left' ? 'translateX(0)' : align === '
 // ---------------------------------------------------------------- typography
 
 type WordP = Base & {text: string; x: number; y: number; size: number; weight?: number; font?: string; color?: string; align?: 'center' | 'left' | 'right';
-  maxW?: number; under?: 'none' | 'line' | 'marker' | 'box'; anim?: Anim; upper?: boolean; italic?: boolean; tracking?: number; underColor?: string};
+  maxW?: number; deco?: 'none' | 'line' | 'marker' | 'box'; anim?: Anim; upper?: boolean; italic?: boolean; tracking?: number; underColor?: string};
 /** Key word / statement, big. Long words wrap at compound borders instead of shrinking. (x = anchor by align, y = top) */
-export const Word: React.FC<WordP> = ({t, at, out, text, x, y, size, weight, font, color, align = 'center', maxW = 960, under = 'none', anim = 'rise', upper, italic, tracking = -0.035, underColor}) => {
+export const Word: React.FC<WordP> = ({t, at, out, text, x, y, size, weight, font, color, align = 'center', maxW = 960, deco = 'none', anim = 'rise', upper, italic, tracking = -0.035, underColor}) => {
   const D = useD();
   const o = env(t, at - 0.01, out, 0.01, 0.14);
   if (o <= 0) return null;
@@ -86,7 +86,8 @@ export const Word: React.FC<WordP> = ({t, at, out, text, x, y, size, weight, fon
   return (
     <div style={{position: 'absolute', left: x, top: y, transform: tx(align), opacity: o, textAlign: align, whiteSpace: 'pre'}}>
       <div style={{position: 'relative', display: 'inline-block', ...(anim === 'type' ? {} : appear(anim, k, 34))}}>
-        {under === 'marker' && <div style={{position: 'absolute', left: -size * 0.08, right: -size * 0.08, bottom: size * 0.04, height: size * 0.42 * lines.length, background: alpha(uc, 0.85),
+        {/* highlighter: light, low, behind the letters – a dark full bar across the x-height reads like a strike-through */}
+        {deco === 'marker' && <div style={{position: 'absolute', left: -size * 0.08, right: -size * 0.08, bottom: -size * 0.02, height: size * 0.3, background: alpha(uc, 0.38),
           transformOrigin: '0 50%', transform: `scaleX(${uk})`, borderRadius: 4}} />}
         {lines.map((ln, i) => {
           const shown = ln.slice(0, Math.max(0, left));
@@ -96,12 +97,12 @@ export const Word: React.FC<WordP> = ({t, at, out, text, x, y, size, weight, fon
               fontStyle: italic ? 'italic' : undefined, color: col(D, color, D.text), fontVariationSettings: '"opsz" 32'}}>{anim === 'type' ? shown || ' ' : ln}</div>
           );
         })}
-        {under === 'line' && (
+        {deco === 'line' && (
           <svg style={{position: 'absolute', left: 0, top: '100%', width: '100%', height: 24, overflow: 'visible'}} viewBox="0 0 100 24" preserveAspectRatio="none">
             <line x1={0} y1={10} x2={100 * uk} y2={10} stroke={uc} strokeWidth={4 * (D.stroke || 1)} vectorEffect="non-scaling-stroke" />
           </svg>
         )}
-        {under === 'box' && (
+        {deco === 'box' && (
           <svg style={{position: 'absolute', left: -size * 0.18, top: -size * 0.12, width: `calc(100% + ${size * 0.36}px)`, height: `calc(100% + ${size * 0.24}px)`, overflow: 'visible'}}
             viewBox="0 0 100 100" preserveAspectRatio="none">
             <rect x={0} y={0} width={100} height={100} fill="none" stroke={uc} strokeWidth={4 * (D.stroke || 1)} vectorEffect="non-scaling-stroke" pathLength={1}
