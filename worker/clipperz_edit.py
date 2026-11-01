@@ -1430,6 +1430,41 @@ def run_director(cfg, pr, base, words, in_dur, items):
     return True
 
 
+def run_minimal(cfg, pr, cut_path, words, out_dur, in_dur):
+    """EDITZ Minimal (worker/editz_minimal.py): scene templates instead of free layout. One text call plans the scenes,
+    one vision call picks the pictures (public domain), the rest is fixed code. Returns False → normal pipeline."""
+    report(note="Szenen werden geplant (Minimal): Schlüsselwörter, Illustrationen, Gemälde, Linien…")
+    job = job_id()
+    pub = os.path.join(REPO, "public", job)
+    os.makedirs(pub, exist_ok=True)
+    try:
+        import editz_agent
+        import editz_minimal
+        prepare_main(cut_path, os.path.join(pub, "main.mp4"), pr.get("grade"))
+        llm = editz_agent.make_llm(API, AUTH)
+        if llm is None:
+            raise RuntimeError("no model")
+        report(note="Bilder werden gesucht und als Illustration gezeichnet…")
+        plan, _ = editz_minimal.build(llm, words, out_dur, f"{job}/main.mp4", pub, job, video_path=os.path.join(pub, "main.mp4"))
+        plan.update({"composition": "EditzMinimal", "preset": "minimal", "outScale": 1})
+    except Exception as e:  # never lose the edit over the planner
+        print("minimal planner failed, normal pipeline:", type(e).__name__, e, flush=True)
+        report(note="Minimal-Planung nicht verfügbar – Standard-Schnitt läuft…")
+        return False
+    report(note="Video wird gerendert (Minimal)…", stats={"inSec": in_dur, "outSec": out_dur, "broll": 0})
+    final = os.path.join(W, "final.mp4")
+    render(plan, final)
+    report(note="Fertiges Video wird hochgeladen…")
+    url = upload(final)
+    try:
+        plan_url, assets = save_job(plan, job)
+    except Exception as e:
+        print("saving the plan for corrections failed:", e)
+        plan_url, assets = None, []
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig (Minimal)")
+    return True
+
+
 def run_revision(cfg):
     rv = cfg["revise"]
     report(status="working", note="Korrektur: Schnittplan wird geladen…", runUrl=RUN_URL)
@@ -1599,6 +1634,8 @@ def main():
 
     preset_id = register_style(cfg.get("preset"), cfg.get("styleConfig"))
     pr = PRESETS[preset_id]
+    if pr.get("minimal") and run_minimal(cfg, pr, cut_path, words_cut, out_dur, in_dur):
+        return
     report(note=f"Claude plant den Schnitt ({pr['label']}): Hook, Zooms, B-Roll, Text-Beats…")
     if items:
         describe_broll(items)
