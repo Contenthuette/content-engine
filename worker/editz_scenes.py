@@ -137,7 +137,7 @@ def pictures(llm, style, scenes, pub, job, tmp, video_path=None, words=None, pre
     return scenes, new
 
 
-def _fallback(style, s):
+def _fallback(style, s, scenes=()):
     """Safe template for a scene the sight check rejected."""
     base = {"from": s["from"], "to": s["to"]}
     if style == "minimal":
@@ -145,6 +145,8 @@ def _fallback(style, s):
     if style == "clean":
         return {**base, "type": "full", "text": s.get("text", [])[:2]}
     line = s.get("line") or (s.get("caption") or {}).get("text") or s.get("headline") or "…"
+    if s["type"] == "document" or sum(1 for x in scenes if x["type"] == "document") >= 2:  # never a wall of documents
+        return {**base, "type": "aroll", "zoom": 1.12, **({"label": {"text": line, "at": round(s["from"] + 0.2, 3)}} if line != "…" else {})}
     return {**base, "type": "document", "line": line}
 
 
@@ -193,7 +195,7 @@ def sight_check(llm, style, plan_dict, work, log=print):
     broken = [b for b in (raw or {}).get("broken", []) if isinstance(b, dict) and isinstance(b.get("scene"), int) and b["scene"] in idx]
     out = copy.deepcopy(plan_dict)
     for b in broken:
-        out["scenes"][b["scene"]] = _fallback(style, out["scenes"][b["scene"]])
+        out["scenes"][b["scene"]] = _fallback(style, out["scenes"][b["scene"]], out["scenes"])
         log(f"sight check: scene {b['scene']} → safe template ({str(b.get('why'))[:80]})")
     return out, broken
 
@@ -206,7 +208,11 @@ def _says(s):
     if isinstance(s.get("caption"), dict):
         bits.append(s["caption"].get("text", ""))
     q = s.get("_q")
-    if q:
+    if s.get("speaker"):
+        bits.append("Bild: der Sprecher selbst als Zeichnung (gewollt, kein Fehler)")
+    elif s["type"] == "symbol":
+        bits.append("gezeichnetes Symbol (gewollt)")
+    elif q:
         bits.append("Bild: " + (q if isinstance(q, str) else ", ".join(q)))
     return " / ".join(b for b in bits if b)[:160] or "-"
 

@@ -135,7 +135,7 @@ const Clipping: React.FC<SP<Extract<Scene, {type: 'clipping'}>>> = ({s, t}) => {
         <div style={{borderTop: '3px solid #2A241E', borderBottom: '1.5px solid #2A241E', padding: '8px 0', display: 'flex', justifyContent: 'space-between', fontFamily: D.serif, fontSize: 26, color: '#2A241E', fontWeight: 600}}>
           <span>{(s.kicker ?? '').toUpperCase()}</span><span>—</span>
         </div>
-        <div style={{fontFamily: D.serif, fontWeight: 700, fontSize: s.headline.length > 34 ? 82 : s.headline.length > 20 ? 96 : 116, lineHeight: 1.02, color: D.ink, margin: '26px 0 30px', letterSpacing: '-0.01em'}}>
+        <div style={{fontFamily: D.serif, fontWeight: 700, fontSize: Math.min(s.headline.length > 34 ? 82 : s.headline.length > 20 ? 96 : 116, 800 / (0.58 * Math.max(6, ...words.map((w) => w.length)))), lineHeight: 1.02, color: D.ink, margin: '26px 0 30px', letterSpacing: '-0.01em'}}>
           {words.map((w, i) => (
             <span key={i} style={{position: 'relative', display: 'inline-block', marginRight: '0.24em'}}>
               {i === keyIdx && <span style={{position: 'absolute', left: -6, top: '18%', height: '70%', width: `calc(${hk * 100}% + 12px)`, background: D.hi, zIndex: 0, transform: 'skew(-6deg)'}} />}
@@ -170,7 +170,7 @@ const Document: React.FC<SP<Extract<Scene, {type: 'document'}>>> = ({s, t}) => {
           boxShadow: '0 40px 80px rgba(0,0,0,.55)', transform: `translateY(${(1 - k) * 140}px) rotate(${0.8 + (1 - k) * 3}deg)`, opacity: cl(lt / 0.12)}}>
           {s.title && <div style={{fontFamily: D.type, fontWeight: 700, fontSize: 40, color: D.ink, letterSpacing: '0.12em', marginBottom: 46}}>{s.title.toUpperCase()}</div>}
           <Bars n={6} w={760} seed={21} color="rgba(30,26,22,.22)" h={14} gap={22} />
-          <div style={{fontFamily: D.type, fontSize: 52, fontWeight: 700, color: D.ink, lineHeight: 1.3, margin: '26px 0 40px'}}>
+          <div style={{fontFamily: D.type, fontSize: Math.min(52, 740 / (0.62 * Math.max(6, ...s.line.split(' ').map((w) => w.length)))), fontWeight: 700, color: D.ink, lineHeight: 1.3, margin: '26px 0 40px'}}>
             {words.map((w, i) => (i * 0.07 + s.from + 0.15 > t ? <span key={i} style={{opacity: 0, marginRight: '0.5em'}}>{w}</span> :
               <span key={i} style={{position: 'relative', display: 'inline-block', marginRight: '0.5em'}}>
                 {w}
