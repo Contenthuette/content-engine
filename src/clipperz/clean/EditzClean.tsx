@@ -182,7 +182,7 @@ type SP<S> = {s: S; t: number; accent: string};
 const FullText: React.FC<SP<Extract<Scene, {type: 'full'}>>> = ({s, t, accent}) => (
   <>
     <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.42) 100%)'}} />
-    {s.text && <Lines lines={s.text} t={t} y={1240} color="#FFFFFF" accent={accent} big={104} small={46} />}
+    {s.text && <Lines lines={s.text} t={t} y={1150} color="#FFFFFF" accent={accent} big={104} small={46} />}
     {(s.text ?? []).filter((l) => l.big && hitStyle(l) === 'glow').map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.15} x={540} y={1330} color="#FFFFFF" />)}
     {s.island && <Island t={t} at={s.island.at ?? s.from + 0.2} title={s.island.title} text={s.island.text} accent={accent} />}
   </>

@@ -665,6 +665,9 @@ def detect_focus(path, duration):
         small = cv2.resize(frame, (W_ // 2, H_ // 2))
         gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
         faces = casc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6, minSize=(30, 30))
+        # a talking head's face sits in the upper part of a vertical frame – detections lower down are hands, logos or
+        # shirt prints (01.11.2026: clasped hands at 76 % won over the face → zooms into the hands, captions pushed down)
+        faces = [f for f in faces if (f[1] + f[3] / 2) * 2 / H_ < 0.62]
         if len(faces):
             x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
             xs.append((x + w / 2) * 2 / W_)

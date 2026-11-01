@@ -137,7 +137,7 @@ const ARoll: React.FC<P<Extract<Scene, {type: 'aroll'}>>> = ({s, t}) => {
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,0) 52%, rgba(0,0,0,.38) 78%, rgba(0,0,0,.5) 100%)'}} />
-      {s.text && <CineText lines={s.text} t={t} from={s.from} color="#FFFFFF" sub="#F1F1F1" y={s.textY ?? 1290} />}
+      {s.text && <CineText lines={s.text} t={t} from={s.from} color="#FFFFFF" sub="#F1F1F1" y={s.textY ?? 1210} />}
     </AbsoluteFill>
   );
 };
