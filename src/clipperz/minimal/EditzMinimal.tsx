@@ -82,7 +82,7 @@ export const CineText: React.FC<{lines: TextLine[]; t: number; color: string; su
             fontSize: fit,
             lineHeight: big ? 0.98 : 1.25,
             letterSpacing: big ? (font === 'serif' ? '-0.01em' : '-0.045em') : '-0.01em',
-            color: ln.accent ? M.blue : big ? color : sub,
+            color: ln.accent && color !== '#FFFFFF' ? M.blue : big ? color : sub,
             whiteSpace: 'nowrap',
             opacity: k,
             filter: `blur(${(1 - k) * 12}px)`,
@@ -167,8 +167,8 @@ const Painting: React.FC<P<Extract<Scene, {type: 'painting' | 'broll'}>>> = ({s,
         <AbsoluteFill style={{backgroundImage: `url(${staticFile('minimal/paint_overlay.jpg')})`, backgroundSize: 'cover', mixBlendMode: 'multiply', opacity: 0.75}} />
       </AbsoluteFill>
       <AbsoluteFill style={{background: `radial-gradient(120% 75% at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,${s.dark ?? 0.55}) 100%)`}} />
-      <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 38%)'}} />
-      {s.text && <CineText lines={s.text} t={t} from={s.from} color="#FFFFFF" sub="#EDEDED" y={s.textY ?? 430} />}
+      <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,.62) 0%, rgba(0,0,0,.38) 24%, rgba(0,0,0,0) 44%)'}} />
+      {s.text && <div style={{position: 'absolute', inset: 0, textShadow: '0 4px 28px rgba(0,0,0,.55)'}}><CineText lines={s.text} t={t} from={s.from} color="#FFFFFF" sub="#EDEDED" y={s.textY ?? 430} /></div>}
     </AbsoluteFill>
   );
 };
@@ -222,18 +222,24 @@ const LineText: React.FC<P<Extract<Scene, {type: 'linetext'}>>> = ({s, t}) => {
 };
 
 const Quote: React.FC<P<Extract<Scene, {type: 'quote'}>>> = ({s, t}) => {
+  // closing card: the speaker's key sentence between two big quotation marks that hug the text block
   const g = s.ground ?? 'light';
-  const lt = t - s.from;
+  const lt = t - s.from, d = s.to - s.from;
   const a = arrive(lt);
-  const q = expoOut(lt / 0.5);
-  const qc = g === 'blue' ? 'rgba(255,255,255,.9)' : M.blue;
+  const q = expoOut(lt / 0.6);
+  const qc = g === 'blue' ? 'rgba(255,255,255,.92)' : M.blue;
+  const y = s.img ? 600 : 930;
+  const push = 1 + 0.04 * cl(lt / d);
+  const mark = (ch: string, style: React.CSSProperties) => (
+    <div style={{position: 'absolute', fontFamily: M.serif, fontStyle: 'italic', fontWeight: 600, fontSize: 300, lineHeight: 1, color: qc, opacity: q, ...style}}>{ch}</div>
+  );
   return (
-    <AbsoluteFill style={{transform: `translateY(${a.dy}px) scale(${a.scale})`}}>
+    <AbsoluteFill style={{transform: `translateY(${a.dy}px) scale(${a.scale * push})`}}>
       <Paper g={g} />
       {s.img && <Img src={src(s.img)} style={{position: 'absolute', width: 1080, left: 0, top: 900 + (1 - q) * 60, opacity: 0.95}} />}
-      <div style={{position: 'absolute', left: 90, top: 330 - (1 - q) * 30, fontFamily: M.serif, fontStyle: 'italic', fontWeight: 600, fontSize: 260, color: qc, opacity: q, lineHeight: 1}}>“</div>
-      <div style={{position: 'absolute', right: 90, top: (s.img ? 760 : 1120) + (1 - q) * 30, fontFamily: M.serif, fontStyle: 'italic', fontWeight: 600, fontSize: 260, color: qc, opacity: q, lineHeight: 1}}>”</div>
-      <CineText lines={s.text} t={t} from={s.from} color={GROUND[g].text} sub={GROUND[g].sub} y={s.img ? 600 : 900} maxW={820} />
+      {mark('\u201C', {left: 120, top: y - 360 - (1 - q) * 40})}
+      {mark('\u201D', {right: 120, top: y + 70 + (1 - q) * 40})}
+      <CineText lines={s.text} t={t} from={s.from} color={GROUND[g].text} sub={GROUND[g].sub} y={y} maxW={860} />
     </AbsoluteFill>
   );
 };
