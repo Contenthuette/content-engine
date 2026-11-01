@@ -220,6 +220,7 @@ const SAFE = {top: 220, bottom: 380, right: 140, left: 70};
 /** Social-media safe zone (TikTok, Reels, Shorts): the caption BLOCK (not only its centre) ends above y 1440 –
  *  below sit description, sound line and the bottom bar; the right column (x > 940) is kept free by SAFE.right. */
 const SAFE_CAP_BOTTOM = 1440;
+const CAP_CENTER_MAX = Math.round(H * 0.68);  // 1306 px
 const safeCenter = (c: number, blockH: number) => Math.max(SAFE.top + blockH / 2, Math.min(c, SAFE_CAP_BOTTOM - blockH / 2));
 /** Number of lines a centred flex-wrap block needs for these word widths (px) in maxW. */
 const wrapLines = (widths: number[], maxW: number) => {
@@ -241,10 +242,13 @@ function captionY(plan: Plan, preset: Preset, t: number) {
   const faceY = S * plan.focus.y * H + ty;
   const c = typeof y === 'number' ? y * H : Math.max(H * 0.42, Math.min(H * 0.78, faceY + fh * 2.3));
   // A learned style whose original sits on the face (measured) keeps its height: overFace skips the face guard.
-  if (typeof y === 'number' && (preset.cap as unknown as {overFace?: boolean}).overFace) return Math.min(H - SAFE.bottom - 80, c);
+  if (typeof y === 'number' && (preset.cap as unknown as {overFace?: boolean}).overFace) return Math.min(CAP_CENTER_MAX, c);
   // Never over the face: the caption block starts below the chin, and never under the app buttons.
   const chin = faceY + fh * 0.62;
-  return Math.min(H - SAFE.bottom - 80, Math.max(c, chin + 120));
+  // captions sit in the comfortable band of TikTok/Reels/Shorts (centre ≤ 68 % height). A "face" below 60 % is a
+  // false detection (hands, shirt print) and must not push the captions into the description area.
+  if (plan.focus.h <= 0 || plan.focus.y > 0.6) return Math.min(CAP_CENTER_MAX, c);
+  return Math.min(CAP_CENTER_MAX, Math.max(c, chin + 120));
 }
 
 export type Phrase = {words: {w: Word; i: number}[]; s: number; e: number};

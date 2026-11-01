@@ -61,7 +61,7 @@ const ARollOverlay: React.FC<SP<Extract<Scene, {type: 'aroll'}>>> = ({s, t}) => 
   if (t < at) return null;
   const k = expoOut((t - at) / 0.3);
   return (
-    <div style={{position: 'absolute', left: 70, top: 1330, maxWidth: 860, transform: `translateX(${(1 - k) * -40}px)`, opacity: k}}>
+    <div style={{position: 'absolute', left: 70, top: 1240, maxWidth: 860, transform: `translateX(${(1 - k) * -40}px)`, opacity: k}}>
       <div style={{display: 'inline-block', background: 'rgba(237,230,211,.94)', padding: '16px 26px 14px', boxShadow: '0 10px 30px rgba(0,0,0,.35)'}}>
         <Typed text={s.label.text.toUpperCase()} t={t} at={at + 0.1} cps={30} style={{fontFamily: D.type, fontWeight: 700, fontSize: 54, color: D.ink, letterSpacing: '0.02em'}} />
       </div>
