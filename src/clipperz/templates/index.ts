@@ -11,6 +11,7 @@ import {LimeMagazin} from './limemagazin/LimeMagazin';
 import {BlueGlass} from './blueglass/BlueGlass';
 import {NoirNews} from './noirnews/NoirNews';
 import {EditzDirector, calcDirector} from '../director/EditzDirector';
+import {EditzMinimal, calcMinimal} from '../minimal/EditzMinimal';
 
 export type TemplateComp = {
   id: string;
@@ -27,4 +28,5 @@ export const TEMPLATES: TemplateComp[] = [
   {id: 'EditzBlueGlass', component: BlueGlass, calculateMetadata: calcClipperz},
   {id: 'EditzNoirNews', component: NoirNews, calculateMetadata: calcClipperz},
   {id: 'EditzDirector', component: EditzDirector as unknown as React.FC<Plan>, calculateMetadata: calcDirector as unknown as CalculateMetadataFunction<Plan>},
+  {id: 'EditzMinimal', component: EditzMinimal as unknown as React.FC<Plan>, calculateMetadata: calcMinimal as unknown as CalculateMetadataFunction<Plan>},
 ];
