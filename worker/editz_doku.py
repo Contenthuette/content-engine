@@ -168,6 +168,13 @@ def plan_scenes(llm, words, dur):
     return validate(raw, words, dur), usage
 
 
+PICK = """Wähle für jede Zeile das passende Archivfoto für einen Kurzfilm im Dokumentarfilm-Look. Das Bild erscheint als alter
+Fotoabzug (schwarz-weiß/sepia) auf einem Tisch. Gut: echtes Foto oder Gemälde, Motiv passt klar zum Thema, ruhige Komposition,
+gern historisch. Schlecht: falsches Thema, Text/Schrift/Logos im Bild, bekannte reale Personen, Karten, Diagramme, Ausschnitte
+von Kunstwerken ohne erkennbares Motiv, unscharf. Lieber -1 (keins passt) als ein falsches Bild.
+Antwort nur JSON: {"picks": [<Nummer oder -1 pro Zeile, in Reihenfolge>]}"""
+
+
 def fetch_photos(scenes, workdir, rel, llm=None, prefetched=None):
     """Every photo scene: Commons candidates per image query → one vision pick for all → files. No usable picture:
     the scene becomes a typed document with the spoken words (never an empty desk)."""
@@ -195,7 +202,7 @@ def fetch_photos(scenes, workdir, rel, llm=None, prefetched=None):
     picks = [0 if r[1] else -1 for r in rows]
     if llm and any(r[1] for r in rows):
         try:
-            picks, _ = em.choose(llm, rows, workdir)
+            picks, _ = em.choose(llm, rows, workdir, intro=PICK)
         except Exception as e:
             print("photo choice failed, taking first hits:", type(e).__name__, e, flush=True)
     got = {}

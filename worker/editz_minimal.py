@@ -310,7 +310,7 @@ def pick_sheet(rows, out):
     return out
 
 
-def choose(llm, rows, workdir):
+def choose(llm, rows, workdir, intro=None):
     """One vision call (Sonnet) for all scenes: returns the picked index per row (-1 = none)."""
     import base64
     import editz_agent as ea
@@ -318,7 +318,7 @@ def choose(llm, rows, workdir):
     with open(sheet, "rb") as fh:
         img = base64.b64encode(fh.read()).decode()
     lines = "\n".join(f"Zeile {i + 1}: {lab}" for i, (lab, _) in enumerate(rows))
-    msg = [{"role": "user", "content": [{"type": "text", "text": PICK + "\n\n" + lines}, {"type": "image", "image": img}]}]
+    msg = [{"role": "user", "content": [{"type": "text", "text": (intro or PICK) + "\n\n" + lines}, {"type": "image", "image": img}]}]
     text, usage = llm(msg, max_tokens=300, tier="sonnet")
     raw = ea.parse_json(text) or {}
     picks = raw.get("picks") if isinstance(raw.get("picks"), list) else []
