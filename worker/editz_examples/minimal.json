@@ -1,0 +1,232 @@
+{
+ "note": "Von Leif abgenommener Hand-Schnitt (01.11.2026), 18,6 s, ULTRA-Video",
+ "dur": 18.6,
+ "transcript": "[0|0.00] Was [1|0.30] machen [2|0.58] wir [3|0.78] bei [4|0.92] ULTRA [5|1.28] Intelligence?\n[6|2.06] Vor [7|2.06] allem [8|2.38] eins, [9|3.04] Automatisierung [10|3.64] für [11|4.08] Bau [12|4.30] - [13|4.44] und [14|4.46] Handwerksbetriebe.\n[15|5.50] Wir [16|5.70] automatisieren [17|6.26] Prozesse [18|6.86] in [19|7.40] eurem [20|7.86] Betrieb, [21|8.38] sei [22|8.44] es [23|8.62] ein [24|8.84] Handwerksbetrieb,\n[25|10.08] sei [26|10.12] es [27|10.46] eine [28|10.66] Marketing [29|10.94] -Agentur [30|11.48] oder [31|11.78] sei [32|11.98] es [33|12.42] halt [34|12.50] ein\n[35|13.22] anderes [36|13.48] lokales [37|14.04] Unternehmen, [38|14.80] wie [39|14.86] zum [40|15.02] Beispiel [41|15.38] eine [42|15.68] Immobilienverwaltung.\n[43|16.58] Ja.",
+ "answer": {
+  "scenes": [
+   {
+    "type": "aroll",
+    "w0": 0,
+    "text": [
+     {
+      "text": "Was machen wir",
+      "size": "s",
+      "w": 0
+     },
+     {
+      "text": "bei ULTRA?",
+      "size": "l",
+      "w": 3
+     }
+    ]
+   },
+   {
+    "type": "aroll",
+    "w0": 6,
+    "zoom": 1.22,
+    "text": [
+     {
+      "text": "vor allem",
+      "size": "s",
+      "w": 6
+     },
+     {
+      "text": "eins.",
+      "size": "xl",
+      "w": 8,
+      "font": "serif"
+     }
+    ]
+   },
+   {
+    "type": "figure",
+    "w0": 9,
+    "side": "center",
+    "image": {
+     "query": "power house mechanic photograph",
+     "kind": "photo",
+     "cutout": true
+    },
+    "text": [
+     {
+      "text": "Automatisierung",
+      "size": "l",
+      "w": 9
+     },
+     {
+      "text": "für Bau- und Handwerksbetriebe",
+      "size": "s",
+      "w": 10
+     }
+    ]
+   },
+   {
+    "type": "linetext",
+    "w0": 15,
+    "stops": [
+     {
+      "w": 15,
+      "text": [
+       {
+        "text": "wir automatisieren",
+        "size": "s",
+        "w": 15
+       },
+       {
+        "text": "Prozesse",
+        "size": "l",
+        "w": 17
+       }
+      ]
+     },
+     {
+      "w": 19,
+      "text": [
+       {
+        "text": "in eurem",
+        "size": "s",
+        "w": 18
+       },
+       {
+        "text": "Betrieb.",
+        "size": "l",
+        "w": 20,
+        "font": "serif"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "type": "painting",
+    "w0": 21,
+    "image": {
+     "query": "iron forge painting",
+     "kind": "painting",
+     "cutout": false
+    },
+    "text": [
+     {
+      "text": "sei es ein",
+      "size": "s",
+      "w": 21
+     },
+     {
+      "text": "Handwerksbetrieb",
+      "size": "l",
+      "w": 24,
+      "font": "serif"
+     }
+    ]
+   },
+   {
+    "type": "figure",
+    "w0": 25,
+    "side": "left",
+    "image": {
+     "query": "man with megaphone",
+     "kind": "photo",
+     "cutout": true
+    },
+    "text": [
+     {
+      "text": "sei es eine",
+      "size": "s",
+      "w": 25
+     },
+     {
+      "text": "Marketing-",
+      "size": "l",
+      "w": 28
+     },
+     {
+      "text": "Agentur",
+      "size": "l",
+      "w": 29,
+      "accent": true
+     }
+    ]
+   },
+   {
+    "type": "aroll",
+    "w0": 30,
+    "text": [
+     {
+      "text": "oder ein anderes",
+      "size": "s",
+      "w": 34
+     }
+    ]
+   },
+   {
+    "type": "aroll",
+    "w0": 35,
+    "zoom": 1.18,
+    "text": [
+     {
+      "text": "lokales",
+      "size": "l",
+      "w": 36,
+      "font": "serif"
+     },
+     {
+      "text": "Unternehmen",
+      "size": "s",
+      "w": 37
+     }
+    ]
+   },
+   {
+    "type": "figure",
+    "w0": 38,
+    "side": "center",
+    "image": {
+     "query": "tenement house facade",
+     "kind": "photo",
+     "cutout": false
+    },
+    "text": [
+     {
+      "text": "wie zum Beispiel",
+      "size": "s",
+      "w": 38
+     },
+     {
+      "text": "Immobilien-",
+      "size": "l",
+      "w": 42
+     },
+     {
+      "text": "verwaltung",
+      "size": "l",
+      "w": 42,
+      "font": "serif"
+     }
+    ]
+   },
+   {
+    "type": "quote",
+    "w0": 43,
+    "ground": "blue",
+    "text": [
+     {
+      "text": "Wir automatisieren",
+      "size": "s",
+      "w": 43
+     },
+     {
+      "text": "Prozesse.",
+      "size": "xl",
+      "w": 43,
+      "font": "serif"
+     },
+     {
+      "text": "in eurem Betrieb",
+      "size": "s",
+      "w": 43
+     }
+    ]
+   }
+  ]
+ }
+}

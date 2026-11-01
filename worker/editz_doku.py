@@ -24,7 +24,7 @@ with open(os.path.join(HERE, "..", "src", "clipperz", "doku", "map_de.json"), en
 
 TYPES = ("aroll", "photo", "clipping", "document", "map", "matchcut", "end")
 CUTS = ("photo", "clipping", "document", "map", "matchcut")
-MIN_SCENE = 0.8
+MIN_SCENE = 0.6
 
 RULES = """Du bist Cutter für den EDITZ-Stil „Doku“ (Kino-Dokumentarfilm im Reel-Tempo: Film-Look, Archivfotos, Zeitungsausschnitte,
 Dokumente, Karten, Schreibmaschine). Du planst NUR, welche Szenen-Vorlage zu welchem Satzteil läuft und füllst sie mit GESAGTEN Wörtern.
@@ -140,7 +140,8 @@ def validate(raw, words, dur):
                     o["label"] = _cap(s["label"], 5)
         elif T == "matchcut":
             wd = _cap(s.get("word"), 2)
-            if used_match or not wd or wd.split()[0].strip(".,!?").lower() not in spoken:
+            flat = re.sub(r"[^a-zäöüß]", "", spoken)
+            if used_match or not wd or re.sub(r"[^a-zäöüß]", "", wd.split()[0].lower()) not in flat:
                 o = {"type": "aroll", "from": o["from"], "to": o["to"], "zoom": 1.15}
             else:
                 o["word"] = wd
@@ -215,7 +216,7 @@ def fetch_photos(scenes, workdir, rel, llm=None, prefetched=None):
             got.setdefault(i, []).append(f"{rel.rstrip('/')}/{name}")
     out = []
     for i, s in enumerate(scenes):
-        if s["type"] != "photo":
+        if s["type"] != "photo" or (s.get("imgs") and not s.get("images")):  # kept from an earlier version (correction)
             out.append(s); continue
         imgs = got.get(i, [])
         ats = [im["at"] for im in s.get("images", [])]

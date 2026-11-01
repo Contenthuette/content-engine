@@ -18,7 +18,7 @@ from editz_minimal import tidy, transcript  # noqa: E402  (same [index|second] t
 
 TYPES = ("full", "statement", "notify", "chat", "stat", "list", "search", "end")
 UI = ("notify", "chat", "stat", "list", "search")
-MIN_SCENE = 0.7
+MIN_SCENE = 0.5
 
 RULES = """Du bist Cutter für den EDITZ-Stil „Clean“ (Apple-Design: helles Off-White, Inter, eine Akzentfarbe, nichts schneidet hart –
 das Video des Sprechers verwandelt sich zwischen Vollbild, großem Fenster und kleinem Bild oben rechts; iOS-Elemente tragen die

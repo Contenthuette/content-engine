@@ -78,6 +78,7 @@
     "director": false,
     "fallback": "clean",
     "grade": null,
-    "minimal": true
+    "minimal": true,
+    "scenes": "minimal"
   }
 }
