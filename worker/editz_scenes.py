@@ -151,8 +151,8 @@ def _fallback(style, s, scenes=()):
         return {**base, "type": "aroll", "zoom": 1.12, "text": s.get("text", [])[:2]}
     if style == "clean":
         return {**base, "type": "full", "text": s.get("text", [])[:2]}
-    line = s.get("line") or (s.get("caption") or {}).get("text") or s.get("headline") or "…"
-    if s["type"] == "document" or sum(1 for x in scenes if x["type"] == "document") >= 2:  # never a wall of documents
+    line = s.get("line") or (s.get("caption") or {}).get("text") or s.get("headline") or (s.get("text") if isinstance(s.get("text"), str) else "") or "…"
+    if s["type"] in ("document", "end") or line == "…" or sum(1 for x in scenes if x["type"] == "document") >= 2:  # never empty paper
         return {**base, "type": "aroll", "zoom": 1.12, **({"label": {"text": line, "at": round(s["from"] + 0.2, 3)}} if line != "…" else {})}
     return {**base, "type": "document", "line": line}
 

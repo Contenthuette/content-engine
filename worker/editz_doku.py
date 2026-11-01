@@ -230,7 +230,7 @@ def fetch_photos(scenes, workdir, rel, llm=None, prefetched=None):
         else:  # no usable photo: typed document – but never two in a row and max. 2 per video, else back to the speaker
             line = (s.get("caption") or {}).get("text") or "…"
             docs = sum(1 for o in out if o["type"] == "document")
-            if (out and out[-1]["type"] == "document") or docs >= 2:
+            if (out and out[-1]["type"] == "document") or docs >= 2 or line == "…":
                 o = {"type": "aroll", "from": s["from"], "to": s["to"], "zoom": 1.12}
                 if line != "…":
                     o["label"] = {"text": line, "at": round(s["from"] + 0.2, 3)}
