@@ -13,6 +13,7 @@ import {NoirNews} from './noirnews/NoirNews';
 import {EditzDirector, calcDirector} from '../director/EditzDirector';
 import {EditzMinimal, calcMinimal} from '../minimal/EditzMinimal';
 import {EditzClean, calcClean} from '../clean/EditzClean';
+import {EditzDoku, calcDoku} from '../doku/EditzDoku';
 
 export type TemplateComp = {
   id: string;
@@ -31,4 +32,5 @@ export const TEMPLATES: TemplateComp[] = [
   {id: 'EditzDirector', component: EditzDirector as unknown as React.FC<Plan>, calculateMetadata: calcDirector as unknown as CalculateMetadataFunction<Plan>},
   {id: 'EditzMinimal', component: EditzMinimal as unknown as React.FC<Plan>, calculateMetadata: calcMinimal as unknown as CalculateMetadataFunction<Plan>},
   {id: 'EditzClean', component: EditzClean as unknown as React.FC<Plan>, calculateMetadata: calcClean as unknown as CalculateMetadataFunction<Plan>},
+  {id: 'EditzDoku', component: EditzDoku as unknown as React.FC<Plan>, calculateMetadata: calcDoku as unknown as CalculateMetadataFunction<Plan>},
 ];
