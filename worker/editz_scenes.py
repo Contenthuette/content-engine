@@ -71,22 +71,29 @@ def _base_prompt(style, words, dur, vocab=None):
     return rules + _example(style) + extra + "\n\nVIDEO:" + video
 
 
-def _ask(llm, text, tier="opus", max_tokens=4000, image=None):
+def _ask(llm, text, tier="opus", max_tokens=4000, image=None, log=print):
+    """One model call → parsed JSON. An answer that is no JSON (prose around it, cut off) gets one retry with a strict reminder."""
     import editz_agent as ea
-    content = [{"type": "text", "text": text}] + ([{"type": "image", "image": image}] if image else [])
-    out, usage = llm([{"role": "user", "content": content if image else text}], max_tokens=max_tokens, tier=tier)
-    return ea.parse_json(out), usage
+    for attempt in range(2):
+        t = text if attempt == 0 else text + "\n\nWICHTIG: Antworte ausschließlich mit dem vollständigen JSON-Objekt – kein Text davor oder danach."
+        content = [{"type": "text", "text": t}] + ([{"type": "image", "image": image}] if image else [])
+        out, usage = llm([{"role": "user", "content": content if image else t}], max_tokens=max_tokens, tier=tier)
+        obj = ea.parse_json(out)
+        if obj is not None:
+            return obj, usage
+        log(f"model answer is no JSON ({tier}, {len(out or '')} chars): {str(out)[:160]!r} … {str(out)[-120:]!r}")
+    return None, usage
 
 
 def plan(llm, style, words, dur, vocab=None, log=print):
     mod = _mod(style)
     base = _base_prompt(style, words, dur, vocab)
-    raw, _ = _ask(llm, base, "opus", 4000)
+    raw, _ = _ask(llm, base, "opus", 8000, log=log)
     if not raw or not raw.get("scenes"):
         raise ValueError("planner: no plan")
     scenes = mod.validate(copy.deepcopy(raw), words, dur)
     try:  # self-check round
-        raw2, _ = _ask(llm, base + "\n\nDEIN ERSTER PLAN:\n" + json.dumps(raw, ensure_ascii=False) + "\n\n" + CHECK, "opus", 4000)
+        raw2, _ = _ask(llm, base + "\n\nDEIN ERSTER PLAN:\n" + json.dumps(raw, ensure_ascii=False) + "\n\n" + CHECK, "opus", 8000, log=log)
         if raw2 and raw2.get("scenes"):
             s2 = mod.validate(copy.deepcopy(raw2), words, dur)
             if len(s2) >= max(3, len(scenes) // 2):
@@ -191,7 +198,7 @@ def sight_check(llm, style, plan_dict, work, log=print):
     with open(sheet, "rb") as fh:
         img = base64.b64encode(fh.read()).decode()
     desc = "\n".join(f"{i}: {scenes[i]['type']} – {_says(scenes[i])}" for i in idx)
-    raw, _ = _ask(llm, SIGHT + "\n\nSzenen (Nr: Typ – worum es geht):\n" + desc, "sonnet", 600, image=img)
+    raw, _ = _ask(llm, SIGHT + "\n\nSzenen (Nr: Typ – worum es geht):\n" + desc, "sonnet", 2000, image=img, log=log)
     broken = [b for b in (raw or {}).get("broken", []) if isinstance(b, dict) and isinstance(b.get("scene"), int) and b["scene"] in idx]
     out = copy.deepcopy(plan_dict)
     for b in broken:
@@ -241,7 +248,7 @@ def revise(llm, plan_dict, instruction, pub, job, tmp, log=print):
     mod = _mod(style)
     prompt = (_base_prompt(style, words, dur, meta.get("vocab")) + "\n\nAKTUELLER PLAN:\n" + json.dumps(meta.get("raw"), ensure_ascii=False)
               + "\n\nANWEISUNG DES KUNDEN:\n" + str(instruction)[:1500] + "\n\n" + REVISE)
-    raw, _ = _ask(llm, prompt, "opus", 4000)
+    raw, _ = _ask(llm, prompt, "opus", 8000, log=log)
     if not raw or not raw.get("scenes"):
         raise ValueError("Korrektur nicht verstanden")
     scenes = mod.validate(copy.deepcopy(raw), words, dur)

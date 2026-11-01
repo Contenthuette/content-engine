@@ -1688,8 +1688,12 @@ def main():
 
     preset_id = register_style(cfg.get("preset"), cfg.get("styleConfig"))
     pr = PRESETS[preset_id]
-    if scene_style(pr) and run_scenes(cfg, pr, scene_style(pr), cut_path, words_cut, out_dur, in_dur):
-        return
+    if scene_style(pr):
+        if run_scenes(cfg, pr, scene_style(pr), cut_path, words_cut, out_dur, in_dur):
+            return
+        # scene planner down → the normal pipeline in the style's fallback look (the scene compositions need a scene plan)
+        preset_id = pr.get("fallback") or "clean"
+        pr = PRESETS[preset_id]
     report(note=f"Claude plant den Schnitt ({pr['label']}): Hook, Zooms, B-Roll, Text-Beats…")
     if items:
         describe_broll(items)
