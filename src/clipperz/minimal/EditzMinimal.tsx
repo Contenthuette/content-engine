@@ -426,10 +426,10 @@ export const EditzMinimal: React.FC<MinimalPlan> = (plan) => {
       {cur.type !== 'aroll' && <AbsoluteFill>{C && <C s={cur} t={t} />}</AbsoluteFill>}
       {cur.type === 'aroll' && C && <C s={cur} t={t} />}
       <Grain frame={frame} />
-      {(plan.sfx ?? autoSfx(plan.scenes)).map((x, i) => (
+      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx : autoSfx(plan.scenes)).map((x, i) => (
         <Sequence key={i} from={Math.round(x.t * FPS)} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.5} /></Sequence>
       ))}
-      {plan.music && <Audio src={src(plan.music.src)} volume={plan.music.vol ?? 0.12} />}
+      {plan.music && typeof plan.music === "object" && plan.music.src && <Audio src={src(plan.music.src)} volume={plan.music.vol ?? 0.12} />}
     </AbsoluteFill>
   );
 };

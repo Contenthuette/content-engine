@@ -392,7 +392,7 @@ export const EditzClean: React.FC<CleanPlan> = (plan) => {
         </div>
         {Content && <Content s={cur} t={t} accent={accent} />}
       </AbsoluteFill>
-      {(plan.sfx ?? autoSfx(plan.scenes)).map((x, i) => (
+      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx : autoSfx(plan.scenes)).map((x, i) => (
         <Sequence key={i} from={Math.round(x.t * FPS)} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.3} /></Sequence>
       ))}
     </AbsoluteFill>

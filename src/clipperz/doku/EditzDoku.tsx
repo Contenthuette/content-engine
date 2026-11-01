@@ -346,7 +346,7 @@ export const EditzDoku: React.FC<DokuPlan> = (plan) => {
         </>
       ) : layer(cur)}
       <Grain frame={frame} />
-      {(plan.sfx ?? autoSfx(plan.scenes)).map((x, i) => (
+      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx : autoSfx(plan.scenes)).map((x, i) => (
         <Sequence key={i} from={Math.max(0, Math.round(x.t * FPS))} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.3} /></Sequence>
       ))}
     </AbsoluteFill>
