@@ -12,6 +12,7 @@ import '@fontsource/eb-garamond/600.css';
 import '@fontsource/eb-garamond/700.css';
 import '@fontsource/eb-garamond/600-italic.css';
 import MAP from './map_de.json';
+import {mixSfx, SfxEvent} from '../shared/sfxmix';
 
 export const FPS = 30;
 const W = 1080, H = 1920;
@@ -314,26 +315,25 @@ const CUT: Record<string, React.FC<any>> = {photo: Photo, clipping: Clipping, do
 
 // ---------------------------------------------------------------- sound
 export const autoSfx = (scenes: Scene[]) => {
-  const out: {t: number; src: string; vol: number}[] = [];
-  const S = (n: string) => `lib/sfx/s_${n}.wav`;
-  const keys = (at: number, n: number, cps: number, vol = 0.32) => { for (let k = 0; k < n; k += 2) out.push({t: at + k / cps, src: S(k % 4 ? 'tick3' : 'type'), vol}); };
+  const ev: SfxEvent[] = [];
+  // typewriter: one soft key sound per word (not per letter) – texture, not noise
+  const keys = (at: number, text: string, cps: number) => { let c = 0; text.split(' ').forEach((w) => { ev.push({t: at + c / cps, role: 'type'}); c += w.length + 1; }); };
   scenes.forEach((s, i) => {
     const prev = scenes[i - 1];
-    if (i > 0) out.push({t: s.from - 0.06, src: S((s.type === 'aroll') !== (prev.type === 'aroll') ? (i % 2 ? 'flap' : 'slide') : (i % 2 ? 'whoosh3' : 'swish')), vol: 0.5});
-    if (i > 0 && s.type !== 'aroll') out.push({t: s.from - 0.3, src: S('rise2'), vol: 0.22});
-    if (s.type === 'aroll' && s.label) keys((s.label.at ?? s.from + 0.3) + 0.1, s.label.text.length, 30);
+    if (i > 0) ev.push({t: s.from - 0.06, role: (s.type === 'aroll') !== (prev.type === 'aroll') ? 'paper' : 'move'});
+    if (s.type === 'aroll' && s.label) keys((s.label.at ?? s.from + 0.3) + 0.1, s.label.text, 30);
     if (s.type === 'photo') {
       const d = s.to - s.from, n = Math.max(s.imgs.length, Math.min(5, Math.floor(d / 0.33)));
-      for (let k = 0; k < n; k++) out.push({t: k < s.imgs.length && s.at?.[k] !== undefined ? s.at[k] : s.from + 0.02 + k * Math.min(0.33, (d - 0.3) / n), src: S(k % 2 ? 'snap' : 'shutter'), vol: 0.5});
-      if (s.caption) keys(s.caption.at ?? s.from + 0.5, s.caption.text.length, 30);
+      for (let k = 0; k < n; k++) ev.push({t: k < s.imgs.length && s.at?.[k] !== undefined ? s.at[k] : s.from + 0.02 + k * Math.min(0.33, (d - 0.3) / n), role: 'shutter', weight: k ? 0.8 : 1});
+      if (s.caption) keys(s.caption.at ?? s.from + 0.5, s.caption.text, 30);
     }
-    if (s.type === 'clipping') { out.push({t: s.from, src: S('flap'), vol: 0.45}); out.push({t: s.keyAt ?? s.from + 0.6, src: S('swipe'), vol: 0.4}); }
-    if (s.type === 'document') { keys(s.from + 0.15, s.line.split(' ').length * 4, 57); out.push({t: s.keyAt ?? s.from + 0.7, src: S('pluck'), vol: 0.4}); if (s.note) keys((s.keyAt ?? s.from + 0.7) + 0.4, s.note.length, 22); }
-    if (s.type === 'map') { out.push({t: s.from, src: S('riser'), vol: 0.35}); s.places.slice(0, 4).forEach((p, k) => out.push({t: p.at ?? s.from + 0.4 + k * 0.5, src: S('pin'), vol: 0.5})); }
-    if (s.type === 'matchcut') matchCuts(s.from, s.to, s.at).forEach((c, k) => out.push({t: c, src: S(k % 2 ? 'snap' : 'shutter'), vol: 0.45}));
-    if (s.type === 'end') { keys(s.at ?? s.from + 0.25, s.text.length, 20, 0.38); if (s.sub) out.push({t: (s.at ?? s.from + 0.25) + s.text.length / 20 + 0.1, src: S('stamp'), vol: 0.55}); }
+    if (s.type === 'clipping') ev.push({t: s.keyAt ?? s.from + 0.6, role: 'hit'});
+    if (s.type === 'document') { keys(s.from + 0.15, s.line, 57); ev.push({t: s.keyAt ?? s.from + 0.7, role: 'hit'}); }
+    if (s.type === 'map') { ev.push({t: s.from, role: 'rise'}); s.places.slice(0, 4).forEach((p, k) => ev.push({t: p.at ?? s.from + 0.4 + k * 0.5, role: 'pin'})); }
+    if (s.type === 'matchcut') matchCuts(s.from, s.to, s.at).forEach((c, k) => ev.push({t: c, role: 'shutter', weight: 0.7}));
+    if (s.type === 'end') { keys(s.at ?? s.from + 0.25, s.text, 20); if (s.sub) ev.push({t: (s.at ?? s.from + 0.25) + s.text.length / 20 + 0.1, role: 'stamp'}); }
   });
-  return out;
+  return mixSfx(ev);
 };
 
 // ---------------------------------------------------------------- composition
@@ -385,8 +385,8 @@ export const EditzDoku: React.FC<DokuPlan> = (plan) => {
       </AbsoluteFill>
       {leak > 0 && <AbsoluteFill style={{background: `radial-gradient(70% 55% at ${idx % 2 ? 85 : 15}% 30%, rgba(255,150,40,${0.75 * leak}), rgba(255,60,0,${0.25 * leak}) 45%, rgba(0,0,0,0) 75%)`, mixBlendMode: 'screen'}} />}
       <Grain frame={frame} />
-      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx : autoSfx(plan.scenes)).map((x, i) => (
-        <Sequence key={i} from={Math.max(0, Math.round(x.t * FPS))} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.3} /></Sequence>
+      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx.map((x) => ({...x, rate: 1})) : autoSfx(plan.scenes)).map((x, i) => (
+        <Sequence key={i} from={Math.max(0, Math.round(x.t * FPS))} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.15} playbackRate={x.rate} /></Sequence>
       ))}
     </AbsoluteFill>
   );

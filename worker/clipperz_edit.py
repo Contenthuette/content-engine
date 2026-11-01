@@ -1440,6 +1440,15 @@ def run_minimal(cfg, pr, cut_path, words, out_dur, in_dur):
     try:
         import editz_agent
         import editz_minimal
+        try:  # badly lit recordings: gentle automatic exposure / white balance (good footage stays untouched)
+            import auto_light
+            lit = os.path.join(W, "cut_light.mp4")
+            fix = auto_light.apply(cut_path, lit)
+            if fix:
+                report(note="Belichtung wird angepasst (" + ", ".join(fix["notes"]) + ")…")
+                cut_path = lit
+        except Exception as e:
+            print("auto light failed, original footage:", type(e).__name__, e, flush=True)
         prepare_main(cut_path, os.path.join(pub, "main.mp4"), pr.get("grade"))
         llm = editz_agent.make_llm(API, AUTH)
         if llm is None:

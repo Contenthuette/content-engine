@@ -9,6 +9,7 @@ import React from 'react';
 import {AbsoluteFill, Audio, CalculateMetadataFunction, OffthreadVideo, Sequence, staticFile, useCurrentFrame} from 'remotion';
 import '@fontsource-variable/inter/opsz.css';
 import '@fontsource/instrument-serif/400-italic.css';
+import {mixSfx, SfxEvent} from '../shared/sfxmix';
 
 export const FPS = 30;
 const W = 1080, H = 1920;
@@ -55,6 +56,13 @@ const frameOf = (s: Scene): Frame => {
 };
 
 // ---------------------------------------------------------------- shared parts
+/** key-word treatment per line – 6 looks, chosen from the line itself so neighbouring lines (almost) never repeat */
+const HITS = ['scale', 'pill', 'underline', 'marker', 'drop', 'glow'] as const;
+const hitStyle = (l: Line) => {
+  let h = 0;
+  for (const c of `${l.text}|${l.at ?? 0}`) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return HITS[h % HITS.length];
+};
 /** words blur in one by one (2–6 frames apart), never spring; one key word may settle from accent to ink */
 const Words: React.FC<{line: Line; t: number; size: number; color: string; accent: string; weight?: number; align?: 'center' | 'left'}> = ({line, t, size, color, accent, weight = 640, align = 'center'}) => {
   const words = line.text.split(' ');
@@ -66,16 +74,25 @@ const Words: React.FC<{line: Line; t: number; size: number; color: string; accen
         const k = expoOut((t - a) / 0.22);
         if (t < a) return <span key={i} style={{opacity: 0, fontSize: size}}>{w}</span>;
         const isKey = line.key && w.replace(/[.,!?]/g, '').toLowerCase() === line.key.toLowerCase();
+        const onPaper = color !== '#FFFFFF';
+        const fx = isKey ? hitStyle(line) : 'none';
         const hit = isKey ? spring((t - a) / 0.45) : k;
-        const sc = isKey ? 1.22 - 0.22 * hit : 1;
-        const ul = isKey && color !== '#FFFFFF' ? expoOut((t - a - 0.15) / 0.35) : 0;
+        const sc = fx === 'scale' ? 1.24 - 0.24 * hit : fx === 'drop' ? 1.6 - 0.6 * cl(hit) : 1;
+        const ul = fx === 'underline' && onPaper ? expoOut((t - a - 0.12) / 0.35) : 0;
+        const hl = fx === 'marker' ? expoOut((t - a - 0.08) / 0.3) : 0;
+        const pill = fx === 'pill' ? spring((t - a) / 0.5) : 0;
+        const glow = fx === 'glow' ? Math.max(0, 1 - (t - a) / 0.9) : 0;
+        const keyCol = pill > 0 ? '#FFFFFF' : isKey && onPaper ? accent : color;
         return (
           <span key={i} style={{position: 'relative', display: 'inline-block',
             fontFamily: line.serif && isKey ? SERIF : SANS, fontStyle: line.serif && isKey ? 'italic' : 'normal',
             fontWeight: line.serif && isKey ? 400 : weight, fontSize: line.serif && isKey ? size * 1.12 : size, lineHeight: 1.05,
-            letterSpacing: size > 60 ? '-0.04em' : '-0.015em', color: isKey && color !== '#FFFFFF' ? accent : color,
-            opacity: k, filter: `blur(${(1 - k) * 12}px)`, transform: `translateY(${(1 - k) * 16}px) scale(${sc})`,
+            letterSpacing: size > 60 ? '-0.04em' : '-0.015em', color: keyCol,
+            opacity: k, filter: `blur(${(1 - k) * 12}px)`, transform: `translateY(${(1 - k) * (fx === 'drop' ? -40 : 16)}px) scale(${sc})`,
+            textShadow: glow > 0 ? `0 0 ${30 * glow}px ${accent}` : undefined, zIndex: 1,
           }}>
+            {pill > 0 && <span style={{position: 'absolute', left: -size * 0.22, right: -size * 0.22, top: size * 0.02, bottom: -size * 0.06, borderRadius: 999, background: accent, zIndex: -1, transform: `scaleX(${cl(pill)})`, boxShadow: `0 14px 34px ${accent}55`}} />}
+            {hl > 0 && <span style={{position: 'absolute', left: -size * 0.06, top: size * 0.3, height: size * 0.62, width: `calc(${hl * 100}% + ${size * 0.12}px)`, background: onPaper ? `${accent}33` : 'rgba(255,255,255,.28)', zIndex: -1, borderRadius: size * 0.08}} />}
             {w}
             {ul > 0 && <span style={{position: 'absolute', left: 0, bottom: -size * 0.06, height: Math.max(6, size * 0.07), width: `${ul * 100}%`, borderRadius: 99, background: accent, opacity: 0.85}} />}
           </span>
@@ -157,7 +174,7 @@ const FullText: React.FC<SP<Extract<Scene, {type: 'full'}>>> = ({s, t, accent}) 
   <>
     <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.42) 100%)'}} />
     {s.text && <Lines lines={s.text} t={t} y={1240} color="#FFFFFF" accent={accent} big={104} small={46} />}
-    {(s.text ?? []).filter((l) => l.big).map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.15} x={540} y={1330} color="#FFFFFF" />)}
+    {(s.text ?? []).filter((l) => l.big && hitStyle(l) === 'glow').map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.15} x={540} y={1330} color="#FFFFFF" />)}
     {s.island && <Island t={t} at={s.island.at ?? s.from + 0.2} title={s.island.title} text={s.island.text} accent={accent} />}
   </>
 );
@@ -188,9 +205,9 @@ const Statement: React.FC<SP<Extract<Scene, {type: 'statement'}>>> = ({s, t, acc
   const y = fr.y + fr.h + 90;
   return (
     <>
-      <FloatIcons t={t} at={s.from + 0.15} cx={fr.x + fr.w / 2} cy={fr.y + fr.h / 2} rx={fr.w * 0.62} ry={fr.h * 0.5} n={4} accent={accent} size={96} />
+      {Math.round(s.from * 10) % 2 === 0 && <FloatIcons t={t} at={s.from + 0.15} cx={fr.x + fr.w / 2} cy={fr.y + fr.h / 2} rx={fr.w * 0.62} ry={fr.h * 0.5} n={3 + (Math.round(s.from) % 3)} accent={accent} size={96} />}
       <Lines lines={s.text} t={t} y={y} color={C.ink} accent={accent} big={118} small={48} />
-      {s.text.filter((l) => l.big).map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.2} x={540} y={y + 120} color={accent} />)}
+      {s.text.filter((l) => l.big && hitStyle(l) === 'glow').map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.2} x={540} y={y + 120} color={accent} />)}
       {s.pill && t >= (s.pill.at ?? s.from + 0.5) && (
         <div style={{position: 'absolute', left: 0, width: W, top: y + 330, display: 'flex', justifyContent: 'center', ...enter(t, s.pill.at ?? s.from + 0.5, 0.4, true)}}>
           <span style={{padding: '22px 44px', borderRadius: 999, background: accent, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 44, boxShadow: `0 18px 40px ${accent}55`}}>{s.pill.text}</span>
@@ -386,27 +403,22 @@ const rectAt = (scenes: Scene[], t: number) => {
   return {x: lerp(prev.x, to.x, k), y: lerp(prev.y, to.y, kh), w: lerp(prev.w, to.w, k), h: lerp(prev.h, to.h, kh), r: lerp(prev.r, to.r, k), full: frameOf(cur) === 'full' && k > 0.98};
 };
 
-export const autoSfx = (scenes: Scene[]): {t: number; src: string; vol: number}[] => {
-  const out: {t: number; src: string; vol: number}[] = [];
-  const wh = ['whoosh3', 'swish', 'swipe'];
-  let w = 0;
-  const tk = ['tick2', 'tap', 'tick3', 'select'];
-  let q = 0;
+export const autoSfx = (scenes: Scene[]) => {
+  const ev: SfxEvent[] = [];
   scenes.forEach((s, i) => {
-    if (i > 0) out.push({t: Math.max(0, s.from - 0.08), src: `lib/sfx/s_${wh[w++ % wh.length]}.wav`, vol: 0.5});
-    ((s as {text?: Line[]}).text ?? []).forEach((l) => out.push({t: (l.at ?? s.from), src: `lib/sfx/s_${l.big ? 'pop2' : tk[q++ % tk.length]}.wav`, vol: l.big ? 0.42 : 0.3}));
-    if (['statement', 'notify', 'end'].includes(s.type) || (s.type === 'search' && !(s.results ?? []).length)) for (let k = 0; k < 4; k++) out.push({t: s.from + 0.15 + k * 0.09, src: 'lib/sfx/s_bubble.wav', vol: 0.18});
     const at = (x?: number, d = 0) => (x ?? s.from + d);
-    if (s.type === 'notify') s.items.slice(0, 3).forEach((it, k) => out.push({t: at(it.at, 0.25 + k * 0.45), src: 'lib/sfx/s_pop.wav', vol: 0.5}));
-    if (s.type === 'chat') s.msgs.slice(0, 4).forEach((m, k) => out.push({t: at(m.at, 0.35 + k * 0.6), src: m.me ? 'lib/sfx/s_send.wav' : 'lib/sfx/s_pop2.wav', vol: 0.28}));
-    if (s.type === 'stat') { out.push({t: at(s.at, 0.3), src: 'lib/sfx/s_counter.wav', vol: 0.4}); out.push({t: at(s.at, 0.3) + 1.0, src: 'lib/sfx/s_sparkle.wav', vol: 0.4}); }
-    if (s.type === 'list') s.rows.slice(0, 5).forEach((r, k) => out.push({t: at(r.at, 0.45 + k * 0.4), src: 'lib/sfx/s_tick2.wav', vol: 0.42}));
-    if (s.type === 'search') out.push({t: at(s.at, 0.3), src: 'lib/sfx/s_type.wav', vol: 0.4});
-    if (s.type === 'end' && s.pill) { out.push({t: at(s.pill.at, 0.8), src: 'lib/sfx/s_pop.wav', vol: 0.5}); out.push({t: at(s.pill.at, 0.8) + 0.55, src: 'lib/sfx/s_tap.wav', vol: 0.55}); }
-    if (s.type === 'full' && s.island) out.push({t: at(s.island.at, 0.2), src: 'lib/sfx/s_open.wav', vol: 0.45});
-    if (s.type === 'statement' && s.pill) out.push({t: at(s.pill.at, 0.5), src: 'lib/sfx/s_pop.wav', vol: 0.28});
+    if (i > 0) ev.push({t: Math.max(0, s.from - 0.08), role: 'move', weight: frameOf(s) === frameOf(scenes[i - 1]) ? 0.7 : 1});
+    ((s as {text?: Line[]}).text ?? []).forEach((l) => { if (l.big) ev.push({t: at(l.at), role: hitStyle(l) === 'pill' ? 'pop' : 'hit'}); });
+    if (s.type === 'notify') s.items.slice(0, 3).forEach((it, k) => ev.push({t: at(it.at, 0.25 + k * 0.45), role: 'pop'}));
+    if (s.type === 'chat') s.msgs.slice(0, 4).forEach((m, k) => ev.push({t: at(m.at, 0.35 + k * 0.6), role: m.me ? 'send' : 'pop'}));
+    if (s.type === 'stat') { ev.push({t: at(s.at, 0.3), role: 'tick'}); ev.push({t: at(s.at, 0.3) + 1.0, role: 'sparkle'}); }
+    if (s.type === 'list') s.rows.slice(0, 5).forEach((r, k) => ev.push({t: at(r.at, 0.45 + k * 0.4), role: 'tick'}));
+    if (s.type === 'search') ev.push({t: at(s.at, 0.3), role: 'type'});
+    if (s.type === 'end' && s.pill) { ev.push({t: at(s.pill.at, 0.8), role: 'pop'}); ev.push({t: at(s.pill.at, 0.8) + 0.55, role: 'click'}); }
+    if (s.type === 'full' && s.island) ev.push({t: at(s.island.at, 0.2), role: 'send'});
+    if (s.type === 'statement' && s.pill) ev.push({t: at(s.pill.at, 0.5), role: 'pop'});
   });
-  return out;
+  return mixSfx(ev);
 };
 
 // ---------------------------------------------------------------- composition
@@ -422,11 +434,17 @@ export const EditzClean: React.FC<CleanPlan> = (plan) => {
   const bigAts = cur.type === 'full' ? (cur.text ?? []).filter((l) => l.big).map((l) => l.at ?? cur.from) : [];
   const punch = bigAts.reduce((acc, a) => acc + (t >= a ? 0.05 * Math.max(0, 1 - (t - a) / 0.35) : 0), 0);
   const zoom = cur.type === 'full' ? (cur.zoom ?? 1) * (1 + punch) : 1;
-  // whip: content arrives from the side with motion blur, direction alternates per scene
+  // transition per scene from a pool (never the same twice in a row): whip L/R, zoom in, zoom out, rise, tilt, or a calm morph
   const idx = plan.scenes.indexOf(cur);
-  const wk = idx > 0 ? expoOut(lt / 0.3) : 1;
-  const dir = idx % 2 ? 1 : -1;
-  const whipX = (1 - wk) * 260 * dir, whipBlur = (1 - wk) * 18;
+  const TR = ['whipL', 'zoomIn', 'rise', 'whipR', 'calm', 'zoomOut', 'tilt'];
+  const tr = idx > 0 ? TR[(idx * 3 + Math.floor(idx / TR.length)) % TR.length] : 'calm';
+  const wk = idx > 0 ? expoOut(lt / (tr === 'calm' ? 0.2 : 0.3)) : 1;
+  const u = 1 - wk;
+  const whipX = tr === 'whipL' ? -260 * u : tr === 'whipR' ? 260 * u : 0;
+  const riseY = tr === 'rise' ? 240 * u : 0;
+  const trScale = tr === 'zoomIn' ? 1 - 0.2 * u : tr === 'zoomOut' ? 1 + 0.28 * u : tr === 'tilt' ? 1 - 0.1 * u : 1;
+  const trRot = tr === 'tilt' ? -5 * u : 0;
+  const whipBlur = tr === 'calm' ? 0 : u * 18;
   // handheld drift: the camera is never dead
   const hx = Math.sin(t * 0.9) * 7 + Math.sin(t * 2.3) * 3, hy = Math.cos(t * 0.7) * 6, hr = Math.sin(t * 0.6) * 0.35;
   const ghost = (() => {
@@ -442,7 +460,7 @@ export const EditzClean: React.FC<CleanPlan> = (plan) => {
       <Glow x={540 + Math.sin(t * 0.6) * 60} y={820 + Math.cos(t * 0.5) * 50} size={1300} color={accent} o={glowA} />
       <Glow x={-60 + Math.cos(t * 0.4) * 80} y={1650} size={900} color="#9CC0FF" o={glowA * 0.7} />
       {ghost && <GhostWord text={ghost} t={t} from={cur.from} />}
-      <AbsoluteFill style={{transform: `translate(${hx + whipX}px, ${hy}px) rotate(${hr}deg) scale(${push})`, filter: whipBlur > 0.4 ? `blur(${whipBlur}px)` : undefined}}>
+      <AbsoluteFill style={{transform: `translate(${hx + whipX}px, ${hy + riseY}px) rotate(${hr + trRot}deg) scale(${push * trScale})`, filter: whipBlur > 0.4 ? `blur(${whipBlur}px)` : undefined}}>
         {/* speaker frame */}
         <div style={{position: 'absolute', left: R.x, top: R.y, width: R.w, height: R.h, borderRadius: R.r, overflow: 'hidden',
           boxShadow: R.full ? undefined : `0 0 0 6px #FFFFFF, 0 30px 70px rgba(20,30,70,.18), 0 0 120px ${accent}44`}}>
@@ -451,8 +469,8 @@ export const EditzClean: React.FC<CleanPlan> = (plan) => {
         </div>
         {Content && <Content s={cur} t={t} accent={accent} />}
       </AbsoluteFill>
-      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx : autoSfx(plan.scenes)).map((x, i) => (
-        <Sequence key={i} from={Math.round(x.t * FPS)} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.3} /></Sequence>
+      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx.map((x) => ({...x, rate: 1})) : autoSfx(plan.scenes)).map((x, i) => (
+        <Sequence key={i} from={Math.round(x.t * FPS)} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.15} playbackRate={x.rate} /></Sequence>
       ))}
     </AbsoluteFill>
   );

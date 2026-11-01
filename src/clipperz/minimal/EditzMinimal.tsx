@@ -10,6 +10,7 @@ import {AbsoluteFill, Audio, CalculateMetadataFunction, Img, OffthreadVideo, Seq
 import '@fontsource-variable/inter/opsz.css';
 import '@fontsource/playfair-display/500-italic.css';
 import '@fontsource/playfair-display/600-italic.css';
+import {mixSfx, SfxEvent} from '../shared/sfxmix';
 
 export const FPS = 30;
 const W = 1080, H = 1920;
@@ -389,21 +390,16 @@ const SCENES: Record<string, React.FC<any>> = {aroll: ARoll, figure: Figure, pai
 // ---------------------------------------------------------------- sound design (automatic, from the scenes)
 /** soft whoosh just before every scene change, a light tick on every big text line, a slide while a line draws.
  *  Rules (style/sfx.json): no ding, no deep hit on cuts, sounds vary, quieter while someone talks. */
-export const autoSfx = (scenes: Scene[]): {t: number; src: string; vol: number}[] => {
-  const out: {t: number; src: string; vol: number}[] = [];
-  const wh = ['whoosh3', 'swish', 'slide2', 'swipe'];
-  const tk = ['tick2', 'tap', 'tick3'];
-  let wi = 0, ti = 0;
+export const autoSfx = (scenes: Scene[]) => {
+  const ev: SfxEvent[] = [];
   scenes.forEach((s, i) => {
-    if (i > 0 && !(s.type === 'aroll' && scenes[i - 1].type === 'aroll')) out.push({t: Math.max(0, s.from - 0.08), src: `lib/sfx/s_${wh[wi++ % wh.length]}.wav`, vol: 0.32});
-    if (i > 0 && s.type === 'aroll' && scenes[i - 1].type === 'aroll') out.push({t: s.from, src: 'lib/sfx/s_snap.wav', vol: 0.22});
+    if (i > 0) ev.push({t: Math.max(0, s.from - 0.08), role: s.type === 'aroll' && scenes[i - 1].type === 'aroll' ? 'hit' : 'move'});
     const lines = 'stops' in s ? s.stops.flatMap((x) => x.text) : [...((s as {text?: TextLine[]}).text ?? []), ...((s as {bottom?: TextLine[]}).bottom ?? []), ...((s as {end?: TextLine[]}).end ?? [])];
-    if (s.type === 'graph' || s.type === 'symbol') out.push({t: s.from + 0.1, src: 'lib/sfx/s_rise2.wav', vol: 0.14});
-    if (s.type === 'callout') (s.labels ?? []).forEach((lb, k) => out.push({t: lb.at ?? s.from + 0.4 + k * 0.5, src: 'lib/sfx/s_tap.wav', vol: 0.18}));
-    lines.filter((l) => (l.size ?? 's') !== 's').forEach((l) => out.push({t: l.at ?? s.from, src: `lib/sfx/s_${tk[ti++ % tk.length]}.wav`, vol: 0.2}));
-    if (s.type === 'linetext') out.push({t: s.from + 0.02, src: 'lib/sfx/s_slide.wav', vol: 0.22});
+    lines.filter((l) => (l.size ?? 's') !== 's').forEach((l) => ev.push({t: l.at ?? s.from, role: 'tick'}));
+    if (s.type === 'linetext' || s.type === 'graph' || s.type === 'symbol') ev.push({t: s.from + 0.05, role: 'rise'});
+    if (s.type === 'callout') (s.labels ?? []).forEach((lb, k) => ev.push({t: lb.at ?? s.from + 0.4 + k * 0.5, role: 'click'}));
   });
-  return out;
+  return mixSfx(ev, {perSec: 1.6});
 };
 
 // ---------------------------------------------------------------- composition
@@ -426,8 +422,8 @@ export const EditzMinimal: React.FC<MinimalPlan> = (plan) => {
       {cur.type !== 'aroll' && <AbsoluteFill>{C && <C s={cur} t={t} />}</AbsoluteFill>}
       {cur.type === 'aroll' && C && <C s={cur} t={t} />}
       <Grain frame={frame} />
-      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx : autoSfx(plan.scenes)).map((x, i) => (
-        <Sequence key={i} from={Math.round(x.t * FPS)} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.5} /></Sequence>
+      {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx.map((x) => ({...x, rate: 1})) : autoSfx(plan.scenes)).map((x, i) => (
+        <Sequence key={i} from={Math.round(x.t * FPS)} durationInFrames={FPS * 3}><Audio src={src(x.src)} volume={x.vol ?? 0.15} playbackRate={x.rate} /></Sequence>
       ))}
       {plan.music && typeof plan.music === "object" && plan.music.src && <Audio src={src(plan.music.src)} volume={plan.music.vol ?? 0.12} />}
     </AbsoluteFill>
