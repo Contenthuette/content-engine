@@ -27,11 +27,11 @@ STYLES = {"minimal": ("editz_minimal", "EditzMinimal"), "clean": ("editz_clean",
 
 CHECK = """Prüfe deinen Plan wie ein strenger Senior-Cutter und gib den VERBESSERTEN Plan zurück (gleiches JSON-Format, vollständig).
 Checkliste:
-1. Tempo: Etwa alle 0,8–1,5 s ein neuer visueller Zustand (neue Szene, Punch-In, neues Element). Keine Szene über 3 s ohne neues Element.
+1. Tempo: Etwa alle 1–2 s ein neuer visueller Zustand (neue Szene, Punch-In, neues Element). Gesicht ohne neues Element max. ~2,5 s; Bild-/UI-Szenen dürfen länger laufen, wenn darin Elemente nacheinander erscheinen (Zeilen, Fotos, Einträge). Pausen nicht mit Beliebigem füllen.
 2. Abwechslung: keine zwei gleichen Bild-/UI-Typen hintereinander; über das Video möglichst viele verschiedene Typen.
 3. Bedeutung: Jede Bild-/UI-Szene zeigt genau das, was in diesem Moment gesagt wird. Nichts Beliebiges, nichts Dekoratives ohne Bezug.
 4. Gesicht: Hook mit Gesicht; neue Punkte und persönliche Aussagen mit Gesicht; Beschreibungen/Aufzählungen als Bild.
-5. Text: nur gesagte Wörter, Schlüsselwort groß, max. 4–5 Wörter pro Zeile, Firmen-/Eigennamen korrekt (siehe Fachbegriffe).
+5. Text: nur gesagte Wörter, Schlüsselwort groß, max. 4–5 Wörter pro Zeile, Firmen-/Eigennamen korrekt (siehe Fachbegriffe). Wörter, die offensichtlich falsch erkannt sind (passen nicht in den Satz), nicht als Text zeigen.
 6. Schluss: Kernsatz des Sprechers, kein stummer Sprecher am Ende.
 7. Nichts erfinden: keine Zahlen, Namen, Firmen, Zitate oder Fakten, die nicht gesagt werden.
 Antwort: nur das JSON {"scenes": [...]}."""
