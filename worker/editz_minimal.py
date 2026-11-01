@@ -19,43 +19,51 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-TYPES = ("aroll", "figure", "painting", "linetext", "quote")
-VISUAL = ("figure", "painting", "linetext", "quote")
+TYPES = ("aroll", "figure", "painting", "linetext", "quote", "graph", "callout", "symbol")
+VISUAL = ("figure", "painting", "linetext", "quote", "graph", "callout", "symbol")
+SYMBOLS = ("spiral", "circle", "arrow", "cycle", "check", "cross", "plus")
+SHAPES = ("up", "steps", "flat", "down", "spike")
 MIN_SCENE = 0.7
 
 RULES = """Du bist Cutter für den EDITZ-Stil „Minimal“ (Premium-Talking-Head: Papiertexturen, Kobaltblau, große Schlüsselwörter).
 Du planst NUR, welche Szenen-Vorlage zu welchem Satzteil läuft, welche Schlüsselwörter groß erscheinen und welches Bild gesucht wird.
 
 SZENENTYPEN
-- aroll: Sprecher im Bild. Für Hook, neuen Punkt, persönliche Aussage, Witz. Optional "zoom": 1.15–1.25 (Punch-In, nur wenn die
-  Szene direkt nach einer anderen aroll-Szene kommt).
-- figure: blaue Tusche-Illustration auf Papier (Person, Beruf, Gegenstand, Gebäude). "side": center (Bild unten, Text oben) oder
-  left/right (Bild an der Seite, Text daneben). "ground": light (Standard) oder dark.
+- aroll: Sprecher im Bild. Für Hook, neuen Punkt, persönliche Aussage, Witz. "zoom": 1.15–1.25 = Punch-In (nur direkt nach einer
+  anderen aroll-Szene: teile dafür eine aroll-Strecke an einem kurzen, betonten Satzteil, z. B. „vor allem eins“).
+- figure: blaue Tusche-Illustration auf Papier (Person, Beruf, Gebäude). "side": center (Bild unten, Text oben) | left | right.
 - painting: altes Gemälde vollformatig mit Kamerafahrt, Text oben. Für Gefühl, Geschichte, Branche, Alltagsszene.
-- linetext: blaue Linie auf dunklem Grund verbindet 2 (max. 3) Begriffe, die Kamera folgt. Für Ablauf, Prozess, Entwicklung,
-  Aufzählung. Statt "text" hat sie "stops": [{"w": Wortindex, "text": [...]}, …].
+- callout: EIN Gegenstand/eine Person in der Mitte, 2–3 kurze Merkmale zeigen mit gepunkteten Linien darauf.
+  "labels": [{"text": "1–3 Wörter", "w": Wortindex}]. Braucht "image".
+- linetext: blaue Linie auf dunklem Grund verbindet 2–3 Begriffe, die Kamera folgt. Für Ablauf, Prozess, Entwicklung, Aufzählung.
+  "stops": [{"w": Wortindex, "text": [klein + groß]}] – IMMER 2 oder 3 Stops.
+- graph: leuchtendes Raster mit Kurve und Kugel. Für Zahlen, Wachstum, Rückgang, „immer mehr/weniger“, Vergleich über Zeit.
+  "shape": up | steps | flat | down | spike, "steps": 3–6 (bei steps), "text" oben, optional "end" (1 Zeile unten).
+- symbol: EIN handgezeichnetes blaues Zeichen in der Mitte, Text oben, optional "bottom". Wenn es kein konkretes Motiv gibt:
+  spiral = Wandel/immer wieder/Neuanfang · circle = Ganzes/Gemeinschaft · arrow = Wachstum/nach oben · cycle = Routine/Wiederholung ·
+  check = erledigt/richtig · cross = falsch/Fehler · plus = mehr/zusätzlich. "symbol": eins davon.
 - quote: Kernsatz zwischen großen Anführungszeichen auf Blau. NUR als letzte Szene, mit den eigenen Worten des Sprechers.
 
 REGELN
-1. Erste Szene: aroll ab Wort 0 (Gesicht in Sekunde 0).
-2. Kündigt der Sprecher etwas Neues an → aroll. Beschreibt/erklärt er es → Bild-Szene (figure, painting, linetext).
-3. Nie zwei gleiche Bild-Typen direkt hintereinander. Mindestens 4 verschiedene Typen im Video. Sprecher 30–50 % der Zeit.
-4. Jede Szene dauert mindestens ~1 Sekunde (Bild-Szenen 1,2–3 s). Szenen grenzen lückenlos aneinander.
-5. Text: 1–3 Zeilen pro Szene. Pro Zeile max. 4 Wörter. Genau EIN Schlüsselwort/kurzer Begriff groß ("size": "l", ein einzelnes
-   kurzes Wort darf "xl"), die verbindenden Wörter klein ("size": "s") darüber oder darunter. Höchstens eine Zeile pro Szene mit
-   "font": "serif" (das besondere Wort), höchstens eine mit "accent": true. Sehr lange Wörter (> 17 Zeichen) in zwei große Zeilen
-   trennen: "Immobilien-" / "verwaltung". Kein Wort erfinden – nur Wörter, die gesagt werden (Füllwörter weglassen erlaubt).
-   "w" = Index des Wortes, mit dem die Zeile erscheint.
+1. Erste Szene: aroll ab Wort 0 mit Hook-Text aus dem ersten Satz (klein + groß, z. B. „Was machen wir“ / „bei ULTRA?“).
+2. Kündigt der Sprecher etwas Neues an → aroll. Beschreibt/erklärt er es → Bild-Szene.
+3. Nie zwei gleiche Bild-Typen direkt hintereinander. Mindestens 5 verschiedene Typen im Video. Sprecher 30–50 % der Zeit.
+4. Jede Szene ≥ 1 s (Bild-Szenen 1,2–3 s). Szenen grenzen lückenlos aneinander.
+5. Text: 1–3 Zeilen pro Szene, pro Zeile max. 4 Wörter. Genau EIN Schlüsselwort groß ("size": "l"; ein einzelnes kurzes Wort darf
+   "xl"), die verbindenden Wörter klein ("size": "s") darüber/darunter. Max. eine Zeile "font": "serif" (das besondere Wort), max.
+   eine "accent": true. Wörter bis 17 Zeichen NICHT trennen (die Schrift passt sich an); nur noch längere: "Immobilien-" / "verwaltung".
+   Kein Wort erfinden – nur Gesagtes (Füllwörter weglassen erlaubt). "w" = Index des Wortes, mit dem die Zeile erscheint.
 6. aroll-Text sparsam: nur Schlüsselwörter, keine mitlaufenden Untertitel.
-7. Bild ("image") für figure/painting: "query" = englischer Suchbegriff für Wikimedia Commons (gemeinfreie Gemälde/historische
-   Fotos), z. B. "blacksmith painting", "carpenter vintage photograph", "megaphone man illustration", "tenement house facade".
-   "kind": painting | photo. "cutout": true für eine Person/einen Gegenstand (wird freigestellt), false für Gebäude/Szene.
-   Keine Logos, keine bekannten lebenden Personen, keine Marken.
+7. "image" (figure, painting, callout): "query" = englischer Suchbegriff für Wikimedia Commons (gemeinfreie Gemälde, historische
+   Fotos, alte Illustrationen) – kurz und konkret: 1–2 Hauptwörter + Art, z. B. "blacksmith painting", "carpenter photograph",
+   "megaphone", "tenement house". "kind": painting | photo. "cutout": true für Person/Gegenstand, false für Gebäude/Szene.
+   Keine Logos, keine bekannten lebenden Personen, keine Marken. Abstraktes (Erfolg, Zeit, Wandel) → symbol oder graph statt Bild.
 8. Letzte Szene: quote mit dem wichtigsten Satz des Sprechers (seine Worte, gekürzt).
 
 ANTWORT: nur JSON
-{"scenes": [{"type": "...", "w0": <erstes Wort>, "zoom"?: 1.2, "ground"?: "light", "side"?: "center",
+{"scenes": [{"type": "...", "w0": <erstes Wort>, "zoom"?: 1.2, "side"?: "center", "shape"?: "up", "steps"?: 4, "symbol"?: "spiral",
   "text"?: [{"text": "...", "size": "s|l|xl", "font"?: "serif", "accent"?: true, "w": <Wortindex>}],
+  "end"?: [...], "bottom"?: [...], "labels"?: [{"text": "...", "w": <Wortindex>}],
   "stops"?: [{"w": <Wortindex>, "text": [...]}],
   "image"?: {"query": "...", "kind": "painting|photo", "cutout": true}}]}
 w0 der Szenen aufsteigend; jede Szene läuft bis zur nächsten."""
@@ -97,6 +105,17 @@ def _clean_lines(lines, words, lo, hi):
         if ln.get("accent"):
             o["accent"] = True
         out.append(o)
+    # undo needless splits: "Automati-" / "sierung" → one line (the template shrinks long words itself)
+    k = 0
+    while k < len(out) - 1:
+        a, b = out[k], out[k + 1]
+        if a["text"].endswith("-") and len(a["text"]) + len(b["text"]) - 1 <= 17 and a["size"] != "s" and b["size"] != "s":
+            a["text"] = a["text"][:-1] + b["text"]
+            if b.get("font") == "serif":
+                a["font"] = "serif"
+            del out[k + 1]
+            continue
+        k += 1
     # max one serif / one accent line
     seen_s = seen_a = False
     for o in out:
@@ -146,6 +165,17 @@ def validate(raw, words, dur):
             if isinstance(z, (int, float)) and i > 0 and out[i - 1]["type"] == "aroll":
                 o["zoom"] = round(min(1.3, max(1.0, float(z))), 2)
             o["text"] = _clean_lines(s.get("text"), words, lo, hi)
+        elif s["type"] == "graph":
+            o["shape"] = s.get("shape") if s.get("shape") in SHAPES else "up"
+            if o["shape"] == "steps":
+                o["steps"] = int(min(6, max(3, s.get("steps") if isinstance(s.get("steps"), int) else 4)))
+            o["text"] = _clean_lines(s.get("text"), words, lo, hi)
+            o["end"] = _clean_lines(s.get("end"), words, lo, hi)[:1]
+        elif s["type"] == "symbol":
+            o["symbol"] = s.get("symbol") if s.get("symbol") in SYMBOLS else "spiral"
+            o["ground"] = "blue" if s.get("ground") == "blue" else "light"
+            o["text"] = _clean_lines(s.get("text"), words, lo, hi)
+            o["bottom"] = _clean_lines(s.get("bottom"), words, lo, hi)[:1]
         elif s["type"] == "linetext":
             stops = []
             for st in (s.get("stops") or [])[:3]:
@@ -165,13 +195,31 @@ def validate(raw, words, dur):
                 o["ground"] = "light"
             if s["type"] == "figure":
                 o["side"] = s.get("side") if s.get("side") in ("center", "left", "right") else "center"
+            if s["type"] == "callout":
+                labs = []
+                for lb in (s.get("labels") or [])[:3]:
+                    if isinstance(lb, str):
+                        lb = {"text": lb}
+                    if isinstance(lb, dict) and str(lb.get("text", "")).strip():
+                        w = lb.get("w") if isinstance(lb.get("w"), int) else None
+                        w = min(max(w, lo), hi) if w is not None else None
+                        labs.append({"text": " ".join(str(lb["text"]).split()[:3]), "at": round(words[w]["s"], 3) if w is not None else None})
+                for k2, lb in enumerate(labs):  # spread unspecified/colliding label times
+                    if lb["at"] is None or (k2 and lb["at"] < labs[k2 - 1]["at"] + 0.35):
+                        lb["at"] = round((labs[k2 - 1]["at"] + 0.45) if k2 else o["from"] + 0.45, 3)
+                main = " ".join(l["text"] for l in o.get("text", [])).lower()
+                labs = [lb for lb in labs if lb["text"].lower().rstrip("-") not in main]  # labels must add something
+                o["labels"] = labs
+                o["ground"] = "light"
+                if len(labs) < 2:  # a callout needs ≥ 2 real features – otherwise it is just a figure
+                    o["type"] = "figure"; o["side"] = "center"; o.pop("labels")
             im = s.get("image")
-            if s["type"] in ("figure", "painting"):
+            if s["type"] in ("figure", "painting", "callout"):
                 if isinstance(im, dict) and str(im.get("query", "")).strip():
                     o["image"] = {"query": str(im["query"])[:80], "kind": im.get("kind") if im.get("kind") in ("painting", "photo") else ("painting" if s["type"] == "painting" else "photo"),
-                                  "cutout": bool(im.get("cutout", s["type"] == "figure"))}
-                else:  # no picture → text scene instead
-                    o = {"type": "linetext", "from": o["from"], "to": o["to"], "ground": "dark", "stops": [{"at": o["from"] + 0.3, "text": o.get("text") or []}]}
+                                  "cutout": bool(im.get("cutout", s["type"] != "painting"))}
+                else:  # no picture → a drawn symbol carries the words instead
+                    o = {"type": "symbol", "from": o["from"], "to": o["to"], "ground": "light", "symbol": "circle", "text": o.get("text") or []}
         res.append(o)
     # layout defaults per template
     for o in res:
@@ -276,8 +324,8 @@ def choose(llm, rows, workdir):
 
 def fetch_images(scenes, workdir, rel, llm=None, prefetched=None, speaker=None):
     """Find, choose and process every picture. prefetched: {scene index: [candidate files]} (tests).
-    Scenes without a usable picture: the speaker as ink figure (speaker = a still of the video), unless the previous
-    picture scene already was one / no still → linetext."""
+    Scenes without a usable picture: the speaker as ink figure (once per video, speaker = a still of the video), else a
+    drawn symbol, else back to the speaker (never two drawn scenes in a row)."""
     import urllib.request
     import minimal_assets as ma
     import commons_media as cm
@@ -321,10 +369,9 @@ def fetch_images(scenes, workdir, rel, llm=None, prefetched=None, speaker=None):
                 ma.ink(speaker, os.path.join(workdir, name), ground="light", cutout=True, fade=0.3)
                 out.append({"type": "figure", "from": s["from"], "to": s["to"], "ground": "light", "side": "center", "imgY": 760,
                             "img": f"{rel.rstrip('/')}/{name}", "text": s.get("text") or [], "speaker": True})
-            elif prev is None or prev["type"] != "linetext":
-                out.append({"type": "linetext", "from": s["from"], "to": s["to"], "ground": "dark",
-                            "stops": [{"at": round(s["from"] + 0.3, 3), "text": s.get("text") or []}]})
-            else:  # avoid two text scenes in a row → back to the speaker with the key words
+            elif prev is None or prev["type"] != "symbol":
+                out.append({"type": "symbol", "from": s["from"], "to": s["to"], "ground": "light", "symbol": "circle", "text": s.get("text") or []})
+            else:  # avoid two drawn scenes in a row → back to the speaker with the key words
                 out.append({"type": "aroll", "from": s["from"], "to": s["to"], "zoom": 1.15, "text": s.get("text") or []})
             continue
         if s["type"] == "painting":

@@ -53,6 +53,6 @@ def test_missing_picture_falls_back(tmp_path):
               {"type": "linetext", "from": 4, "to": 6, "stops": []},
               {"type": "painting", "from": 6, "to": 8, "text": [], "image": {"query": "q2", "kind": "painting"}}]
     out = em.fetch_images([dict(s) for s in scenes], str(tmp_path), "job/x", llm=None, prefetched={1: [], 3: []}, speaker=None)
-    assert out[1]["type"] == "linetext"           # no still → text scene
-    assert out[3]["type"] == "aroll"              # previous picture scene already linetext → back to the speaker
+    assert out[1]["type"] == "symbol"             # no still → drawn symbol
+    assert out[3]["type"] == "symbol"             # previous picture scene is linetext, not a symbol → symbol again ok
     assert all("image" not in s for s in out)

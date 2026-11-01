@@ -112,8 +112,19 @@ def _rough_mask(alpha, seed, fade=0.35, grow=6):
 def ink(src, out, ground='light', cutout=True, fade=0.35, seed=5, max_side=1400):
     im = Image.open(src).convert('RGB')
     im.thumbnail((max_side, max_side), Image.LANCZOS)
+    if not cutout and im.width > im.height * 0.9:  # scenes: crop to a portrait-ish 4:5 window (the oval would be flat)
+        nw = int(im.height * 0.8)
+        x0 = (im.width - nw) // 2
+        im = im.crop((x0, 0, x0 + nw, im.height))
     w, h = im.size
-    if cutout:
+    gl = np.asarray(im.convert('L'), np.float32) / 255
+    sat = np.asarray(im.convert('HSV'), np.float32)[..., 1] / 255
+    line_art = (gl > 0.82).mean() > 0.45 and sat.mean() < 0.18   # engraving/sketch on white paper
+    if line_art:  # the drawing IS the shape: paper → transparent, no AI cut-out (rembg smears sketches)
+        a = np.clip((0.9 - gl) / 0.35, 0, 1)
+        a = np.asarray(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(6)), np.float32) / 255
+        alpha = Image.fromarray((np.clip(a * 1.6, 0, 1) * 255).astype(np.uint8))
+    elif cutout:
         alpha = _cutout(im)
     else:  # soft oval vignette – a scene, not an object
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
@@ -144,7 +155,7 @@ def ink(src, out, ground='light', cutout=True, fade=0.35, seed=5, max_side=1400)
         a = dot * m
     else:
         col = BLUE
-        a = np.clip(0.18 + dens * 0.95, 0, 1) * m             # body always tinted, darks saturated
+        a = (np.clip(dens * 1.15 - 0.05, 0, 1) if line_art else np.clip(0.18 + dens * 0.95, 0, 1)) * m  # photos: body tinted; line art: only the lines
     rgb = np.broadcast_to(col, (h, w, 3)).copy()
     if ground != 'blue':
         rgb *= (1 - 0.35 * np.clip(dens - 0.6, 0, 1))[..., None]  # deepest shadows a bit darker
