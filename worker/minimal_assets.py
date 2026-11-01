@@ -124,9 +124,14 @@ def ink(src, out, ground='light', cutout=True, fade=0.35, seed=5, max_side=1400)
         a = np.clip((0.9 - gl) / 0.35, 0, 1)
         a = np.asarray(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(6)), np.float32) / 255
         alpha = Image.fromarray((np.clip(a * 1.6, 0, 1) * 255).astype(np.uint8))
-    elif cutout:
-        alpha = _cutout(im)
-    else:  # soft oval vignette – a scene, not an object
+    else:
+        alpha = None
+        if cutout:
+            try:
+                alpha = _cutout(im)
+            except Exception as e:  # rembg missing / model download failed → soft oval instead of no picture
+                print("cutout failed, oval vignette:", type(e).__name__, e, flush=True)
+    if alpha is None:  # soft oval vignette – a scene, not an object
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
         d = ((xx - w / 2) / (w * 0.50)) ** 2 + ((yy - h * 0.47) / (h * 0.52)) ** 2
         alpha = Image.fromarray((np.clip((1.05 - d) * 2.2, 0, 1) * 255).astype(np.uint8))
