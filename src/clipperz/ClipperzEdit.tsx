@@ -217,6 +217,22 @@ const BrollClassic: React.FC<{src: string; kind: 'photo' | 'video'; dur: number;
 /** Caption centre (px). Number = fraction of the height; "chest" = on the chest of the speaker, follows the zoom. */
 // Instagram/TikTok safe area (5-Pass Reel Kit): nothing important in the top 220 px, bottom 380 px, right 140 px.
 const SAFE = {top: 220, bottom: 380, right: 140, left: 70};
+/** Social-media safe zone (TikTok, Reels, Shorts): the caption BLOCK (not only its centre) ends above y 1440 –
+ *  below sit description, sound line and the bottom bar; the right column (x > 940) is kept free by SAFE.right. */
+const SAFE_CAP_BOTTOM = 1440;
+const safeCenter = (c: number, blockH: number) => Math.max(SAFE.top + blockH / 2, Math.min(c, SAFE_CAP_BOTTOM - blockH / 2));
+/** Number of lines a centred flex-wrap block needs for these word widths (px) in maxW. */
+const wrapLines = (widths: number[], maxW: number) => {
+  let lines = 1, cur = 0;
+  for (const w of widths) {
+    if (cur > 0 && cur + w > maxW) {
+      lines++;
+      cur = 0;
+    }
+    cur += w;
+  }
+  return lines;
+};
 
 function captionY(plan: Plan, preset: Preset, t: number) {
   const y = preset.cap.y as unknown as number | string;
@@ -319,7 +335,10 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
   // the key word lands with an extra punch. The layout of the whole phrase is fixed from the start, so nothing jumps.
   const pop = (cap as {anim?: string}).anim !== 'phrase';
   return (
-    <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(-50%) scale(${pop ? 1 : lerp(k, 0.88, 1)})`, opacity: pop ? 1 : cl(k * 3),
+    <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top: safeCenter(captionY(plan, preset, t), lines.reduce((h, ln) => {
+      const chars = ln.toks.reduce((n, x) => n + x.text.length, 0) + ln.toks.length - 1;
+      return h + Math.min(ln.big ? big : base, (W - SAFE.left - SAFE.right) / Math.max(1, chars * 0.74)) * 1.02 + 6;
+    }, 0) * 1.12), transform: `translateY(-50%) scale(${pop ? 1 : lerp(k, 0.88, 1)})`, opacity: pop ? 1 : cl(k * 3),
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center'}}>
       {lines.map((ln, li) => {
         const size0 = ln.big ? big : base;
@@ -376,6 +395,8 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     return (em(text) * cap.size * 0.65 > fitW ? splitCompound(text) : [text]).map((part, n) => ({w, i, text: part, n}));
   });
   const fitSize = Math.min(cap.size, fitW / Math.max(...toks.map((x) => em(x.text)), 0.5));
+  const capLines = wrapLines(toks.map((x) => (wordEm(x.text, fitFont, {...cap, key: undefined, active: undefined}) + marginEm) * fitSize), fitW / 0.96);
+  const capTop = safeCenter(captionY(plan, preset, t), capLines * fitSize * 1.08 * (pop[cap.style] ?? 1) + (cap.style === 'scrim' ? 28 : 0));
   const base: React.CSSProperties = {
     fontFamily: family,
     fontWeight: cap.weight,
@@ -476,13 +497,13 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   const rise = cap.style === 'underline' || cap.style === 'scrim' ? (1 - ease(t, ph.s - 0.03, 0.23)) * 24 : 0;
   if (cap.style === 'scrim') {
     return (
-      <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px))`, display: 'flex', justifyContent: 'center', opacity}}>
+      <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: capTop, transform: `translateY(calc(-50% + ${rise}px))`, display: 'flex', justifyContent: 'center', opacity}}>
         <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'center', background: 'rgba(10,10,10,.62)', borderRadius: 18, padding: '14px 28px', ...base}}>{words}</div>
       </div>
     );
   }
   return (
-    <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(calc(-50% + ${rise}px)) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
+    <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: capTop, transform: `translateY(calc(-50% + ${rise}px)) scale(${scale})`, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', textAlign: 'center', opacity, ...base}}>
       {words}
     </div>
   );
@@ -512,11 +533,11 @@ const EmojiPops: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => bo
   if (!it || hidden(t)) return null;
   const size = Math.max(150, Math.min(210, (cap.size ?? 84) * 1.9));
   // caption block: centre from captionY, height from the phrase that stands now (rough line count)
-  const capY = captionY(plan, preset, t);
   const ph = list.find((p) => t >= p.s - 0.03 && t < p.e) ?? it.ph;
   const fs = cap.size ?? 84;
   const chars = ph ? ph.words.reduce((n, w) => n + w.w.w.length + 1, 0) : 12;
   const lines = cap.style === 'stack' ? 2 : Math.min(3, Math.max(1, Math.ceil((chars * fs * (cap.upper ? 0.66 : 0.56)) / (W - SAFE.left - SAFE.right))));
+  const capY = safeCenter(captionY(plan, preset, t), lines * fs * 1.1);
   const half = (lines * fs * 1.1) / 2 + 8;
   const {S, ty} = camera(t, plan.zooms, plan.focus, preset.zoom.drift, plan.maxZoom ?? 1.7);
   const chin = plan.focus.h > 0 ? S * plan.focus.y * H + ty + plan.focus.h * H * S * 0.62 : -Infinity;
@@ -769,7 +790,9 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
   const box = cap.box?.scope === 'phrase' ? {background: sc(cap.box.color), borderRadius: cap.box.radius ?? 18, padding: `${cap.box.padY ?? 0.18}em ${cap.box.padX ?? 0.4}em`,
     border: cap.box.border?.w ? `${cap.box.border.w}px solid ${sc(cap.box.border.color)}` : undefined} : {};
   return (
-    <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: captionY(plan, preset, t), transform: `translateY(-50%) ${pa.transform ?? ''}${outT}`,
+    <div style={{position: 'absolute', left: SAFE.left, right: SAFE.right, top: safeCenter(captionY(plan, preset, t),
+      wrapLines(toks.map((x) => wordEm(x.text, font, {...cap, key: undefined, active: undefined}) * size + size * 0.28), maxW) * size * (cap.lineHeight ?? 1.08) * 1.06
+        + (cap.box?.scope === 'phrase' ? size * 2 * (cap.box.padY ?? 0.18) : 0)), transform: `translateY(-50%) ${pa.transform ?? ''}${outT}`,
       opacity: ((pa.opacity as number) ?? 1) * (1 - (cap.out === 'fade' || cap.out === 'pop' ? outK : 0)) * ((ok?.opacity as number) ?? 1), filter: pa.filter ?? ok?.filter,
       display: 'flex', justifyContent: cap.align === 'left' ? 'flex-start' : cap.align === 'right' ? 'flex-end' : 'center', marginLeft: cap.x ?? 0}}>
       <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: cap.align === 'left' ? 'flex-start' : cap.align === 'right' ? 'flex-end' : 'center', alignItems: 'center', textAlign: cap.align ?? 'center', maxWidth: maxW,
