@@ -10,7 +10,7 @@ const inputProps = JSON.parse(fs.readFileSync(planPath, 'utf8'));
 const serveUrl = await bundle({entryPoint: path.resolve('src/clipperz/index.ts'), publicDir: path.resolve(publicDir), symlinkPublicDir: true});
 const chrome = process.env.CHROME || '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell';
 const browserExecutable = fs.existsSync(chrome) ? chrome : null;
-const composition = await selectComposition({serveUrl, id: 'EditzMinimal', inputProps, browserExecutable});
+const composition = await selectComposition({serveUrl, id: process.env.COMP || 'EditzMinimal', inputProps, browserExecutable});
 try {
   if (mode === 'stills') {
     fs.mkdirSync(out, {recursive: true});
