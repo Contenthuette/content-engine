@@ -177,6 +177,10 @@ def validate(raw, words, dur):
                 o["pill"] = {"text": _words(p["text"], 4), "at": at(p.get("w"), 0.6)}
             elif isinstance(p, str) and p.strip():
                 o["pill"] = {"text": _words(p, 4), "at": round(o["from"] + 0.6, 3)}
+        # a lonely notification leaves the lower half empty → its title becomes the big line underneath
+        if o["type"] == "notify" and len(o.get("items", [])) == 1 and not o.get("text"):
+            it = o["items"][0]
+            o["text"] = [{"text": it["title"], "big": True, "key": it["title"].split()[0], "at": round(it["at"] + 0.25, 3)}]
         # empty UI scenes fall back to a statement with the speaker large
         if (o["type"] == "notify" and not o.get("items")) or (o["type"] == "chat" and len(o.get("msgs", [])) < 2) or (o["type"] == "list" and len(o.get("rows", [])) < 2):
             o = {"type": "statement", "from": o["from"], "to": o["to"], "frame": "top", "text": _lines(s.get("text"), words, lo, hi, serif_left)}
