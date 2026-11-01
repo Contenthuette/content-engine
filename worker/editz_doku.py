@@ -171,8 +171,10 @@ def plan_scenes(llm, words, dur):
 
 PICK = """Wähle für jede Zeile das passende Archivfoto für einen Kurzfilm im Dokumentarfilm-Look. Das Bild erscheint als alter
 Fotoabzug (schwarz-weiß/sepia) auf einem Tisch. Gut: echtes Foto oder Gemälde, Motiv passt klar zum Thema, ruhige Komposition,
-gern historisch. Schlecht: falsches Thema, Text/Schrift/Logos im Bild, bekannte reale Personen, Karten, Diagramme, Ausschnitte
-von Kunstwerken ohne erkennbares Motiv, unscharf. Lieber -1 (keins passt) als ein falsches Bild.
+gern historisch – moderne Fotos sind aber ausdrücklich ok (sie werden als Schwarz-Weiß-Abzug gezeigt). Entscheidend: das Motiv
+passt zum Thema und ist sofort erkennbar. Schlecht: falsches Thema, Text/Schrift/Logos im Bild, bekannte reale Personen, Karten,
+Diagramme, Farbkarten/Messstreifen am Rand, Ausschnitte von Kunstwerken ohne erkennbares Motiv, unscharf.
+Wenn ein Motiv passt, nimm es; -1 nur, wenn wirklich keins zum Thema passt.
 Antwort nur JSON: {"picks": [<Nummer oder -1 pro Zeile, in Reihenfolge>]}"""
 
 
@@ -225,9 +227,16 @@ def fetch_photos(scenes, workdir, rel, llm=None, prefetched=None):
             s["imgs"] = imgs
             s["at"] = ats[:len(imgs)]
             out.append(s)
-        else:
+        else:  # no usable photo: typed document – but never two in a row and max. 2 per video, else back to the speaker
             line = (s.get("caption") or {}).get("text") or "…"
-            out.append({"type": "document", "from": s["from"], "to": s["to"], "line": line})
+            docs = sum(1 for o in out if o["type"] == "document")
+            if (out and out[-1]["type"] == "document") or docs >= 2:
+                o = {"type": "aroll", "from": s["from"], "to": s["to"], "zoom": 1.12}
+                if line != "…":
+                    o["label"] = {"text": line, "at": round(s["from"] + 0.2, 3)}
+                out.append(o)
+            else:
+                out.append({"type": "document", "from": s["from"], "to": s["to"], "line": line})
     return out
 
 
