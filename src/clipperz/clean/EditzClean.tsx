@@ -30,7 +30,7 @@ const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x 
 // ---------------------------------------------------------------- types
 export type Line = {text: string; at?: number; big?: boolean; key?: string; serif?: boolean};
 type Base = {from: number; to: number};
-export type Frame = 'full' | 'top' | 'card' | 'pip';
+export type Frame = 'full' | 'top' | 'card' | 'pip' | 'gone';
 export type Scene =
   | (Base & {type: 'full'; zoom?: number; text?: Line[]; island?: {title: string; text: string; at?: number}})
   | (Base & {type: 'statement'; frame?: 'top' | 'card'; text: Line[]; pill?: {text: string; at?: number}})
@@ -47,11 +47,13 @@ const FRAMES: Record<Frame, {x: number; y: number; w: number; h: number; r: numb
   top: {x: 90, y: 170, w: 900, h: 940, r: 64},
   card: {x: 250, y: 250, w: 580, h: 720, r: 56},
   pip: {x: 744, y: 196, w: 256, h: 300, r: 40},
+  // closing card: the speaker window collapses into a dot where the key line appears and disappears (no silent face in a box)
+  gone: {x: 490, y: 700, w: 100, h: 100, r: 50},
 };
 const frameOf = (s: Scene): Frame => {
   if (s.type === 'full') return 'full';
   if (s.type === 'statement') return s.frame ?? 'top';
-  if (s.type === 'end') return 'card';
+  if (s.type === 'end') return 'gone';
   return 'pip';
 };
 
@@ -365,27 +367,26 @@ const Search: React.FC<SP<Extract<Scene, {type: 'search'}>>> = ({s, t, accent}) 
 };
 
 const End: React.FC<SP<Extract<Scene, {type: 'end'}>>> = ({s, t, accent}) => {
-  const fr = FRAMES.card;
   const pAt = s.pill?.at ?? s.from + 0.8;
   const click = pAt + 0.55;
   const press = t >= click && t < click + 0.14 ? 0.9 : 1;
   const cur = cl((t - pAt - 0.05) / 0.45);
   return (
     <>
-      <Glow x={540} y={1300} size={1100} color={accent} o={0.28} />
-      <FloatIcons t={t} at={s.from + 0.1} cx={fr.x + fr.w / 2} cy={fr.y + fr.h / 2} rx={fr.w * 0.75} ry={fr.h * 0.48} n={5} accent={accent} size={92} />
-      <Lines lines={s.text} t={t} y={fr.y + fr.h + 80} color={C.ink} accent={accent} big={116} small={48} />
+      <Glow x={540} y={900} size={1200} color={accent} o={0.3} />
+      <FloatIcons t={t} at={s.from + 0.25} cx={540} cy={930} rx={470} ry={420} n={4} accent={accent} size={92} />
+      <Lines lines={s.text} t={t} y={770} color={C.ink} accent={accent} big={140} small={52} />
       {s.pill && t >= pAt && (
-        <div style={{position: 'absolute', left: 0, width: W, top: 1540, display: 'flex', justifyContent: 'center', ...enter(t, pAt, 0.4, true)}}>
+        <div style={{position: 'absolute', left: 0, width: W, top: 1130, display: 'flex', justifyContent: 'center', ...enter(t, pAt, 0.4, true)}}>
           <span style={{padding: '26px 52px', borderRadius: 999, background: accent, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 46, transform: `scale(${press})`, boxShadow: `0 18px 40px ${accent}55`}}>{s.pill.text}</span>
         </div>
       )}
       {s.pill && t >= pAt && (
-        <svg width={60} height={70} viewBox="0 0 24 28" style={{position: 'absolute', left: lerp(900, 600, expoOut(cur)), top: lerp(1800, 1590, expoOut(cur)), filter: 'drop-shadow(0 4px 6px rgba(0,0,0,.25))'}}>
+        <svg width={60} height={70} viewBox="0 0 24 28" style={{position: 'absolute', left: lerp(900, 600, expoOut(cur)), top: lerp(1450, 1180, expoOut(cur)), filter: 'drop-shadow(0 4px 6px rgba(0,0,0,.25))'}}>
           <path d="M2 2 L2 22 L7.5 17 L11 25 L14.5 23.5 L11 15.8 L18.5 15.8 Z" fill="#111" stroke="#fff" strokeWidth={1.6} strokeLinejoin="round" />
         </svg>
       )}
-      {t >= click && t < click + 0.6 && <div style={{position: 'absolute', left: 600 - 60 * (1 + (t - click) * 3), top: 1600 - 60 * (1 + (t - click) * 3), width: 120 * (1 + (t - click) * 3), height: 120 * (1 + (t - click) * 3), borderRadius: '50%', border: `4px solid ${accent}`, opacity: 1 - (t - click) / 0.6}} />}
+      {t >= click && t < click + 0.6 && <div style={{position: 'absolute', left: 600 - 60 * (1 + (t - click) * 3), top: 1190 - 60 * (1 + (t - click) * 3), width: 120 * (1 + (t - click) * 3), height: 120 * (1 + (t - click) * 3), borderRadius: '50%', border: `4px solid ${accent}`, opacity: 1 - (t - click) / 0.6}} />}
     </>
   );
 };
@@ -400,7 +401,9 @@ const rectAt = (scenes: Scene[], t: number) => {
   const prev = i > 0 ? FRAMES[frameOf(scenes[i - 1])] : to;
   const k = spring((t - cur.from) / 0.42);
   const kh = cl(k * 1.12);  // height a touch faster than width (objects, not boxes)
-  return {x: lerp(prev.x, to.x, k), y: lerp(prev.y, to.y, kh), w: lerp(prev.w, to.w, k), h: lerp(prev.h, to.h, kh), r: lerp(prev.r, to.r, k), full: frameOf(cur) === 'full' && k > 0.98};
+  const fromGone = i > 0 && frameOf(scenes[i - 1]) === 'gone' ? 1 : 0;
+  const alpha = frameOf(cur) === 'gone' ? 1 - cl((t - cur.from - 0.15) / 0.3) : fromGone ? cl((t - cur.from) / 0.2) : 1;
+  return {x: lerp(prev.x, to.x, k), y: lerp(prev.y, to.y, kh), w: lerp(prev.w, to.w, k), h: lerp(prev.h, to.h, kh), r: lerp(prev.r, to.r, k), full: frameOf(cur) === 'full' && k > 0.98, alpha};
 };
 
 export const autoSfx = (scenes: Scene[]) => {
@@ -462,11 +465,11 @@ export const EditzClean: React.FC<CleanPlan> = (plan) => {
       {ghost && <GhostWord text={ghost} t={t} from={cur.from} />}
       <AbsoluteFill style={{transform: `translate(${hx + whipX}px, ${hy + riseY}px) rotate(${hr + trRot}deg) scale(${push * trScale})`, filter: whipBlur > 0.4 ? `blur(${whipBlur}px)` : undefined}}>
         {/* speaker frame */}
-        <div style={{position: 'absolute', left: R.x, top: R.y, width: R.w, height: R.h, borderRadius: R.r, overflow: 'hidden',
+        {R.alpha > 0.01 && <div style={{position: 'absolute', left: R.x, top: R.y, width: R.w, height: R.h, borderRadius: R.r, overflow: 'hidden', opacity: R.alpha,
           boxShadow: R.full ? undefined : `0 0 0 6px #FFFFFF, 0 30px 70px rgba(20,30,70,.18), 0 0 120px ${accent}44`}}>
           <OffthreadVideo src={src(plan.video)} style={{position: 'absolute', left: (R.w - W * Math.max(R.w / W, R.h / H) * zoom) / 2, top: (R.h - H * Math.max(R.w / W, R.h / H) * zoom) * 0.3,
             width: W * Math.max(R.w / W, R.h / H) * zoom, height: H * Math.max(R.w / W, R.h / H) * zoom}} />
-        </div>
+        </div>}
         {Content && <Content s={cur} t={t} accent={accent} />}
       </AbsoluteFill>
       {(plan.sfx && plan.sfx.length && plan.sfx.every((x) => x.src) ? plan.sfx.map((x) => ({...x, rate: 1})) : autoSfx(plan.scenes)).map((x, i) => (

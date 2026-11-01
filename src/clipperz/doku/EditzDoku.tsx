@@ -99,14 +99,6 @@ const Photo: React.FC<SP<Extract<Scene, {type: 'photo'}>>> = ({s, t}) => {
             </div>
           );
         })}
-        {(() => {  // red marker circle draws on the top print
-          const at = ats[ats.length - 1] + 0.3;
-          const ck = easeInOut(cl((t - at) / 0.4));
-          if (t < at) return null;
-          return <svg width={W} height={H} style={{position: 'absolute', left: 0, top: 0}}>
-            <path d="M 400 900 C 330 760, 640 700, 720 840 C 790 960, 600 1060, 460 1010 C 360 975, 350 860, 470 800" pathLength={1} stroke={D.red} strokeWidth={10} fill="none" strokeLinecap="round" strokeDasharray="1" strokeDashoffset={1 - ck} />
-          </svg>;
-        })()}
       </AbsoluteFill>
       {s.caption && t >= (s.caption.at ?? s.from + 0.5) && <div style={{position: 'absolute', left: 0, width: W, top: 1640, textAlign: 'center'}}>
         <span style={{display: 'inline-block', background: D.paper, padding: '16px 30px', transform: 'rotate(-1.5deg)', boxShadow: '0 10px 24px rgba(0,0,0,.5)'}}>
