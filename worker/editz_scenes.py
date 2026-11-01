@@ -41,6 +41,8 @@ Melde NUR echte Fehler, die man im fertigen Video sofort sehen würde:
 - falsches/unpassendes Bild (zeigt etwas anderes als das Thema der Szene), Text/Logos/Wasserzeichen im Bild
 - Text über dem Gesicht, abgeschnittener Text, unlesbarer Text (zu wenig Kontrast)
 - leere/kaputte Szene (nur Hintergrund, schwarzes Bild)
+NICHT melden: Gestaltungsentscheidungen (Szenentyp, welche Wörter gezeigt werden, Schluss nur als Text ohne Sprecher,
+Zeichnung statt Foto, Papier-/Filmlook) – nur sichtbare Bildfehler. Im Zweifel nicht melden.
 Antwort nur JSON: {"broken": [{"scene": <Nr>, "why": "kurz"}]} – leere Liste, wenn alles passt."""
 
 REVISE = """Ein Kunde möchte seinen fertigen Schnitt ändern. Unten stehen der aktuelle Szenenplan (JSON), das Transkript und die

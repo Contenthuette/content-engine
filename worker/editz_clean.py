@@ -57,6 +57,12 @@ ANTWORT: nur JSON {"scenes": [{"type": "...", "w0": <erstes Wort>, ...Felder der
 bis zur nächsten."""
 
 
+# spoken numbers without digits ("dreieinhalb Jahre", "zwanzig Prozent") still count as said
+# (a lone "ein/eins" is an article, not a number)
+NUMWORD = re.compile(r"(?<![a-zäöüß])(zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf)(einhalb|zehn|zig|hundert|tausend)?(?![a-zäöüß])"
+                     r"|eineinhalb|einhundert|eintausend|zwanzig|dreißig|hundert|tausend|million|milliard|anderthalb|prozent|doppelt|dreifach")
+
+
 def prompt(words, dur):
     return [{"role": "user", "content": RULES + f"\n\nVIDEO: {dur:.1f} s, {len(words)} Wörter. Transkript ([Index|Sekunde] Wort):\n" + transcript(words)}]
 
@@ -152,7 +158,7 @@ def validate(raw, words, dur):
         elif T == "stat":
             v = s.get("value")
             spoken = " ".join(w["w"] for w in words[lo:hi + 1])
-            if not isinstance(v, (int, float)) or not re.search(r"\d", spoken + " " + str(s.get("label", ""))):
+            if not isinstance(v, (int, float)) or not (re.search(r"\d", spoken + " " + str(s.get("label", ""))) or NUMWORD.search(spoken.lower())):
                 o = {"type": "statement", "from": o["from"], "to": o["to"], "frame": "top", "text": _lines(s.get("text") or [{"text": s.get("label", ""), "big": True}], words, lo, hi, serif_left)}
             else:
                 o.update({"label": _words(s.get("label"), 4), "value": float(v), "prefix": str(s.get("prefix") or "")[:3], "suffix": str(s.get("suffix") or "")[:6],
