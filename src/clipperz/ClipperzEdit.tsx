@@ -2,6 +2,7 @@
 // Mechanics follow the clean-motion skill (blur-in words, one accent, the camera always lives) and the
 // Dunkelmann Editing Library (full-screen text beats and transitions by code, with their own sounds).
 import React from 'react';
+import {measureText} from '@remotion/layout-utils';
 import {AbsoluteFill, Audio, CalculateMetadataFunction, continueRender, delayRender, Easing, Img, interpolate, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig} from 'remotion';
 import '@fontsource/anton/400.css';
 import '@fontsource/montserrat/800.css';
@@ -360,10 +361,25 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   const family = cap.font === 'anton' ? 'Anton' : cap.font === 'montserrat' ? 'Montserrat' : SANS;
   const lower = (cap as {case?: string}).case === 'lower';
   const stroke = cap.style === 'karaoke' || cap.style === 'dim';
+  // auto-fit (01.11.2026): long single words (HANDWERKSBETRIEB, IMMOBILIENVERWALTUNG) never run out of the frame –
+  // widest word incl. its side margins and the largest pop-scale of the style must fit the safe width
+  const pop = {karaoke: 1.1, marker: 1.18, outline: 1.15, pop: plan.pro ? 1.06 : 1.45} as Record<string, number>;
+  const marginEm = stroke ? 0.6 : cap.upper ? 0.4 : 0.28;
+  const fitFont = {family, w: (CAPTION_FONTS[cap.font] ?? CAPTION_FONTS.inter).w};
+  const fitCap = {...cap, key: undefined, active: {scale: (pop[cap.style] ?? 1) * (['fade', 'underline', 'depth', 'scrim', 'dim', 'blur', 'plain', 'marker', 'outline', 'karaoke', 'pop'].includes(cap.style) ? 1 : 1.12)}};
+  const fitW = (W - SAFE.left - SAFE.right) * 0.96;
+  const em = (text: string) => wordEm(text, fitFont, fitCap) + marginEm * (pop[cap.style] ?? 1);
+  // a compound word that would need a much smaller font is split in two lines (HANDWERKS-/BETRIEB)
+  const toks = ph.words.flatMap(({w, i}) => {
+    const raw = clean(w.w, cap.upper, !!(preset as {smartPunct?: boolean}).smartPunct);
+    const text = lower ? raw.toLowerCase() : raw;
+    return (em(text) * cap.size * 0.8 > fitW ? splitCompound(text) : [text]).map((part, n) => ({w, i, text: part, n}));
+  });
+  const fitSize = Math.min(cap.size, fitW / Math.max(...toks.map((x) => em(x.text)), 0.5));
   const base: React.CSSProperties = {
     fontFamily: family,
     fontWeight: cap.weight,
-    fontSize: cap.size,
+    fontSize: fitSize,
     letterSpacing: `${cap.track}em`,
     lineHeight: 1.08,
     color: cap.color,
@@ -371,14 +387,12 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
     fontVariationSettings: cap.font === 'inter' ? "'opsz' 32" : undefined,
   };
   const pk = ease(t, ph.s - 0.03, 0.22, SPRING);
-  const words = ph.words.map(({w, i}) => {
+  const words = toks.map(({w, i, text, n}) => {
     const shown = t >= w.s - 0.04;
     const active = t >= w.s - 0.04 && t < w.e + 0.05;
     const k = ease(t, w.s - 0.04, 0.2);
     const isEm = emph.has(i);
     const st: React.CSSProperties = {display: 'inline-block', margin: stroke ? '0 0.3em' : cap.upper ? '0 0.2em' : '0 0.14em', whiteSpace: 'nowrap'};
-    const raw = clean(w.w, cap.upper, !!(preset as {smartPunct?: boolean}).smartPunct);
-    const text = lower ? raw.toLowerCase() : raw;
     const spoken = t >= w.s - 0.04;
     const live = t >= w.s - 0.04 && t < w.e + 0.12;
     if (cap.style === 'blur') {
@@ -452,10 +466,10 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
       });
     } else {
       // story: soft fade per phrase, key words in serif italic
-      Object.assign(st, isEm ? {fontFamily: SERIF, fontStyle: 'italic', fontWeight: 400, fontSize: cap.size * 1.12, color: accent} : {});
+      Object.assign(st, isEm ? {fontFamily: SERIF, fontStyle: 'italic', fontWeight: 400, fontSize: fitSize * 1.12, color: accent} : {});
       st.opacity = shown ? 0.6 + 0.4 * k : 0.6;
     }
-    return <span key={i} style={st}>{text}</span>;
+    return <span key={`${i}-${n}`} style={st}>{text}</span>;
   });
   const scale = cap.style === 'marker' || cap.style === 'outline' ? lerp(pk, 0.86, 1) : cap.style === 'karaoke' ? lerp(pk, 0.85, 1) : 1;
   const opacity = cap.style === 'fade' || cap.style === 'underline' || cap.style === 'scrim' ? ease(t, ph.s - 0.03, 0.22) : 1;
@@ -544,6 +558,44 @@ const Shade: React.FC<{y: number}> = ({y}) => (
 // ---------- custom captions (learned styles: every look is data, no code per style) ----------
 
 /** Caption fonts a learned style may use (key -> CSS family, rough width of a capital in em for auto-fit). */
+/** HANDWERKSBETRIEB → [HANDWERKS-, BETRIEB]. Seam priority: a known word starts the right part (business vocabulary),
+ *  then the joint "s", then two consonants, then a syllable break (vowel|consonant vowel) – always near the middle. */
+const STEMS = ('betrieb agentur verwaltung technik unternehmen firma kammer lehrg schule meister handwerk beratung marketing '
+  + 'automatisierung prozess kunden service leistung planung steuer versicherung immobilien wohnung anlage arbeit zeit '
+  + 'gesellschaft geschäft führ kosten preis markt stelle partner system lösung wachstum umsatz gewinn strategie team '
+  + 'mitarbeiter ausbildung fachkr sanierung heizung elektro installation verkabelung sicherheit energie solar netzwerk '
+  + 'antenne satellit technik bau dach haus wasser garten fenster boden küche bad holz metall auto werk').split(' ');
+function splitCompound(text: string): string[] {
+  const low = text.toLowerCase();
+  if (low.replace(/[^a-zäöüß]/g, '').length < 12) return [text];
+  const V = /[aeiouäöüy]/, Cn = /[b-df-hj-np-tv-zß]/;
+  const mid = text.length / 2;
+  let best = -1, bestScore = Infinity;
+  for (let k = 4; k <= text.length - 4; k++) {
+    const d = Math.abs(k - mid);
+    let sc = Infinity;
+    if (STEMS.some((w) => w.length >= 3 && low.startsWith(w, k))) sc = d - 3;
+    else if (Cn.test(low[k - 1]) && Cn.test(low[k])) sc = d - (low[k - 1] === 's' ? 1.6 : 0);
+    else if (V.test(low[k - 1]) && Cn.test(low[k]) && V.test(low[k + 1] ?? '')) sc = d + 1;
+    if (sc < bestScore) [best, bestScore] = [k, sc];
+  }
+  if (best < 0) best = Math.round(mid);
+  return [text.slice(0, best) + '-', text.slice(best)];
+}
+
+/** Width of one caption word in em (at font-size 1), times the largest scale it can get (key word / active word). */
+function wordEm(text: string, font: {family: string; w: number}, cap: any): number {
+  const est = text.length * font.w * (cap.upper ? 1.12 : 1) + text.length * (cap.track ?? 0);
+  let meas = 0;
+  try {
+    meas = measureText({text, fontFamily: font.family, fontSize: 100, fontWeight: String(cap.weight ?? 800), letterSpacing: `${cap.track ?? 0}em`}).width / 100;
+  } catch {
+    meas = 0;
+  }
+  const scale = Math.max(1, cap.key?.scale ?? 1, cap.active?.scale ?? 1);
+  return (Math.max(est, meas) + (cap.stroke?.w ? (2 * cap.stroke.w) / 100 : 0)) * scale;
+}
+
 export const CAPTION_FONTS: Record<string, {family: string; w: number}> = {
   montserrat: {family: 'Montserrat', w: 0.74}, inter: {family: 'Inter Variable', w: 0.7}, anton: {family: 'Anton', w: 0.5},
   poppins: {family: 'Poppins', w: 0.74}, bebas: {family: 'Bebas Neue', w: 0.44}, oswald: {family: 'Oswald', w: 0.52},
@@ -649,9 +701,9 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
     if (cap.lower) text = text.toLowerCase();
     return {text, i, s: w.s, next: ph.words[k + 1]?.w.s ?? ph.e, em: emph.has(i), k};
   });
-  // auto-fit: the longest word must fit the width
-  const longest = Math.max(...toks.map((x) => x.text.length), 1);
-  const size = Math.min(cap.size, maxW / (longest * font.w * (cap.key?.scale ?? 1)));
+  // auto-fit: the widest word (incl. key/active pop-scale and stroke) must fit the width – measured with the real font,
+  // with a conservative estimate as floor (canvas falls back to a narrower font while the web font is still loading)
+  const size = Math.min(cap.size, maxW * 0.96 / Math.max(...toks.map((x) => wordEm(x.text, font, cap)), 0.5));
   const shadow = SHADOWS(cap.shadowColor ?? '#000')[cap.shadow ?? 'soft'];
   const stroke = cap.stroke && cap.stroke.w > 0 ? {WebkitTextStroke: `${cap.stroke.w}px ${sc(cap.stroke.color)}`, paintOrder: 'stroke fill'} : {};
   const phraseK = ease(t, ph.s - lead, dur, curve);
@@ -1120,7 +1172,8 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
         return (
           <Sequence key={'t' + i} from={fr(at)} durationInFrames={len(at, at + d)}>
             <SfxCtx.Provider value={{speech, gain: 0.6, base: at}}>
-              <EntryView e={tr} dur={d} />
+              {/* no library demo words ("CUT!", "NEXT LEVEL") in customer videos – word transitions run as pure wipes */}
+              <EntryView e={tr} props={{word: ''}} dur={d} />
             </SfxCtx.Provider>
           </Sequence>
         );

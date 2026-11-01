@@ -25,15 +25,26 @@ export const Stagger: React.FC<TP & {mode?: 'up' | 'down' | 'rot' | 'scale'; gap
   const t = useT();
   const th = useTheme();
   const text = textP ?? tpick(th.words, ['SCHNELL.'], 0);
-  const size = fitC(text, sizeP, 960, font);  // Großbuchstaben-Wörter bleiben im Bild
+  // longer statements wrap word by word (max ~3 lines) instead of shrinking into one tiny line
+  const words = text.split(' ').filter(Boolean);
+  const longest = words.reduce((m, w) => (w.length > m.length ? w : m), '');
+  let size = fitC(longest, sizeP, 940, font);
+  const lines = (sz: number) => Math.ceil((wEm(text, font) * sz) / 900);
+  while (size > 60 && lines(size) > 3) size *= 0.92;
   const o = outK(t, dur);
+  let k = 0;
   return (
-    <Center y={y}><div style={{display: 'flex', opacity: 1 - o, filter: `blur(${o * 14}px)`}}>
-      {text.split('').map((c, i) => {
-        const q = p(t, i * gap, 0.26, SPRING);
-        const tr = mode === 'up' ? `translateY(${lerp(q, 240, 0)}px)` : mode === 'down' ? `translateY(${lerp(q, -240, 0)}px)` : mode === 'rot' ? `rotate(${lerp(q, -90, 0)}deg) translateY(${lerp(q, 80, 0)}px)` : `scale(${q})`;
-        return <span key={i} style={{display: 'inline-block', whiteSpace: 'pre', ...fontOf(font, weight, size), color, transform: tr, opacity: cl(q * 3)}}>{c}</span>;
-      })}
+    <Center y={y}><div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 960, columnGap: size * 0.28, opacity: 1 - o, filter: `blur(${o * 14}px)`}}>
+      {words.map((w, wi) => (
+        <span key={wi} style={{display: 'inline-flex', whiteSpace: 'nowrap'}}>
+          {w.split('').map((c) => {
+            const i = k++;
+            const q = p(t, i * Math.min(gap, 0.6 / Math.max(1, text.length)), 0.26, SPRING);
+            const tr = mode === 'up' ? `translateY(${lerp(q, 240, 0)}px)` : mode === 'down' ? `translateY(${lerp(q, -240, 0)}px)` : mode === 'rot' ? `rotate(${lerp(q, -90, 0)}deg) translateY(${lerp(q, 80, 0)}px)` : `scale(${q})`;
+            return <span key={i} style={{display: 'inline-block', whiteSpace: 'pre', ...fontOf(font, weight, size), color, transform: tr, opacity: cl(q * 3)}}>{c}</span>;
+          })}
+        </span>
+      ))}
     </div></Center>
   );
 };
