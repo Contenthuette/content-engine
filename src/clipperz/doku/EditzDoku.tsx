@@ -91,7 +91,7 @@ const Photo: React.FC<SP<Extract<Scene, {type: 'photo'}>>> = ({s, t}) => {
           </div>
         );
       })}
-      {s.caption && <div style={{position: 'absolute', left: 0, width: W, top: 1640, textAlign: 'center'}}>
+      {s.caption && t >= (s.caption.at ?? s.from + 0.5) && <div style={{position: 'absolute', left: 0, width: W, top: 1640, textAlign: 'center'}}>
         <span style={{display: 'inline-block', background: D.paper, padding: '14px 26px', transform: 'rotate(-1deg)', boxShadow: '0 8px 20px rgba(0,0,0,.4)'}}>
           <Typed text={s.caption.text} t={t} at={s.caption.at ?? s.from + 0.5} style={{fontFamily: D.type, fontSize: 46, fontWeight: 700, color: D.ink}} />
         </span>
