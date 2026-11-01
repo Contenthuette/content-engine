@@ -1,0 +1,126 @@
+{
+ "note": "Von Leif abgenommener Hand-Schnitt (01.11.2026), 18,6 s, ULTRA-Video",
+ "dur": 18.6,
+ "transcript": "[0|0.00] Was [1|0.30] machen [2|0.58] wir [3|0.78] bei [4|0.92] ULTRA [5|1.28] Intelligence?\n[6|2.06] Vor [7|2.06] allem [8|2.38] eins, [9|3.04] Automatisierung [10|3.64] für [11|4.08] Bau [12|4.30] - [13|4.44] und [14|4.46] Handwerksbetriebe.\n[15|5.50] Wir [16|5.70] automatisieren [17|6.26] Prozesse [18|6.86] in [19|7.40] eurem [20|7.86] Betrieb, [21|8.38] sei [22|8.44] es [23|8.62] ein [24|8.84] Handwerksbetrieb,\n[25|10.08] sei [26|10.12] es [27|10.46] eine [28|10.66] Marketing [29|10.94] -Agentur [30|11.48] oder [31|11.78] sei [32|11.98] es [33|12.42] halt [34|12.50] ein\n[35|13.22] anderes [36|13.48] lokales [37|14.04] Unternehmen, [38|14.80] wie [39|14.86] zum [40|15.02] Beispiel [41|15.38] eine [42|15.68] Immobilienverwaltung.\n[43|16.58] Ja.",
+ "answer": {
+  "scenes": [
+   {
+    "type": "aroll",
+    "w0": 0,
+    "label": {
+     "text": "Was machen wir bei ULTRA?",
+     "w": 0
+    }
+   },
+   {
+    "type": "aroll",
+    "w0": 6,
+    "zoom": 1.22,
+    "label": {
+     "text": "vor allem eins",
+     "w": 6
+    }
+   },
+   {
+    "type": "clipping",
+    "w0": 9,
+    "kicker": "Bau & Handwerk",
+    "headline": "Automatisierung für Bau- und Handwerksbetriebe",
+    "key": "Automatisierung",
+    "keyW": 9
+   },
+   {
+    "type": "photo",
+    "w0": 11,
+    "images": [
+     {
+      "query": "power house mechanic photograph",
+      "w": 11
+     },
+     {
+      "query": "iron forge painting",
+      "w": 13
+     }
+    ],
+    "caption": {
+     "text": "Bau + Handwerk",
+     "w": 11
+    }
+   },
+   {
+    "type": "aroll",
+    "w0": 15,
+    "label": {
+     "text": "Wir automatisieren",
+     "w": 15
+    }
+   },
+   {
+    "type": "document",
+    "w0": 17,
+    "title": "Prozesse",
+    "line": "Wir automatisieren Prozesse in eurem Betrieb.",
+    "key": "Prozesse",
+    "keyW": 18,
+    "note": "automatisiert"
+   },
+   {
+    "type": "photo",
+    "w0": 21,
+    "images": [
+     {
+      "query": "blacksmith workshop painting",
+      "w": 21
+     },
+     {
+      "query": "carpenter workshop photograph",
+      "w": 24
+     }
+    ],
+    "caption": {
+     "text": "Handwerksbetrieb",
+     "w": 24
+    }
+   },
+   {
+    "type": "matchcut",
+    "w0": 25,
+    "word": "Marketing-Agentur",
+    "w": 25
+   },
+   {
+    "type": "aroll",
+    "w0": 30
+   },
+   {
+    "type": "aroll",
+    "w0": 35,
+    "zoom": 1.18,
+    "label": {
+     "text": "lokales Unternehmen",
+     "w": 36
+    }
+   },
+   {
+    "type": "photo",
+    "w0": 38,
+    "images": [
+     {
+      "query": "tenement house facade",
+      "w": 38
+     }
+    ],
+    "caption": {
+     "text": "Immobilienverwaltung",
+     "w": 42
+    }
+   },
+   {
+    "type": "end",
+    "w0": 43,
+    "text": "Wir automatisieren Prozesse.",
+    "sub": "in eurem Betrieb"
+   }
+  ]
+ }
+}

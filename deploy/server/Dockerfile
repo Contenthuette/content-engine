@@ -9,6 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/data/hf \
+    U2NET_HOME=/data/u2net \
     CLIPPERZ_DATA=/data
 
 # ffmpeg + tesseract (style), fonts, Python, and the libraries Chrome Headless Shell needs on Debian
@@ -26,10 +27,10 @@ RUN apt-get update -qq \
 # build fails if a second OpenCV slipped in. yt-dlp[default] adds yt-dlp-ejs for YouTube's JS challenges.
 RUN python3 -m pip install -q --break-system-packages \
       "yt-dlp[default]" requests numpy "opencv-python-headless<5" "faster-whisper==1.2.1" \
-      gdown pillow pillow-heif onnxruntime pytesseract click platformdirs tqdm \
+      gdown pillow pillow-heif onnxruntime pytesseract click platformdirs tqdm "rembg==2.0.85" \
  && python3 -m pip install -q --break-system-packages --no-deps scenedetect \
  && ! python3 -m pip show -q opencv-python opencv-contrib-python 2>/dev/null \
- && python3 -c "import av, cv2, faster_whisper, numpy, onnxruntime, pillow_heif, pytesseract, requests, scenedetect; print('cv2', cv2.__version__, hasattr(cv2, 'CascadeClassifier'), '· faster-whisper', faster_whisper.__version__, '· av', av.__version__)" \
+ && python3 -c "import av, cv2, faster_whisper, numpy, onnxruntime, pillow_heif, pytesseract, requests, scenedetect, rembg; print('cv2', cv2.__version__, hasattr(cv2, 'CascadeClassifier'), '· faster-whisper', faster_whisper.__version__, '· av', av.__version__)" \
  && yt-dlp --version \
  && if yt-dlp --js-runtimes node --version >/dev/null 2>&1; then echo "--js-runtimes node" > /etc/yt-dlp.conf; fi
 

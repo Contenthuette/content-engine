@@ -265,6 +265,19 @@ def normalize(src, dst, rotate=0, hi=False):
     run(cmd)
 
 
+VOCAB = []  # customer's own terms / names (CLIPPERZ Pro workspace setting "vocab") – hint for Whisper + the scene planner
+
+
+def vocab_list(raw):
+    items = raw if isinstance(raw, list) else re.split(r"[,;\n]", str(raw or ""))
+    out = []
+    for x in items:
+        x = re.sub(r"\s+", " ", str(x)).strip()[:40]
+        if x and x not in out:
+            out.append(x)
+    return out[:40]
+
+
 def transcribe(path):
     fake = os.environ.get("CLIPPERZ_FAKE_WORDS")  # local tests only
     if fake:
@@ -280,7 +293,8 @@ def transcribe(path):
         check=True, stdout=subprocess.PIPE,
     ).stdout
     audio = np.frombuffer(pcm, dtype=np.float32)
-    segs, _ = model.transcribe(audio, language="de", word_timestamps=True, vad_filter=True)
+    hint = ("Begriffe: " + ", ".join(VOCAB) + ".") if VOCAB else None  # Whisper spells names/terms like the customer does
+    segs, _ = model.transcribe(audio, language="de", word_timestamps=True, vad_filter=True, initial_prompt=hint)
     words = []
     for s in segs:
         for w in s.words or []:
@@ -1430,6 +1444,60 @@ def run_director(cfg, pr, base, words, in_dur, items):
     return True
 
 
+def scene_style(pr):
+    """EDITZ scene styles (Minimal · Clean · Doku): preset flag "scenes" (or the older "minimal": true)."""
+    st = pr.get("scenes") or ("minimal" if pr.get("minimal") else None)
+    return st if st in ("minimal", "clean", "doku") else None
+
+
+def run_scenes(cfg, pr, style, cut_path, words, out_dur, in_dur):
+    """EDITZ scene styles (worker/editz_scenes.py): Opus plans the scenes from fixed templates (with Leif's approved edit as
+    example) and checks its own plan, pictures come from public-domain archives, a vision pass checks stills before the
+    render. The plan is saved so the customer can correct the video by prompt. Returns False → normal pipeline."""
+    label = pr.get("label") or style.capitalize()
+    report(note=f"Szenen werden geplant ({label})…")
+    job = job_id()
+    pub = os.path.join(REPO, "public", job)
+    os.makedirs(pub, exist_ok=True)
+    try:
+        import editz_agent
+        import editz_scenes
+        try:  # badly lit recordings: gentle automatic exposure / white balance (good footage stays untouched)
+            import auto_light
+            lit = os.path.join(W, "cut_light.mp4")
+            fix = auto_light.apply(cut_path, lit)
+            if fix:
+                report(note="Belichtung wird angepasst (" + ", ".join(fix["notes"]) + ")…")
+                cut_path = lit
+        except Exception as e:
+            print("auto light failed, original footage:", type(e).__name__, e, flush=True)
+        prepare_main(cut_path, os.path.join(pub, "main.mp4"), pr.get("grade"))
+        llm = editz_agent.make_llm(API, AUTH)
+        if llm is None:
+            raise RuntimeError("no model")
+        if style != "clean":
+            report(note="Szenenplan steht – passende Archivbilder werden gesucht…")
+        plan = editz_scenes.build(llm, style, words, out_dur, f"{job}/main.mp4", pub, job, os.path.join(W, "scenes"),
+                                  video_path=os.path.join(pub, "main.mp4"), vocab=VOCAB, accent=custom_accent(cfg),
+                                  log=lambda *a: print(*a, flush=True))
+    except Exception as e:  # never lose the edit over the planner
+        print("scene planner failed, normal pipeline:", type(e).__name__, e, flush=True)
+        report(note=f"{label}-Planung nicht verfügbar – Standard-Schnitt läuft…")
+        return False
+    report(note=f"Video wird gerendert ({label})…", stats={"inSec": in_dur, "outSec": out_dur, "broll": 0})
+    final = os.path.join(W, "final.mp4")
+    render(plan, final)
+    report(note="Fertiges Video wird hochgeladen…")
+    url = upload(final)
+    try:
+        plan_url, assets = save_job(plan, job)
+    except Exception as e:
+        print("saving the plan for corrections failed:", e)
+        plan_url, assets = None, []
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note=f"Fertig ({label})")
+    return True
+
+
 def run_revision(cfg):
     rv = cfg["revise"]
     report(status="working", note="Korrektur: Schnittplan wird geladen…", runUrl=RUN_URL)
@@ -1446,6 +1514,25 @@ def run_revision(cfg):
             with open(dst, "wb") as fh:
                 for chunk in r.iter_content(1 << 20):
                     fh.write(chunk)
+    if plan.get("editz") and not isinstance(rv.get("plan"), dict):  # EDITZ scene styles: Opus changes the scene plan
+        import editz_agent
+        import editz_scenes
+        report(note="Korrektur: deine Anweisung wird umgesetzt…")
+        try:
+            plan, note, changed = editz_scenes.revise(editz_agent.make_llm(API, AUTH), plan, rv.get("prompt") or "",
+                                                      os.path.join(REPO, "public", job), job, os.path.join(W, "scenes"),
+                                                      log=lambda *a: print(*a, flush=True))
+        except Exception as e:
+            print("scene revision failed:", type(e).__name__, e, flush=True)
+            report(status="failed", error="Die Korrektur konnte nicht umgesetzt werden – bitte anders formulieren.")
+            return
+        report(note=f"Korrektur wird gerendert… ({note})")
+        final = os.path.join(W, "final.mp4")
+        render(plan, final)
+        url = upload(final)
+        plan_url, new_assets = save_job(plan, job, only=changed)
+        report(status="done", resultUrl=url, planUrl=plan_url, assets=list(rv.get("assets") or []) + new_assets, note=note)
+        return
     if plan.get("director") and not isinstance(rv.get("plan"), dict):  # Claude Regie: the correction goes through the agent too
         import editz_director
         report(note="Korrektur: Regie setzt deine Anweisung um…")
@@ -1513,6 +1600,8 @@ def main():
         raise EditError(f"CLIPPERZ-Konfiguration nicht abrufbar ({cfg.status_code})")
     cfg = cfg.json()
     os.makedirs(W, exist_ok=True)
+    global VOCAB
+    VOCAB = vocab_list(cfg.get("vocab"))
     if cfg.get("revise"):
         return run_revision(cfg)
 
@@ -1599,6 +1688,8 @@ def main():
 
     preset_id = register_style(cfg.get("preset"), cfg.get("styleConfig"))
     pr = PRESETS[preset_id]
+    if scene_style(pr) and run_scenes(cfg, pr, scene_style(pr), cut_path, words_cut, out_dur, in_dur):
+        return
     report(note=f"Claude plant den Schnitt ({pr['label']}): Hook, Zooms, B-Roll, Text-Beats…")
     if items:
         describe_broll(items)
