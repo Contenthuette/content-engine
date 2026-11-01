@@ -184,7 +184,7 @@ def sight_check(llm, style, plan_dict, work, log=print):
     os.makedirs(work, exist_ok=True)
     st = ea.Stills(work)
     try:
-        files = st.render(plan_dict, [scenes[i]["from"] + 0.72 * (scenes[i]["to"] - scenes[i]["from"]) for i in idx]  # late: typing/entrances are done, "sight", scale=0.25)
+        files = st.render(plan_dict, [scenes[i]["from"] + 0.72 * (scenes[i]["to"] - scenes[i]["from"]) for i in idx], "sight", scale=0.25)
     finally:
         st.close()
     sheet = _grid(files, [f"{i} {scenes[i]['type']}" for i in idx], os.path.join(work, "sight.jpg"))
