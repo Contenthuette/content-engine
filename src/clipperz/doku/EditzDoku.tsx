@@ -259,7 +259,7 @@ const MatchCut: React.FC<SP<Extract<Scene, {type: 'matchcut'}>>> = ({s, t}) => {
     <AbsoluteFill>
       <Bg img={m.bg} />
       <AbsoluteFill style={{display: 'grid', placeItems: 'center'}}>
-        <div style={{fontFamily: m.font, fontWeight: m.w, fontStyle: m.italic ? 'italic' : 'normal', fontSize: Math.min(m.size, 2300 / Math.max(5, s.word.length)), color: m.color, transform: `rotate(${rot}deg)`, letterSpacing: '-0.01em', textAlign: 'center', padding: '0 60px'}}>{s.word}</div>
+        <div style={{fontFamily: m.font, fontWeight: m.w, fontStyle: m.italic ? 'italic' : 'normal', fontSize: Math.min(m.size, 960 / (Math.max(4, Math.max(...s.word.split(/[\s-]/).map((x) => x.length + 1))) * (m.font === D.serif ? 0.5 : 0.62))), color: m.color, transform: `rotate(${rot}deg)`, letterSpacing: '-0.01em', textAlign: 'center', padding: '0 60px'}}>{s.word}</div>
       </AbsoluteFill>
       <Vignette o={0.55} />
     </AbsoluteFill>
