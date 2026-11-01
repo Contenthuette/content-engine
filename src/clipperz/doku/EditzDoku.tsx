@@ -61,7 +61,7 @@ const ARollOverlay: React.FC<SP<Extract<Scene, {type: 'aroll'}>>> = ({s, t}) => 
   if (t < at) return null;
   const k = expoOut((t - at) / 0.3);
   return (
-    <div style={{position: 'absolute', left: 70, top: 1330, maxWidth: 900, transform: `translateX(${(1 - k) * -40}px)`, opacity: k}}>
+    <div style={{position: 'absolute', left: 70, top: 1330, maxWidth: 860, transform: `translateX(${(1 - k) * -40}px)`, opacity: k}}>
       <div style={{display: 'inline-block', background: 'rgba(237,230,211,.94)', padding: '16px 26px 14px', boxShadow: '0 10px 30px rgba(0,0,0,.35)'}}>
         <Typed text={s.label.text.toUpperCase()} t={t} at={at + 0.1} cps={30} style={{fontFamily: D.type, fontWeight: 700, fontSize: 54, color: D.ink, letterSpacing: '0.02em'}} />
       </div>
@@ -87,8 +87,8 @@ const Photo: React.FC<SP<Extract<Scene, {type: 'photo'}>>> = ({s, t}) => {
           if (t < at) return null;
           const k = expoOut((t - at) / 0.22);
           const rot = (rnd(i + 1) - 0.5) * 12 + (1 - k) * (i % 2 ? 14 : -14);
-          const w = 820 - (i % 3) * 40, h = w * 1.2;
-          const x = (W - w) / 2 + (rnd(i + 3) - 0.5) * 160, y = 430 + (rnd(i + 5) - 0.5) * 180;
+          const w = 760 - (i % 3) * 40, h = w * 1.2;  // prints end above the caption, caption above y 1440 (social safe zone)
+          const x = (W - w) / 2 + (rnd(i + 3) - 0.5) * 140, y = 330 + (rnd(i + 5) - 0.5) * 160;
           return (
             <div key={i} style={{position: 'absolute', left: x, top: y + (1 - k) * 260, width: w, height: h, background: '#F4F0E6', padding: 20, boxSizing: 'border-box',
               boxShadow: '0 34px 70px rgba(0,0,0,.6), 0 4px 10px rgba(0,0,0,.45)', transform: `rotate(${rot}deg) scale(${1.25 - 0.25 * k})`, filter: `blur(${(1 - k) * 26}px)`, opacity: cl((t - at) / 0.08)}}>
@@ -100,7 +100,7 @@ const Photo: React.FC<SP<Extract<Scene, {type: 'photo'}>>> = ({s, t}) => {
           );
         })}
       </AbsoluteFill>
-      {s.caption && t >= (s.caption.at ?? s.from + 0.5) && <div style={{position: 'absolute', left: 0, width: W, top: 1640, textAlign: 'center'}}>
+      {s.caption && t >= (s.caption.at ?? s.from + 0.5) && <div style={{position: 'absolute', left: 0, width: W, top: 1340, textAlign: 'center'}}>
         <span style={{display: 'inline-block', background: D.paper, padding: '16px 30px', transform: 'rotate(-1.5deg)', boxShadow: '0 10px 24px rgba(0,0,0,.5)'}}>
           <Typed text={s.caption.text} t={t} at={s.caption.at ?? s.from + 0.5} cps={30} style={{fontFamily: D.type, fontSize: 52, fontWeight: 700, color: D.ink}} />
         </span>
@@ -186,7 +186,7 @@ const Document: React.FC<SP<Extract<Scene, {type: 'document'}>>> = ({s, t}) => {
           <Bars n={8} w={760} seed={33} color="rgba(30,26,22,.22)" h={14} gap={22} />
         </div>
         {s.note && t > keyAt + 0.35 && (
-          <div style={{position: 'absolute', left: 520, top: 1480}}>
+          <div style={{position: 'absolute', left: 520, top: 1360}}>
             <Typed text={s.note} t={t} at={keyAt + 0.4} style={{fontFamily: D.stamp, fontSize: 50, color: D.red, transform: 'rotate(-4deg)', display: 'inline-block'}} />
           </div>
         )}

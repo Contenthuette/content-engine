@@ -61,14 +61,23 @@ export type MinimalPlan = {video: string; dur: number; scenes: Scene[]; sfx?: {t
 
 // ---------------------------------------------------------------- shared parts
 const SIZE = {s: 44, m: 72, l: 132, xl: 176};
+/** TikTok / Reels / Shorts: nothing important above 220 or below 1440, nothing right of 930 between y 900 and 1700 */
+const SAFE_TOP = 220, SAFE_BOTTOM = 1440;
 const CHARW = {sans: 0.6, serif: 0.47};
 
 /** Cinematic text block: big key words centred, small connective words above/below; every line blurs in at its time. */
 export const CineText: React.FC<{lines: TextLine[]; t: number; color: string; sub: string; y: number; x?: number; align?: 'center' | 'left' | 'right'; maxW?: number; from: number}> = ({
-  lines, t, color, sub, y, x = W / 2, align = 'center', maxW = 940, from,
+  lines, t, color, sub, y, x = W / 2, align = 'center', maxW = 800, from,  // 800: right edge ≤ 940 (app buttons)
 }) => {
+  // social-media safe zone: the whole block stays between y 220 (top bar) and 1440 (caption/description + buttons)
+  const h = lines.reduce((sum, ln) => {
+    const base = SIZE[ln.size ?? 's'];
+    const f = Math.min(base, maxW / Math.max(1, ln.text.length * CHARW[ln.font ?? 'sans']));
+    return sum + f * ((ln.size ?? 's') !== 's' ? 0.98 : 1.25);
+  }, 0);
+  const cy = Math.max(SAFE_TOP + h / 2, Math.min(y, SAFE_BOTTOM - h / 2));
   return (
-    <div style={{position: 'absolute', left: align === 'center' ? x - maxW / 2 : align === 'left' ? x : x - maxW, top: y, width: maxW,
+    <div style={{position: 'absolute', left: align === 'center' ? x - maxW / 2 : align === 'left' ? x : x - maxW, top: cy, width: maxW,
       display: 'flex', flexDirection: 'column', alignItems: align === 'center' ? 'center' : align === 'left' ? 'flex-start' : 'flex-end', transform: 'translateY(-50%)'}}>
       {lines.map((ln, i) => {
         const font = ln.font ?? 'sans';
@@ -260,7 +269,7 @@ const graphPts = (shape: string, steps: number): {x: number; y: number}[] => {
     else if (shape === 'flat') v = 0.35 + 0.025 * Math.sin(u * 18);
     else if (shape === 'down') v = 1 - Math.pow(u, 0.7);
     else if (shape === 'spike') v = u < 0.7 ? Math.pow(u / 0.7, 2.4) : 1 - easeInOut((u - 0.7) / 0.3) * 0.85;
-    out.push({x: 140 + u * 800, y: 1520 - v * 760});
+    out.push({x: 140 + u * 760, y: 1300 - v * 640});
   }
   return out;
 };
@@ -283,8 +292,8 @@ const Graph: React.FC<P<Extract<Scene, {type: 'graph'}>>> = ({s, t}) => {
       <AbsoluteFill style={{transform: `translate(${(W / 2 - cx) * zoom}px, ${(1120 - cy) * zoom}px) scale(${zoom})`, transformOrigin: `${W / 2}px 1120px`}}>
         <svg width={W} height={H} style={{position: 'absolute', left: 0, top: 0, overflow: 'visible'}}>
           <g style={{filter: 'drop-shadow(0 0 6px rgba(255,255,255,.35))'}}>{grid}</g>
-          <line x1={140} y1={700} x2={140} y2={1520} stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={2.5} />
-          <line x1={140} y1={1520} x2={950} y2={1520} stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={2.5} />
+          <line x1={140} y1={640} x2={140} y2={1300} stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={2.5} />
+          <line x1={140} y1={1300} x2={910} y2={1300} stroke="#FFFFFF" strokeOpacity={0.55} strokeWidth={2.5} />
           <path d={dPath} stroke={M.blue} strokeWidth={28} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.35} style={{filter: 'blur(14px)'}} />
           <path d={dPath} stroke={M.blue} strokeWidth={14} fill="none" strokeLinecap="round" strokeLinejoin="round" />
           <path d={dPath} stroke="#FFFFFF" strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
@@ -294,7 +303,7 @@ const Graph: React.FC<P<Extract<Scene, {type: 'graph'}>>> = ({s, t}) => {
         </svg>
       </AbsoluteFill>
       {s.text && <CineText lines={s.text} t={t} from={s.from} color={M.light} sub="#CFCFD2" y={400} />}
-      {s.end && <CineText lines={s.end} t={t} from={s.from} color={M.light} sub="#CFCFD2" y={1790} />}
+      {s.end && <CineText lines={s.end} t={t} from={s.from} color={M.light} sub="#CFCFD2" y={1390} />}
     </AbsoluteFill>
   );
 };
@@ -309,7 +318,8 @@ const Callout: React.FC<P<Extract<Scene, {type: 'callout'}>>> = ({s, t}) => {
   const rise = expoOut(lt / 0.8);
   const labels = (s.labels ?? []).slice(0, 3);
   // label boxes (230 px wide) sit outside the picture; the dotted line runs from the box edge to a point on the picture
-  const slots = [{lx: 30, ly: 880, ex: ix + 90, ey: iy + 150}, {lx: 1050, ly: 1150, ex: ix + iw - 90, ey: iy + 360}, {lx: 30, ly: 1420, ex: ix + 110, ey: iy + 560}];
+  // right label sits ABOVE the like/comment buttons (they start at y≈900 on the right), bottom label above y 1440
+  const slots = [{lx: 30, ly: 880, ex: ix + 90, ey: iy + 150}, {lx: 1050, ly: 760, ex: ix + iw - 90, ey: iy + 140}, {lx: 30, ly: 1300, ex: ix + 110, ey: iy + 560}];
   return (
     <AbsoluteFill style={{transform: `translateY(${a.dy}px) scale(${a.scale * (1 + 0.03 * lt / d)})`}}>
       <Paper g={g} />
@@ -380,7 +390,7 @@ const SymbolScene: React.FC<P<Extract<Scene, {type: 'symbol'}>>> = ({s, t}) => {
         </g>
       </svg>
       {s.text && <CineText lines={s.text} t={t} from={s.from} color={GROUND[g].text} sub={GROUND[g].sub} y={460} />}
-      {s.bottom && <CineText lines={s.bottom} t={t} from={s.from} color={GROUND[g].text} sub={GROUND[g].sub} y={1640} />}
+      {s.bottom && <CineText lines={s.bottom} t={t} from={s.from} color={GROUND[g].text} sub={GROUND[g].sub} y={1360} />}
     </AbsoluteFill>
   );
 };

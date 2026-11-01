@@ -44,7 +44,7 @@ export type CleanPlan = {video: string; dur: number; accent?: string; scenes: Sc
 
 const FRAMES: Record<Frame, {x: number; y: number; w: number; h: number; r: number}> = {
   full: {x: 0, y: 0, w: W, h: H, r: 0},
-  top: {x: 90, y: 170, w: 900, h: 940, r: 64},
+  top: {x: 90, y: 170, w: 900, h: 880, r: 64},
   card: {x: 250, y: 250, w: 580, h: 720, r: 56},
   pip: {x: 744, y: 196, w: 256, h: 300, r: 40},
   // closing card: the speaker window collapses into a dot where the key line appears and disappears (no silent face in a box)
@@ -104,12 +104,19 @@ const Words: React.FC<{line: Line; t: number; size: number; color: string; accen
   );
 };
 
-const Lines: React.FC<{lines: Line[]; t: number; y: number; color: string; accent: string; big?: number; small?: number; maxW?: number}> = ({lines, t, y, color, accent, big = 96, small = 46, maxW = 920}) => (
-  <div style={{position: 'absolute', left: (W - maxW) / 2, width: maxW, top: y, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', textAlign: 'center'}}>
-    {lines.map((l, i) => <Words key={i} line={l} t={t} size={l.big ? fit(l.text, big, maxW) : small} color={l.big ? color : color === '#FFFFFF' ? '#FFFFFF' : C.sub} accent={accent} />)}
+/** TikTok / Reels / Shorts safe zone: text stays between y 220 and 1440 */
+const SAFE_TOP = 220, SAFE_BOTTOM = 1440;
+const linesH = (lines: Line[], big: number, small: number, maxW: number) =>
+  lines.reduce((h, l) => h + (l.big ? fit(l.text, big, maxW * 0.85) : small) * 1.12, 0) + 10 * Math.max(0, lines.length - 1);
+
+const Lines: React.FC<{lines: Line[]; t: number; y: number; color: string; accent: string; big?: number; small?: number; maxW?: number}> = ({lines, t, y, color, accent, big = 96, small = 46, maxW = 800}) => (  // 800: right edge ≤ 940 (app buttons)
+  <div style={{position: 'absolute', left: (W - maxW) / 2, width: maxW, top: Math.max(SAFE_TOP, Math.min(y, SAFE_BOTTOM - linesH(lines, big, small, maxW))), display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', textAlign: 'center'}}>
+    {lines.map((l, i) => <Words key={i} line={l} t={t} size={l.big ? fit(l.text, big, maxW * 0.85) : small} color={l.big ? color : color === '#FFFFFF' ? '#FFFFFF' : C.sub} accent={accent} />)}
   </div>
 );
-const fit = (text: string, size: number, maxW: number) => Math.min(size, (maxW * 1.75) / Math.max(1, text.length * 0.56));
+// a line may wrap once (1.75 × width), but its longest word must fit on one line by itself
+const fit = (text: string, size: number, maxW: number) => Math.min(size, (maxW * 1.75) / Math.max(1, text.length * 0.56),
+  maxW / Math.max(1, Math.max(...text.split(/\s+/).map((w) => w.length)) * 0.6));
 
 const Glass: React.FC<{style?: React.CSSProperties; children?: React.ReactNode; dark?: boolean}> = ({style, children, dark}) => (
   <div style={{background: dark ? 'rgba(20,20,24,.9)' : 'rgba(255,255,255,.86)', borderRadius: 40, border: '1.5px solid rgba(255,255,255,.9)',
@@ -204,14 +211,17 @@ const Island: React.FC<{t: number; at: number; title: string; text: string; acce
 
 const Statement: React.FC<SP<Extract<Scene, {type: 'statement'}>>> = ({s, t, accent}) => {
   const fr = FRAMES[s.frame ?? 'top'];
-  const y = fr.y + fr.h + 90;
+  // lines + optional pill must end above the safe line (1440): the block moves up if needed
+  const lh = linesH(s.text, 118, 48, 800);
+  const need = lh + (s.pill ? 40 + 100 : 0);
+  const y = Math.min(fr.y + fr.h + 90, SAFE_BOTTOM - need);
   return (
     <>
       {Math.round(s.from * 10) % 2 === 0 && <FloatIcons t={t} at={s.from + 0.15} cx={fr.x + fr.w / 2} cy={fr.y + fr.h / 2} rx={fr.w * 0.62} ry={fr.h * 0.5} n={3 + (Math.round(s.from) % 3)} accent={accent} size={96} />}
       <Lines lines={s.text} t={t} y={y} color={C.ink} accent={accent} big={118} small={48} />
       {s.text.filter((l) => l.big && hitStyle(l) === 'glow').map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.2} x={540} y={y + 120} color={accent} />)}
       {s.pill && t >= (s.pill.at ?? s.from + 0.5) && (
-        <div style={{position: 'absolute', left: 0, width: W, top: y + 330, display: 'flex', justifyContent: 'center', ...enter(t, s.pill.at ?? s.from + 0.5, 0.4, true)}}>
+        <div style={{position: 'absolute', left: 0, width: W, top: y + lh + 40, display: 'flex', justifyContent: 'center', ...enter(t, s.pill.at ?? s.from + 0.5, 0.4, true)}}>
           <span style={{padding: '22px 44px', borderRadius: 999, background: accent, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 44, boxShadow: `0 18px 40px ${accent}55`}}>{s.pill.text}</span>
         </div>
       )}
