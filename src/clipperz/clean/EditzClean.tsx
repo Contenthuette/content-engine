@@ -62,17 +62,23 @@ const Words: React.FC<{line: Line; t: number; size: number; color: string; accen
   return (
     <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: align === 'center' ? 'center' : 'flex-start', columnGap: size * 0.26, rowGap: 0}}>
       {words.map((w, i) => {
-        const a = at + i * 0.075;
-        const k = expoOut((t - a) / 0.28);
+        const a = at + i * 0.05;
+        const k = expoOut((t - a) / 0.22);
         if (t < a) return <span key={i} style={{opacity: 0, fontSize: size}}>{w}</span>;
         const isKey = line.key && w.replace(/[.,!?]/g, '').toLowerCase() === line.key.toLowerCase();
+        const hit = isKey ? spring((t - a) / 0.45) : k;
+        const sc = isKey ? 1.22 - 0.22 * hit : 1;
+        const ul = isKey && color !== '#FFFFFF' ? expoOut((t - a - 0.15) / 0.35) : 0;
         return (
-          <span key={i} style={{
+          <span key={i} style={{position: 'relative', display: 'inline-block',
             fontFamily: line.serif && isKey ? SERIF : SANS, fontStyle: line.serif && isKey ? 'italic' : 'normal',
             fontWeight: line.serif && isKey ? 400 : weight, fontSize: line.serif && isKey ? size * 1.12 : size, lineHeight: 1.05,
             letterSpacing: size > 60 ? '-0.04em' : '-0.015em', color: isKey && color !== '#FFFFFF' ? accent : color,
-            opacity: k, filter: `blur(${(1 - k) * 10}px)`, transform: `translateY(${(1 - k) * 12}px)`, display: 'inline-block',
-          }}>{w}</span>
+            opacity: k, filter: `blur(${(1 - k) * 12}px)`, transform: `translateY(${(1 - k) * 16}px) scale(${sc})`,
+          }}>
+            {w}
+            {ul > 0 && <span style={{position: 'absolute', left: 0, bottom: -size * 0.06, height: Math.max(6, size * 0.07), width: `${ul * 100}%`, borderRadius: 99, background: accent, opacity: 0.85}} />}
+          </span>
         );
       })}
     </div>
@@ -118,13 +124,40 @@ const enter = (t: number, at: number, dur = 0.36, springy = false): React.CSSPro
   return {opacity: o, filter: `blur(${(1 - cl(k)) * 18}px)`, transform: `translateY(${(1 - k) * 30}px) scale(${0.92 + 0.08 * k})`};
 };
 
+
+/** 3–5 app icons float around a point with parallax and land with a spring – visual density without new content */
+const ICON_COLS = ['#FF9F0A', '#16C964', '#AF52DE', '#FF375F', '#0A84FF', '#5E5CE6'];
+const ICON_GLYPHS = ['✓', '↗', '★', '⚡', '●', '+'];
+const FloatIcons: React.FC<{t: number; at: number; cx: number; cy: number; rx?: number; ry?: number; n?: number; accent: string; size?: number}> = ({t, at, cx, cy, rx = 430, ry = 260, n = 4, accent, size = 104}) => (
+  <>{Array.from({length: n}, (_, i) => {
+    const a0 = at + i * 0.09;
+    if (t < a0) return null;
+    const k = spring((t - a0) / 0.55);
+    const ang = (i / n) * Math.PI * 2 + 0.6 + (t - at) * 0.35 * (i % 2 ? 1 : -1);
+    const x = cx + Math.cos(ang) * rx * (0.6 + 0.4 * k), y = cy + Math.sin(ang) * ry * (0.6 + 0.4 * k);
+    const sz = size * (i % 2 ? 0.8 : 1);
+    return <div key={i} style={{position: 'absolute', left: x - sz / 2, top: y - sz / 2 + Math.sin(t * 2 + i) * 10, transform: `scale(${cl(k)}) rotate(${(1 - k) * 40 + Math.sin(t + i) * 6}deg)`,
+      filter: `blur(${(1 - cl(k)) * 8 + (i % 2 ? 1.5 : 0)}px)`, opacity: cl((t - a0) / 0.12)}}>
+      <Squircle color={i === 0 ? accent : ICON_COLS[i % ICON_COLS.length]} size={sz} glyph={ICON_GLYPHS[i % ICON_GLYPHS.length]} />
+    </div>;
+  })}</>
+);
+
+/** brand ghost word: the scene's key word huge at ~6 % behind everything, drifting */
+const GhostWord: React.FC<{text: string; t: number; from: number; dark?: boolean}> = ({text, t, from, dark}) => {
+  const k = expoOut((t - from) / 0.6);
+  return <div style={{position: 'absolute', left: -120 + (t - from) * 70, top: 1560, whiteSpace: 'nowrap', fontFamily: SANS, fontWeight: 800, fontSize: 340, letterSpacing: '-0.06em',
+    color: dark ? '#FFFFFF' : C.ink, opacity: 0.04 * k, pointerEvents: 'none'}}>{text}</div>;
+};
+
 // ---------------------------------------------------------------- scene contents (drawn over the background, around the speaker frame)
 type SP<S> = {s: S; t: number; accent: string};
 
 const FullText: React.FC<SP<Extract<Scene, {type: 'full'}>>> = ({s, t, accent}) => (
   <>
     <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.42) 100%)'}} />
-    {s.text && <Lines lines={s.text} t={t} y={1240} color="#FFFFFF" accent={accent} big={92} small={44} />}
+    {s.text && <Lines lines={s.text} t={t} y={1240} color="#FFFFFF" accent={accent} big={104} small={46} />}
+    {(s.text ?? []).filter((l) => l.big).map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.15} x={540} y={1330} color="#FFFFFF" />)}
     {s.island && <Island t={t} at={s.island.at ?? s.from + 0.2} title={s.island.title} text={s.island.text} accent={accent} />}
   </>
 );
@@ -155,7 +188,9 @@ const Statement: React.FC<SP<Extract<Scene, {type: 'statement'}>>> = ({s, t, acc
   const y = fr.y + fr.h + 90;
   return (
     <>
-      <Lines lines={s.text} t={t} y={y} color={C.ink} accent={accent} big={104} small={46} />
+      <FloatIcons t={t} at={s.from + 0.15} cx={fr.x + fr.w / 2} cy={fr.y + fr.h / 2} rx={fr.w * 0.62} ry={fr.h * 0.5} n={4} accent={accent} size={96} />
+      <Lines lines={s.text} t={t} y={y} color={C.ink} accent={accent} big={118} small={48} />
+      {s.text.filter((l) => l.big).map((l, i) => <Sparkles key={i} t={t} at={(l.at ?? s.from) + 0.2} x={540} y={y + 120} color={accent} />)}
       {s.pill && t >= (s.pill.at ?? s.from + 0.5) && (
         <div style={{position: 'absolute', left: 0, width: W, top: y + 330, display: 'flex', justifyContent: 'center', ...enter(t, s.pill.at ?? s.from + 0.5, 0.4, true)}}>
           <span style={{padding: '22px 44px', borderRadius: 999, background: accent, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 44, boxShadow: `0 18px 40px ${accent}55`}}>{s.pill.text}</span>
@@ -169,7 +204,8 @@ const Notify: React.FC<SP<Extract<Scene, {type: 'notify'}>>> = ({s, t, accent}) 
   const items = s.items.slice(0, 3);
   return (
     <>
-      <Glow x={540} y={900} size={1100} color={accent} o={0.16} />
+      <Glow x={540} y={900} size={1100} color={accent} o={0.22} />
+      <FloatIcons t={t} at={s.from + 0.05} cx={540} cy={1700} rx={440} ry={110} n={5} accent={accent} size={84} />
       {items.map((it, i) => {
         const at = it.at ?? s.from + 0.25 + i * 0.45;
         if (t < at) return null;
@@ -295,6 +331,8 @@ const Search: React.FC<SP<Extract<Scene, {type: 'search'}>>> = ({s, t, accent}) 
         </div>
       </Glass>
       {s.text && <Lines lines={s.text} t={t} y={res.length ? 1400 : 1080} color={C.ink} accent={accent} big={100} />}
+      {!res.length && <FloatIcons t={t} at={done + 0.05} cx={540} cy={1380} rx={420} ry={180} n={4} accent={accent} size={100} />}
+      {!res.length && <Sparkles t={t} at={done} x={540} y={760} color={accent} />}
       {res.map((r, i) => {
         const a = done + 0.15 + i * 0.12;
         if (t < a) return null;
@@ -317,8 +355,9 @@ const End: React.FC<SP<Extract<Scene, {type: 'end'}>>> = ({s, t, accent}) => {
   const cur = cl((t - pAt - 0.05) / 0.45);
   return (
     <>
-      <Glow x={540} y={1300} size={1000} color={accent} o={0.22} />
-      <Lines lines={s.text} t={t} y={fr.y + fr.h + 80} color={C.ink} accent={accent} big={96} small={46} />
+      <Glow x={540} y={1300} size={1100} color={accent} o={0.28} />
+      <FloatIcons t={t} at={s.from + 0.1} cx={fr.x + fr.w / 2} cy={fr.y + fr.h / 2} rx={fr.w * 0.75} ry={fr.h * 0.48} n={5} accent={accent} size={92} />
+      <Lines lines={s.text} t={t} y={fr.y + fr.h + 80} color={C.ink} accent={accent} big={116} small={48} />
       {s.pill && t >= pAt && (
         <div style={{position: 'absolute', left: 0, width: W, top: 1540, display: 'flex', justifyContent: 'center', ...enter(t, pAt, 0.4, true)}}>
           <span style={{padding: '26px 52px', borderRadius: 999, background: accent, color: '#fff', fontFamily: SANS, fontWeight: 700, fontSize: 46, transform: `scale(${press})`, boxShadow: `0 18px 40px ${accent}55`}}>{s.pill.text}</span>
@@ -342,7 +381,7 @@ const rectAt = (scenes: Scene[], t: number) => {
   const cur = scenes[i] ?? scenes[scenes.length - 1];
   const to = FRAMES[frameOf(cur)];
   const prev = i > 0 ? FRAMES[frameOf(scenes[i - 1])] : to;
-  const k = spring((t - cur.from) / 0.55);
+  const k = spring((t - cur.from) / 0.42);
   const kh = cl(k * 1.12);  // height a touch faster than width (objects, not boxes)
   return {x: lerp(prev.x, to.x, k), y: lerp(prev.y, to.y, kh), w: lerp(prev.w, to.w, k), h: lerp(prev.h, to.h, kh), r: lerp(prev.r, to.r, k), full: frameOf(cur) === 'full' && k > 0.98};
 };
@@ -351,16 +390,20 @@ export const autoSfx = (scenes: Scene[]): {t: number; src: string; vol: number}[
   const out: {t: number; src: string; vol: number}[] = [];
   const wh = ['whoosh3', 'swish', 'swipe'];
   let w = 0;
+  const tk = ['tick2', 'tap', 'tick3', 'select'];
+  let q = 0;
   scenes.forEach((s, i) => {
-    if (i > 0 && frameOf(s) !== frameOf(scenes[i - 1])) out.push({t: Math.max(0, s.from - 0.1), src: `lib/sfx/s_${wh[w++ % wh.length]}.wav`, vol: 0.3});
+    if (i > 0) out.push({t: Math.max(0, s.from - 0.08), src: `lib/sfx/s_${wh[w++ % wh.length]}.wav`, vol: 0.5});
+    ((s as {text?: Line[]}).text ?? []).forEach((l) => out.push({t: (l.at ?? s.from), src: `lib/sfx/s_${l.big ? 'pop2' : tk[q++ % tk.length]}.wav`, vol: l.big ? 0.42 : 0.3}));
+    if (['statement', 'notify', 'end'].includes(s.type) || (s.type === 'search' && !(s.results ?? []).length)) for (let k = 0; k < 4; k++) out.push({t: s.from + 0.15 + k * 0.09, src: 'lib/sfx/s_bubble.wav', vol: 0.18});
     const at = (x?: number, d = 0) => (x ?? s.from + d);
-    if (s.type === 'notify') s.items.slice(0, 3).forEach((it, k) => out.push({t: at(it.at, 0.25 + k * 0.45), src: 'lib/sfx/s_pop.wav', vol: 0.3}));
+    if (s.type === 'notify') s.items.slice(0, 3).forEach((it, k) => out.push({t: at(it.at, 0.25 + k * 0.45), src: 'lib/sfx/s_pop.wav', vol: 0.5}));
     if (s.type === 'chat') s.msgs.slice(0, 4).forEach((m, k) => out.push({t: at(m.at, 0.35 + k * 0.6), src: m.me ? 'lib/sfx/s_send.wav' : 'lib/sfx/s_pop2.wav', vol: 0.28}));
-    if (s.type === 'stat') { out.push({t: at(s.at, 0.3), src: 'lib/sfx/s_counter.wav', vol: 0.22}); out.push({t: at(s.at, 0.3) + 1.0, src: 'lib/sfx/s_sparkle.wav', vol: 0.22}); }
-    if (s.type === 'list') s.rows.slice(0, 5).forEach((r, k) => out.push({t: at(r.at, 0.45 + k * 0.4), src: 'lib/sfx/s_tick2.wav', vol: 0.26}));
-    if (s.type === 'search') out.push({t: at(s.at, 0.3), src: 'lib/sfx/s_type.wav', vol: 0.22});
-    if (s.type === 'end' && s.pill) { out.push({t: at(s.pill.at, 0.8), src: 'lib/sfx/s_pop.wav', vol: 0.3}); out.push({t: at(s.pill.at, 0.8) + 0.55, src: 'lib/sfx/s_tap.wav', vol: 0.35}); }
-    if (s.type === 'full' && s.island) out.push({t: at(s.island.at, 0.2), src: 'lib/sfx/s_open.wav', vol: 0.28});
+    if (s.type === 'stat') { out.push({t: at(s.at, 0.3), src: 'lib/sfx/s_counter.wav', vol: 0.4}); out.push({t: at(s.at, 0.3) + 1.0, src: 'lib/sfx/s_sparkle.wav', vol: 0.4}); }
+    if (s.type === 'list') s.rows.slice(0, 5).forEach((r, k) => out.push({t: at(r.at, 0.45 + k * 0.4), src: 'lib/sfx/s_tick2.wav', vol: 0.42}));
+    if (s.type === 'search') out.push({t: at(s.at, 0.3), src: 'lib/sfx/s_type.wav', vol: 0.4});
+    if (s.type === 'end' && s.pill) { out.push({t: at(s.pill.at, 0.8), src: 'lib/sfx/s_pop.wav', vol: 0.5}); out.push({t: at(s.pill.at, 0.8) + 0.55, src: 'lib/sfx/s_tap.wav', vol: 0.55}); }
+    if (s.type === 'full' && s.island) out.push({t: at(s.island.at, 0.2), src: 'lib/sfx/s_open.wav', vol: 0.45});
     if (s.type === 'statement' && s.pill) out.push({t: at(s.pill.at, 0.5), src: 'lib/sfx/s_pop.wav', vol: 0.28});
   });
   return out;
@@ -374,8 +417,23 @@ export const EditzClean: React.FC<CleanPlan> = (plan) => {
   const cur = plan.scenes.find((s) => t >= s.from && t < s.to) ?? plan.scenes[plan.scenes.length - 1];
   const R = rectAt(plan.scenes, t);
   const lt = t - cur.from, d = cur.to - cur.from;
-  const push = 1 + 0.04 * cl(lt / d) * (cur.type === 'full' ? 1 : 0.5);
-  const zoom = cur.type === 'full' ? (cur.zoom ?? 1) : 1;
+  const push = 1 + 0.06 * cl(lt / d);
+  // micro punch on every big line in full-screen scenes (the camera "reacts" to the words)
+  const bigAts = cur.type === 'full' ? (cur.text ?? []).filter((l) => l.big).map((l) => l.at ?? cur.from) : [];
+  const punch = bigAts.reduce((acc, a) => acc + (t >= a ? 0.05 * Math.max(0, 1 - (t - a) / 0.35) : 0), 0);
+  const zoom = cur.type === 'full' ? (cur.zoom ?? 1) * (1 + punch) : 1;
+  // whip: content arrives from the side with motion blur, direction alternates per scene
+  const idx = plan.scenes.indexOf(cur);
+  const wk = idx > 0 ? expoOut(lt / 0.3) : 1;
+  const dir = idx % 2 ? 1 : -1;
+  const whipX = (1 - wk) * 260 * dir, whipBlur = (1 - wk) * 18;
+  // handheld drift: the camera is never dead
+  const hx = Math.sin(t * 0.9) * 7 + Math.sin(t * 2.3) * 3, hy = Math.cos(t * 0.7) * 6, hr = Math.sin(t * 0.6) * 0.35;
+  const ghost = (() => {
+    const ls = (cur as {text?: Line[]}).text ?? [];
+    const kl = ls.find((l) => l.key) ?? ls.find((l) => l.big);
+    return cur.type === 'full' ? null : (kl?.key ?? kl?.text ?? (cur.type === 'search' ? cur.query : cur.type === 'list' ? cur.title : null));
+  })();
   const Content = CONTENT[cur.type];
   const glowA = 0.18;
   return (
@@ -383,7 +441,8 @@ export const EditzClean: React.FC<CleanPlan> = (plan) => {
       {/* background: off-white with slow accent glows */}
       <Glow x={540 + Math.sin(t * 0.6) * 60} y={820 + Math.cos(t * 0.5) * 50} size={1300} color={accent} o={glowA} />
       <Glow x={-60 + Math.cos(t * 0.4) * 80} y={1650} size={900} color="#9CC0FF" o={glowA * 0.7} />
-      <AbsoluteFill style={{transform: `scale(${push})`}}>
+      {ghost && <GhostWord text={ghost} t={t} from={cur.from} />}
+      <AbsoluteFill style={{transform: `translate(${hx + whipX}px, ${hy}px) rotate(${hr}deg) scale(${push})`, filter: whipBlur > 0.4 ? `blur(${whipBlur}px)` : undefined}}>
         {/* speaker frame */}
         <div style={{position: 'absolute', left: R.x, top: R.y, width: R.w, height: R.h, borderRadius: R.r, overflow: 'hidden',
           boxShadow: R.full ? undefined : `0 0 0 6px #FFFFFF, 0 30px 70px rgba(20,30,70,.18), 0 0 120px ${accent}44`}}>
