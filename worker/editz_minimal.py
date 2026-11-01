@@ -69,6 +69,13 @@ ANTWORT: nur JSON
 w0 der Szenen aufsteigend; jede Szene läuft bis zur nächsten."""
 
 
+def tidy(t):
+    """Undo transcript joins in on-screen text: "Bau - und" → "Bau- und", "Marketing -Agentur" → "Marketing-Agentur"."""
+    t = re.sub(r"(\w) - (und|oder|bis)\b", r"\1- \2", t)
+    t = re.sub(r"(\w) -(\w)", r"\1-\2", t)
+    return t.rstrip(",;:")
+
+
 def transcript(words):
     lines, cur = [], []
     for i, w in enumerate(words):
@@ -92,7 +99,7 @@ def _clean_lines(lines, words, lo, hi):
             ln = {"text": ln, "size": "l" if len(ln.split()) == 1 else "s"}
         if not isinstance(ln, dict) or not str(ln.get("text", "")).strip():
             continue
-        txt = " ".join(str(ln["text"]).split()[:4])
+        txt = tidy(" ".join(str(ln["text"]).split()[:4]))
         size = ln.get("size") if ln.get("size") in ("s", "m", "l", "xl") else "s"
         if size == "xl" and len(txt) > 10:
             size = "l"

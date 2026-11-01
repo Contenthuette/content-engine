@@ -14,7 +14,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from editz_minimal import transcript  # noqa: E402  (same [index|second] transcript format)
+from editz_minimal import tidy, transcript  # noqa: E402  (same [index|second] transcript format)
 
 TYPES = ("full", "statement", "notify", "chat", "stat", "list", "search", "end")
 UI = ("notify", "chat", "stat", "list", "search")
@@ -68,7 +68,7 @@ def _w(words, w, lo, hi, default=None):
 
 
 def _words(x, n):
-    return " ".join(str(x or "").split()[:n])
+    return tidy(" ".join(str(x or "").split()[:n]))
 
 
 def _lines(lines, words, lo, hi, serif_left):

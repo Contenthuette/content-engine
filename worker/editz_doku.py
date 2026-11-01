@@ -61,7 +61,10 @@ def prompt(words, dur):
 
 
 def _cap(x, n):
-    return " ".join(str(x or "").split()[:n]).strip()
+    t = " ".join(str(x or "").split()[:n]).strip()
+    t = re.sub(r"(\w) - (und|oder|bis)\b", r"\1- \2", t)   # transcript joins: "Bau - und" → "Bau- und"
+    t = re.sub(r"(\w) -(\w)", r"\1-\2", t)                  # "Marketing -Agentur" → "Marketing-Agentur"
+    return t.rstrip(",;:")
 
 
 def validate(raw, words, dur):
