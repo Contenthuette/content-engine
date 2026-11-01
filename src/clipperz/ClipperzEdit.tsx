@@ -373,7 +373,7 @@ const Captions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boo
   const toks = ph.words.flatMap(({w, i}) => {
     const raw = clean(w.w, cap.upper, !!(preset as {smartPunct?: boolean}).smartPunct);
     const text = lower ? raw.toLowerCase() : raw;
-    return (em(text) * cap.size * 0.8 > fitW ? splitCompound(text) : [text]).map((part, n) => ({w, i, text: part, n}));
+    return (em(text) * cap.size * 0.65 > fitW ? splitCompound(text) : [text]).map((part, n) => ({w, i, text: part, n}));
   });
   const fitSize = Math.min(cap.size, fitW / Math.max(...toks.map((x) => em(x.text)), 0.5));
   const base: React.CSSProperties = {
@@ -696,10 +696,12 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
   const reveal = cap.reveal ?? 'word';
   const sc = (x?: string) => (x === 'accent' ? accent : x);
   const maxW = (W - SAFE.left - SAFE.right) * (cap.maxWidth ?? 1);
-  const toks = ph.words.map(({w, i}, k) => {
+  const toks = ph.words.flatMap(({w, i}, k) => {
     let text = clean(w.w, !!cap.upper, true);
     if (cap.lower) text = text.toLowerCase();
-    return {text, i, s: w.s, next: ph.words[k + 1]?.w.s ?? ph.e, em: emph.has(i), k};
+    // a compound word that would need a much smaller font is split in two lines (IMMOBILIEN-/VERWALTUNG)
+    const parts = wordEm(text, font, cap) * cap.size * 0.65 > maxW * 0.96 ? splitCompound(text) : [text];
+    return parts.map((part, n) => ({text: part, i, n, s: w.s, next: ph.words[k + 1]?.w.s ?? ph.e, em: emph.has(i), k}));
   });
   // auto-fit: the widest word (incl. key/active pop-scale and stroke) must fit the width – measured with the real font,
   // with a conservative estimate as floor (canvas falls back to a narrower font while the web font is still loading)
@@ -759,7 +761,7 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
       const n = Math.ceil(text.length * cl((t - x.s + lead) / Math.max(0.12, Math.min(0.4, x.next - x.s))));
       text = text.slice(0, Math.max(1, n));
     }
-    return <span key={x.i} style={{...st, transform: tf, visibility: shown ? 'visible' : 'hidden'}}>{text}</span>;
+    return <span key={`${x.i}-${x.n}`} style={{...st, transform: tf, visibility: shown ? 'visible' : 'hidden'}}>{text}</span>;
   });
   const pa = anim.scope === 'phrase' ? (anim.type === 'keys' ? keyCss(keysAt(anim.keys ?? [], t - (ph.s - lead))) : animate(phraseK)) : {};
   const ok = cap.outKeys?.length ? keyCss(keysAt(cap.outKeys, t - ph.e)) : null;
