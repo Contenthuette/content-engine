@@ -132,3 +132,7 @@ Stil-Richtung: Fusion aus lucas.kleinecke × creatoroly.
 
 ## 2026-10-15 09:18 – Leif: „finde die Videos jetzt schon sehr gut“ (3 Nacht-Reels R1/R2/R3)
 - Das ist der aktuelle Maßstab: Bühnenwechsel ~1 s, durchgehendes Leitobjekt, echte Screens unverzerrt, Stimme klar vorne (SFX-Ducking + Stimmen-Tasche), kein Arcade.
+
+## 2026-11-02 16:24 – Leif zu EDITZ Contenthütte: „Rohschnitt fehlt, zu wenig Atempausen raus, Zooms sind lost“
+- Atempausen komplett raus: Whisper-Wörter auf den hörbaren Teil kürzen, jede Stille > 0,10 s auch mitten im Wort-Zeitfenster schneiden (fertige Contenthütte-Videos: keine Pause ≥ 60 ms).
+- Augen bleiben bei jedem Zoom-Schnitt auf demselben Punkt (Höhe + Mitte): Zoom immer um den Augenpunkt (YuNet-Landmarken), nie das Gesicht ins obere Drittel ziehen.
