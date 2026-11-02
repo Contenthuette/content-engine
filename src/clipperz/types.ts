@@ -25,8 +25,8 @@ export type Plan = {
   fps: number;
   duration: number;
   video: string;
-  /** Face position in the frame (0..1) and face height relative to the frame height. */
-  focus: {x: number; y: number; h: number};
+  /** Face position in the frame (0..1) and face height relative to the frame height; ex/ey = eye point (YuNet, 02.11.2026). */
+  focus: {x: number; y: number; h: number; ex?: number; ey?: number};
   words: Word[];
   /** Word indices Claude marked as key words (accent colour in captions). */
   emphasis: number[];
