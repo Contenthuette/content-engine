@@ -46,6 +46,8 @@ const EXPO = Easing.bezier(0.16, 1, 0.3, 1);
 const INOUT = Easing.bezier(0.65, 0, 0.35, 1);
 const SPRING = Easing.bezier(0.2, 1.4, 0.35, 1);
 const POP = Easing.bezier(0.34, 1.9, 0.5, 1); // word pop with a clear overshoot
+const RETURN_WHIP = 0.28; // s – speaker lands after a slideRight B-roll
+const BROLL_OUT = 0.14; // s – slideRight: the B-roll whooshes out (reference: 3–4 frames)
 const cl = (x: number) => Math.max(0, Math.min(1, x));
 const lerp = (k: number, a: number, b: number) => a + (b - a) * k;
 const ease = (t: number, a: number, d: number, e = EXPO) => e(cl((t - a) / d));
@@ -115,9 +117,24 @@ const MainVideo: React.FC<{plan: Plan; drift: number; fg?: boolean}> = ({plan, d
   const {fps} = useVideoConfig();
   const t = f / fps;
   const {S, tx, ty} = camera(t, plan.zooms, plan.focus, drift, plan.maxZoom ?? 1.7);
+  // Contenthütte (measured on 36 finished videos): when a B-roll whooshes out, the speaker shot lands with a short
+  // horizontal whip – it slides the last bit in and its motion blur fades over ~0.28 s.
+  let wx = 0;
+  let wblur = 0;
+  if (presetOf(plan).broll === 'slideRight') {
+    const back = plan.broll.find((b) => t >= b.e - BROLL_OUT && t < b.e + RETURN_WHIP);
+    if (back) {
+      const k = EXPO(cl((t - back.e + BROLL_OUT) / (BROLL_OUT + RETURN_WHIP)));
+      wx = -(1 - k) * 150; // the B-roll leaves to the right, the speaker follows the same pan
+      wblur = (1 - k) * 26;
+    }
+  }
   return (
     <AbsoluteFill style={{background: fg ? 'transparent' : '#000', overflow: 'hidden'}}>
-      <div style={{position: 'absolute', left: 0, top: 0, width: W, height: H, transformOrigin: '0 0', transform: `translate(${tx}px, ${ty}px) scale(${S})`}}>
+      <div style={{position: 'absolute', left: 0, top: 0, width: W, height: H, transformOrigin: '0 0',
+        // during the whip the frame is enlarged just enough that its edge never shows
+        transform: `translate(${tx + wx - Math.abs(wx) * S}px, ${ty - (Math.abs(wx) * H * S) / W}px) scale(${S * (1 + (2 * Math.abs(wx)) / W)})`,
+        filter: wblur > 0.4 ? `blur(${wblur}px)` : undefined}}>
         {fg && plan.fg
           ? <OffthreadVideo src={asset(plan.fg)} transparent muted style={{width: W, height: H, objectFit: 'cover'}} />
           : <OffthreadVideo src={asset(plan.video)} muted={!!fg} style={{width: W, height: H, objectFit: 'cover'}} />}
@@ -198,10 +215,10 @@ const BrollClassic: React.FC<{src: string; kind: 'photo' | 'video'; dur: number;
     filter = speed > 0.02 ? `blur(${speed * 22}px)` : 'none';
   } else if (style === 'slideRight') {
     // hard in (click), very light zoom while it is shown, whoosh out to the right
-    const out = ease(t, dur - 0.22, 0.22, Easing.in(Easing.cubic));
+    const out = ease(t, dur - BROLL_OUT, BROLL_OUT, Easing.in(Easing.quad));
     const z = 1.0 + 0.05 * (t / Math.max(dur, 0.5));
     transform = `translateX(${out * W}px) scale(${z})`;
-    filter = out > 0.02 && out < 0.98 ? `blur(${Math.sin(out * Math.PI) * 18}px)` : 'none';
+    filter = out > 0.02 ? `blur(${4 + out * 26}px)` : 'none';
   } else {
     transform = `scale(${push * lerp(kIn, 1.1, 1)})`;
     opacity = 1 - kOut;
@@ -306,11 +323,13 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
   const ph = list.find((p) => t >= p.s - 0.03 && t < p.e);
   if (!ph || hidden(t)) return null;
   const emph = new Set(plan.emphasis);
+  const capX = cap as typeof cap & {anim?: string; float?: number; emScale?: number};
   const base = cap.size;
-  const big = base * 1.3;
-  type Tok = {text: string; em: boolean; s: number; next: number};
+  const big = base * 1.27; // measured: key-word line cap height 28 px vs 22 px (720p)
+  const emScale = capX.emScale ?? 1; // short key words inline (Contenthütte: 1.22)
+  type Tok = {text: string; em: boolean; s: number; next: number; c?: string};
   const toks: Tok[] = ph.words.map(({w, i}, k) => ({text: clean(w.w, true, true).replace(/\.{3}$/, '...'), em: emph.has(i), s: w.s,
-    next: ph.words[k + 1]?.w.s ?? ph.e}));
+    next: ph.words[k + 1]?.w.s ?? ph.e, c: (w as Word & {c?: string}).c}));
   // keep ? ! ... at the end even in caps (clean() strips them for upper case)
   ph.words.forEach(({w}, k) => {
     const m = w.w.match(/(\.\.\.|…|[?!])$/);
@@ -333,25 +352,33 @@ const StackCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) =
     cur.push(tk);
   }
   if (cur.length) lines.push({toks: cur, big: false});
+  // Phrase pop (measured: 0.90 → 1.00 in 4 frames, no fade) – a tiny overshoot keeps it lively.
   const k = ease(t, ph.s - 0.03, 0.14, SPRING);
   const shadow = '0 0 18px rgba(0,0,0,.55), 0 4px 14px rgba(0,0,0,.6), 0 0 3px rgba(0,0,0,.7)';
   // Submagic-like: every word pops in the moment it is said (overshoot), the spoken word stands a bit bigger,
   // the key word lands with an extra punch. The layout of the whole phrase is fixed from the start, so nothing jumps.
-  const pop = (cap as {anim?: string}).anim !== 'phrase';
+  const pop = capX.anim !== 'phrase';
+  // Float (Contenthütte, measured): every phrase drifts slowly on a diagonal, ±4–5 px (720p) with a ~1.25 s swing;
+  // neighbouring phrases start in opposite directions, so the captions "vibe" up and down all the time.
+  const amp = capX.float ?? 0;
+  const pi = list.indexOf(ph);
+  const sw = amp ? Math.sin(((t - ph.s) / 1.25) * Math.PI * 2 + (pi % 2 ? Math.PI : 0)) * amp : 0;
+  const lineSize = (ln: {toks: Tok[]; big: boolean}) => {
+    const chars = ln.toks.reduce((n, x) => n + x.text.length * (x.em && !ln.big ? emScale : 1), 0) + ln.toks.length - 1;
+    return Math.min(ln.big ? big : base, (W - SAFE.left - SAFE.right) / Math.max(1, chars * 0.74)); // stays inside the safe area
+  };
   return (
-    <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top: safeCenter(captionY(plan, preset, t), lines.reduce((h, ln) => {
-      const chars = ln.toks.reduce((n, x) => n + x.text.length, 0) + ln.toks.length - 1;
-      return h + Math.min(ln.big ? big : base, (W - SAFE.left - SAFE.right) / Math.max(1, chars * 0.74)) * 1.02 + 6;
-    }, 0) * 1.12), transform: `translateY(-50%) scale(${pop ? 1 : lerp(k, 0.88, 1)})`, opacity: pop ? 1 : cl(k * 3),
+    <div style={{position: 'absolute', left: SAFE.left - 10, right: SAFE.right, top: safeCenter(captionY(plan, preset, t), lines.reduce((h, ln) =>
+      h + lineSize(ln) * (ln.toks.some((x) => x.em) && !ln.big ? emScale : 1) * 1.02 + 6, 0) * 1.12),
+      transform: `translate(${sw * 0.55}px, calc(-50% + ${sw}px)) scale(${pop ? 1 : lerp(k, 0.9, 1)})`, opacity: pop ? 1 : cl(k * 6),
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center'}}>
       {lines.map((ln, li) => {
-        const size0 = ln.big ? big : base;
-        const chars = ln.toks.reduce((n, x) => n + x.text.length, 0) + ln.toks.length - 1;
-        const size = Math.min(size0, (W - SAFE.left - SAFE.right) / Math.max(1, chars * 0.74)); // stays inside the safe area
+        const size = lineSize(ln);
         return (
           <div key={li} style={{fontFamily: 'Montserrat', fontWeight: cap.weight, fontSize: size, lineHeight: 1.02, letterSpacing: '-0.01em', whiteSpace: 'nowrap', textShadow: shadow}}>
             {ln.toks.map((tk, ti) => {
-              const st: React.CSSProperties = {display: 'inline-block', color: tk.em ? plan.accent : cap.color, marginLeft: ti ? '0.3em' : 0};
+              const st: React.CSSProperties = {display: 'inline-block', color: tk.em ? (tk.c ?? plan.accent) : cap.color, marginLeft: ti ? '0.3em' : 0,
+                fontSize: tk.em && !ln.big && emScale !== 1 ? `${emScale}em` : undefined, verticalAlign: 'baseline'};
               if (pop) {
                 const kw = ease(t, tk.s - 0.05, tk.em ? 0.26 : 0.2, POP);
                 const live = t >= tk.s - 0.05 && t < tk.next;

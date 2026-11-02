@@ -576,9 +576,10 @@ def remap_words(words, intervals):
     return out
 
 
-def grade_broll(files, lut, out_dir):
-    """Cover-crop to 9:16 and apply the LUT (if any). Photos -> JPEG, videos -> short silent clip."""
-    look = f"lut3d=file='{lut}'," if lut else ""  # no LUT: B-roll keeps its own colours
+def grade_broll(files, lut, out_dir, fallback=None):
+    """Cover-crop to 9:16 and apply the LUT (if any). Photos -> JPEG, videos -> short silent clip.
+    fallback: the style's own B-roll look (ffmpeg filter, e.g. Contenthütte) when the workspace has no LUT."""
+    look = f"lut3d=file='{lut}'," if lut else (f"{fallback}," if isinstance(fallback, str) and fallback else "")
     from PIL import Image, ImageOps
     try:
         from pillow_heif import register_heif_opener
@@ -704,7 +705,11 @@ def edit_plan(words, duration, items, preset_id, spoken_hook, emojis=None):
         f"2. accent: eine Akzentfarbe aus [{accents}], passend zum Thema (Blau = Vertrauen/Technik, Grün = Erfolg/Lösung, Rot = Problem/Warnung).\n",
         ("3. emphasis: Indizes der Schlüsselwörter für die roten Untertitel: in fast jedem kurzen Satzteil (3–4 Wörter) genau EIN Wort – "
          "Namen, Orte, Daten, Zahlen, Fachbegriffe, das Wichtigste der Aussage; zusammengehörige Teile (z. B. „23. Mai 2027“, „Radisson Hotel“) "
-         "alle markieren. Nie Füllwörter.\n") if pr.get("emphasis") == "phrase" else
+         "alle markieren. Nie Füllwörter.\n" + (
+            "   tones: Farbe je Schlüsselwort {\"Index\": \"g\"|\"r\"|\"b\"} – g = Grün für Positives, Lösung, Vorteil, Erfolg, Geld gespart; "
+            "r = Rot für Problem, Fehler, Warnung, Verbot, Kosten, „nicht/nie“; b = Blau für neutrale Fakten, Namen, Orte, Zahlen, Fachbegriffe. "
+            "Für JEDEN Index aus emphasis genau ein Eintrag; die Farben wechseln sich natürlich ab (kein Wort bekommt Rot nur zur Abwechslung).\n"
+            if pr.get("tones") else "")) if pr.get("emphasis") == "phrase" else
         "3. emphasis: Indizes der wichtigsten Wörter (Zahlen, Ergebnisse, Fachbegriffe, Pointen) – etwa jedes 6. bis 8. Wort, nie Füllwörter.\n",
     ]
     if n_ins:
@@ -730,7 +735,7 @@ def edit_plan(words, duration, items, preset_id, spoken_hook, emojis=None):
     parts.append(
         "6. broll: Platziere passende B-Roll-Bilder (je 1,2–2,5 s, ab dem passenden Wort, nicht in den ersten 1,5 s, nicht über einem Text-Beat, "
         "mindestens 1 s Gesicht dazwischen, jedes Bild höchstens einmal). Ohne passende Bilder: leere Liste.\n"
-        "Antworte NUR mit JSON: {\"hook\": \"…\", \"accent\": \"#…\", \"emphasis\": [..], "
+        "Antworte NUR mit JSON: {\"hook\": \"…\", \"accent\": \"#…\", \"emphasis\": [..], " + ("\"tones\": {}, " if pr.get("tones") else "") +
         "\"inserts\": [{\"code\": \"…\", \"start\": Wortindex, \"props\": {…}}], \"fixes\": {}, \"broll\": [{\"bild\": Nummer, \"start\": Sekunden, \"ende\": Sekunden}]}"
     )
     if emojis:
@@ -753,6 +758,18 @@ def edit_plan(words, duration, items, preset_id, spoken_hook, emojis=None):
     return res if isinstance(res, dict) else {}
 
 
+def paint_tones(words, emphasis, tones, pr):
+    """Styles with "tones" ({"g": hex, "r": hex, "b": hex}): every key word gets its own colour (word["c"]) –
+    green = positive/solution, red = problem/warning, blue = facts/names/numbers. Unknown → blue."""
+    pal = pr.get("tones")
+    if not isinstance(pal, dict):
+        return
+    tones = tones if isinstance(tones, dict) else {}
+    for i in emphasis:
+        k = str(tones.get(str(i)) or tones.get(i) or "b").strip().lower()[:1]
+        words[i]["c"] = pal.get(k) or pal.get("b")
+
+
 def build_plan(words, duration, items, preset_id, captions, focus, res, video_rel, broll_rel, hi_res=False, src_min=1080):
     pr = PRESETS[preset_id]
     n = len(words)
@@ -764,6 +781,7 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
     accent = res.get("accent") if res.get("accent") in pr["accents"] else pr["accents"][0]
     hook_text = str(res.get("hook") or "").strip()[:60]
     emphasis = sorted({int(i) for i in res.get("emphasis", []) if str(i).lstrip("-").isdigit() and 0 <= int(i) < n})
+    paint_tones(words, emphasis, res.get("tones"), pr)
 
     # Text beats: timing from the word index, length 1.2-2.0 s, rules enforced here.
     busy = []  # (s, e) windows that already cover the face
@@ -892,7 +910,7 @@ def build_plan(words, duration, items, preset_id, captions, focus, res, video_re
         for k2, nm in enumerate(pr["sfx"].get("brollOut", [])):  # every listed sound plays at the exit
             if count.get(nm, 0) < cap_n:
                 count[nm] = count.get(nm, 0) + 1
-                sfx.append({"t": round(max(0.0, b["e"] - 0.22 + 0.06 * k2), 3), "name": nm, "vol": vol})
+                sfx.append({"t": round(max(0.0, b["e"] - 0.18 + 0.06 * k2), 3), "name": nm, "vol": vol})
     if pr["sfx"]["zoom"]:
         for prev, cur in zip(zooms, zooms[1:]):
             if cur["mode"] == "cut" and cur["level"] > prev["level"]:
@@ -1238,6 +1256,13 @@ def apply_ops(plan, res, job):
     em |= {int(i) for i in res.get("emphasis_add", []) if str(i).isdigit() and int(i) < n}
     em -= {int(i) for i in res.get("emphasis_remove", []) if str(i).isdigit()}
     plan["emphasis"] = sorted(em)
+    pal = (plan.get("style") or {}).get("tones")
+    if isinstance(pal, dict):  # colour-per-key-word styles: new key words blue (neutral), removed ones lose their colour
+        for i, w in enumerate(words):
+            if i in em and not w.get("c"):
+                w["c"] = pal.get("b")
+            elif i not in em:
+                w.pop("c", None)
     br = plan.get("broll", [])
     for m in res.get("broll_move", []) or []:
         try:
@@ -1368,13 +1393,16 @@ def apply_direct(plan, ed, job):
     ws = ed.get("words")
     if isinstance(ws, list) and 0 < len(ws) <= 3000:
         out = []
+        old_c = {round(float(w["s"]), 2): w["c"] for w in plan.get("words", []) if w.get("c")}
         for w in ws:
             try:
                 s_, e_, t = float(w["s"]), float(w["e"]), str(w["w"]).strip()[:40]
             except (KeyError, TypeError, ValueError):
                 continue
             if t and 0 <= s_ <= e_ <= dur + 0.05:
-                out.append({"s": round(s_, 3), "e": round(min(e_, dur), 3), "w": t, **({"hide": True} if w.get("hide") else {})})
+                c = w.get("c") if isinstance(w.get("c"), str) and HEX.fullmatch(w["c"]) else old_c.get(round(s_, 2))
+                out.append({"s": round(s_, 3), "e": round(min(e_, dur), 3), "w": t, **({"hide": True} if w.get("hide") else {}),
+                            **({"c": c} if c else {})})
         if out:
             plan["words"] = sorted(out, key=lambda x: x["s"])
     if isinstance(ed.get("emphasis"), list):
@@ -1410,6 +1438,10 @@ def apply_direct(plan, ed, job):
             except Exception as e:
                 print("cut-out failed, rendering without it:", e)
     elif isinstance(ed.get("accent"), str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", ed["accent"]):
+        if ed["accent"].upper() != str(plan.get("accent") or "").upper():
+            # one colour picked in the editor → all key words in it (drops the per-word green/red/blue)
+            for w in plan["words"]:
+                w.pop("c", None)
         plan["accent"] = ed["accent"]
     return plan, changed
 
@@ -1589,6 +1621,8 @@ def apply_customer_look(plan, cfg):
     acc = custom_accent(cfg)
     if acc:
         plan["accent"] = acc
+        for w in plan.get("words", []):
+            w.pop("c", None)
         ink = accent_ink(acc)
         if ink:
             plan["accentInk"] = ink
@@ -1650,7 +1684,7 @@ def main():
             with open(lut, "rb") as fh:
                 if b"LUT_3D_SIZE" not in fh.read(20000):
                     raise EditError("Die LUT-Datei ist keine .cube-Datei – bitte den Farblook neu hochladen")
-        items = grade_broll(files, lut, os.path.join(W, "broll"))
+        items = grade_broll(files, lut, os.path.join(W, "broll"), fallback=_pr0.get("brollLook"))
 
     report(note="Rohschnitt: Sprache wird erkannt…")
     base = os.path.join(W, "base.mp4")
