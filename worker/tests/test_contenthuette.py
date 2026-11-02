@@ -62,3 +62,29 @@ def test_correction_adds_blue_key_word():
     plan, _ = ce.apply_ops(plan, {"emphasis_add": [11], "emphasis_remove": [2]}, "job/x")
     assert plan["words"][11]["c"] == PR["tones"]["b"]
     assert "c" not in plan["words"][2]
+
+
+def test_breath_pauses_inside_words_are_cut():
+    import numpy as np
+    # 3 s of audio envelope: speech 0–1.0 s, a 0.5 s breath (quiet) 1.0–1.5 s, speech 1.5–3.0 s
+    db = np.full(300, -20.0)
+    db[100:150] = -60.0
+    old = ce.ENV, ce.MAX_QUIET
+    ce.ENV, ce.MAX_QUIET = {"db": db, "q": -40.0}, 0.1
+    try:
+        iv = ce.squeeze_pauses([(0.0, 3.0)], 3.0)
+    finally:
+        ce.ENV, ce.MAX_QUIET = old
+    assert len(iv) == 2
+    assert iv[0][1] < 1.15 and iv[1][0] > 1.4  # the breath is gone, a little air stays
+    # Whisper stretched "Betrieb" (0.6–1.5 s) over the breath: it survives the cut with its spoken part
+    words = [{"w": "im", "s": 0.2, "e": 0.6}, {"w": "Betrieb.", "s": 0.6, "e": 1.5}, {"w": "Dann", "s": 1.5, "e": 1.9}]
+    out = ce.remap_words(words, iv)
+    assert [w["w"] for w in out] == ["im", "Betrieb.", "Dann"]
+    assert all(b["s"] >= a["e"] - 0.001 for a, b in zip(out, out[1:]))
+
+
+def test_cut_word_touching_air_is_dropped():
+    words = [{"w": "äh", "s": 1.0, "e": 1.4}, {"w": "Hallo", "s": 1.4, "e": 1.9}]
+    out = ce.remap_words(words, [(1.25, 1.95)])
+    assert [w["w"] for w in out] == ["Hallo"]

@@ -8,6 +8,7 @@ import base64
 import glob
 import io
 import json
+import math
 import os
 import random
 import re
@@ -374,6 +375,75 @@ def energy_env(path):
 
 # Jump cuts: about 0.09 s of air at every cut (0.04 s before the word, 0.05 s after its audible end).
 CUT_HEAD, CUT_TAIL, KEEP_GAP = 0.04, 0.05, 0.12
+# Breath pauses inside Whisper's words: Whisper stretches word ends over the silence, so word gaps miss most pauses.
+# Any quiet run in the audio longer than MAX_QUIET inside a kept piece is cut too (style.cut.maxQuiet;
+# Contenthütte 0.10 s – its finished videos have no pause >= 60 ms left).
+MAX_QUIET = 0.3
+
+
+def tighten_words(words):
+    """Whisper stretches words over the following (or preceding) silence. Shrinks every word to its audible part
+    (audio envelope), so pauses show up as gaps between words – the rough cut then removes them and captions
+    appear when the word is really said. Words never grow, never shrink below 60 ms."""
+    if ENV is None:
+        return words
+    db, q = ENV["db"], ENV["q"]
+    n = len(db)
+    out = []
+    for w in words:
+        i0, i1 = max(0, int(w["s"] / ENV_HOP)), min(n, int(w["e"] / ENV_HOP) + 1)
+        # loud runs of >= 30 ms (a single loud frame is a click or a breath, not the word)
+        runs, k = [], i0
+        while k < i1:
+            if db[k] >= q:
+                r = k
+                while r < i1 and db[r] >= q:
+                    r += 1
+                if r - k >= 3:
+                    runs.append((k, r))
+                k = r
+            else:
+                k += 1
+        if runs:
+            s2 = max(w["s"], runs[0][0] * ENV_HOP - 0.02)
+            e2 = min(w["e"], runs[-1][1] * ENV_HOP + 0.02)
+            if e2 - s2 >= 0.06:
+                w = {**w, "s": round(s2, 3), "e": round(e2, 3)}
+        out.append(w)
+    return out
+
+
+def squeeze_pauses(iv, duration):
+    """Splits kept intervals at audible pauses longer than MAX_QUIET (audio envelope); keeps CUT_TAIL/CUT_HEAD of air."""
+    if ENV is None or not iv:
+        return iv
+    db, q = ENV["db"], ENV["q"]
+    n = len(db)
+    out = []
+    for a, b in iv:
+        i, j = int(a / ENV_HOP), min(n, int(b / ENV_HOP))
+        start = a
+        k = i
+        while k < j:
+            if db[k] < q:
+                r = k
+                while r < j and db[r] < q:
+                    r += 1
+                qs, qe = k * ENV_HOP, r * ENV_HOP
+                if qe - qs > MAX_QUIET:
+                    if qs <= a + 0.05:  # silence at the start of the piece (Whisper starts words early)
+                        start = max(start, qe - CUT_HEAD)
+                    elif qe >= b - 0.05:  # silence at its end
+                        b = min(b, qs + CUT_TAIL)
+                        break
+                    else:  # a breath between two spoken parts
+                        out.append((start, min(b, qs + CUT_TAIL)))
+                        start = max(a, qe - CUT_HEAD)
+                k = r
+            else:
+                k += 1
+        out.append((start, b))
+    return [(round(x, 3), round(y, 3)) for x, y in out if y - x > 0.08]
 
 
 def _bounds(w, duration, nxt=None):
@@ -413,7 +483,7 @@ def word_intervals(ws, duration):
             iv[-1][1] = max(iv[-1][1], e)
         else:
             iv.append([s, e])
-    return [(round(a, 3), round(b, 3)) for a, b in iv if b - a > 0.15]
+    return squeeze_pauses([(round(a, 3), round(b, 3)) for a, b in iv if b - a > 0.15], duration)
 
 
 def smart_cut_plan(words, duration, target=None):
@@ -541,23 +611,55 @@ def verify_cut(cut_path, words, duration):
     return out, remap_words(words2, iv), d2
 
 
+CUT_SELECT_FROM = 3  # more pieces than this: single-pass select for the video (see cut)
+
+
+def snap_iv(intervals):
+    """Many pieces: intervals on whole frames (the select cut is frame-exact). cut(), remap_words() and _map_time()
+    all go through this, so word times, zooms and B-roll stay in sync with the cut video."""
+    if len(intervals) <= CUT_SELECT_FROM:
+        return list(intervals)
+    fr = 1.0 / FPS
+    out = []
+    for a, b in intervals:
+        a2, b2 = round(round(a / fr) * fr, 4), round(round(b / fr) * fr, 4)
+        if b2 - a2 >= fr:
+            out.append((a2, b2))
+    return out
+
+
 def cut(src, intervals, dst, preset="veryfast", crf=18, seek=False):
     """Keeps only `intervals` of src (re-encoded; preset/crf for fast intermediates). seek: decode only the span the
     intervals cover (input seeking) instead of the whole file – for short cuts out of a long source."""
     pre = []
+    intervals = snap_iv(intervals)
     if seek and intervals:
         lo = max(0.0, min(a for a, _ in intervals) - 0.1)
+        lo = math.floor(lo * FPS) / FPS if len(intervals) > CUT_SELECT_FROM else lo  # keeps the pieces on whole frames
         hi = max(b for _, b in intervals) + 0.1
         pre = ["-ss", f"{lo:.3f}", "-t", f"{hi - lo:.3f}"]
         intervals = [(round(a - lo, 3), round(b - lo, 3)) for a, b in intervals]
     if len(intervals) == 1 and intervals[0][0] < 0.05 and not pre:
         run(["ffmpeg", "-v", "error", "-y", "-i", src, "-t", str(intervals[0][1]), "-c", "copy", dst])
         return
-    parts = []
-    for i, (a, b) in enumerate(intervals):
-        parts.append(f"[0:v]trim={a}:{b},setpts=PTS-STARTPTS[v{i}];[0:a]atrim={a}:{b},asetpts=PTS-STARTPTS,"
-                     f"afade=t=in:d=0.01,afade=t=out:st={max(0.0, b - a - 0.015):.3f}:d=0.015[a{i}]")
-    concat = "".join(f"[v{i}][a{i}]" for i in range(len(intervals))) + f"concat=n={len(intervals)}:v=1:a=1[v][a]"
+    if len(intervals) > CUT_SELECT_FROM:
+        # Many pieces (tight pause cut): trim/concat would buffer one decoded copy of the video per piece (4K → out of
+        # memory). Video goes through ONE select pass instead; intervals snap to frames so audio (trimmed per piece,
+        # with micro fades against clicks) stays in sync to the sample.
+        fr = 1.0 / FPS
+        intervals = snap_iv(intervals)
+        sel = "+".join(f"between(t,{a:.4f},{b - fr / 2:.4f})" for a, b in intervals)
+        parts = [f"[0:v]select='{sel}',setpts=N/{FPS}/TB[v]"]
+        for i, (a, b) in enumerate(intervals):
+            parts.append(f"[0:a]atrim={a}:{b},asetpts=PTS-STARTPTS,afade=t=in:d=0.008,"
+                         f"afade=t=out:st={max(0.0, b - a - 0.012):.3f}:d=0.012[a{i}]")
+        concat = "".join(f"[a{i}]" for i in range(len(intervals))) + f"concat=n={len(intervals)}:v=0:a=1[a]"
+    else:
+        parts = []
+        for i, (a, b) in enumerate(intervals):
+            parts.append(f"[0:v]trim={a}:{b},setpts=PTS-STARTPTS[v{i}];[0:a]atrim={a}:{b},asetpts=PTS-STARTPTS,"
+                         f"afade=t=in:d=0.01,afade=t=out:st={max(0.0, b - a - 0.015):.3f}:d=0.015[a{i}]")
+        concat = "".join(f"[v{i}][a{i}]" for i in range(len(intervals))) + f"concat=n={len(intervals)}:v=1:a=1[v][a]"
     with open(os.path.join(W, "cut.filter"), "w") as fh:
         fh.write(";".join(parts) + ";" + concat)
     run(["ffmpeg", "-v", "error", "-y", *pre, "-i", src, "-filter_complex_script", os.path.join(W, "cut.filter"),
@@ -567,12 +669,26 @@ def cut(src, intervals, dst, preset="veryfast", crf=18, seek=False):
 
 def remap_words(words, intervals):
     """Word times on the cut timeline."""
-    out, offset = [], 0.0
+    intervals = snap_iv(intervals)
+    offs, o = [], 0.0
     for a, b in intervals:
-        for w in words:
-            if w["s"] >= a - 0.01 and w["e"] <= b + 0.01:
-                out.append({**w, "s": round(w["s"] - a + offset, 3), "e": round(w["e"] - a + offset, 3)})
-        offset += b - a
+        offs.append(o)
+        o += b - a
+    out = []
+    for w in words:
+        # pieces the word overlaps (a pause cut can split Whisper's stretched word span: keep the spoken part)
+        hit = [k for k, (a, b) in enumerate(intervals)
+               if min(b, w["e"]) - max(a, w["s"]) > 0.03 or (a - 0.01 <= w["s"] and w["e"] <= b + 0.01)]
+        dur_w = max(0.01, w["e"] - w["s"])
+        starts_in = any(a - 0.01 <= w["s"] < b for a, b in intervals)
+        if not hit or not (starts_in or sum(max(0.0, min(intervals[k][1], w["e"]) - max(intervals[k][0], w["s"])) for k in hit) >= 0.45 * dur_w):
+            continue  # a cut word whose edge only touches the air of a kept piece
+        k0, k1 = hit[0], hit[-1]
+        a0, b1 = intervals[k0][0], intervals[k1][1]
+        s2 = offs[k0] + max(w["s"], a0) - a0
+        e2 = offs[k1] + min(w["e"], b1) - intervals[k1][0]
+        if e2 >= s2:
+            out.append({**w, "s": round(s2, 3), "e": round(e2, 3)})
     return out
 
 
@@ -647,8 +763,59 @@ def describe_broll(items):
 
 # ---------- face position (zooms go to the face, captions stay off it) ----------
 
+# Face + eye landmarks: OpenCV YuNet (github.com/opencv/opencv_zoo, MIT), downloaded at run time. Haar picked wall
+# pictures or a cap logo on some takes (02.11.2026: focus x 0.33 instead of 0.47) – YuNet is the first choice.
+YUNET_URL = "https://media.githubusercontent.com/media/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+
+
+def detect_focus_yunet(path, duration):
+    """Median face centre, face height and eye point (0..1) with YuNet, None if unavailable or no face."""
+    import cv2
+    if not hasattr(cv2, "FaceDetectorYN"):
+        return None
+    model = os.path.join(W, "yunet.onnx")
+    if not os.path.exists(model):
+        r = requests.get(YUNET_URL, timeout=60)
+        r.raise_for_status()
+        if len(r.content) < 100_000:  # an LFS pointer or an error page, not the model
+            return None
+        with open(model, "wb") as fh:
+            fh.write(r.content)
+    cap = cv2.VideoCapture(path)
+    rows = []
+    for k in range(12):
+        cap.set(cv2.CAP_PROP_POS_MSEC, 1000 * duration * (k + 0.5) / 12)
+        ok, frame = cap.read()
+        if not ok:
+            continue
+        h_, w_ = frame.shape[:2]
+        sc = 640 / max(h_, w_)
+        small = cv2.resize(frame, (int(w_ * sc), int(h_ * sc)))
+        det = cv2.FaceDetectorYN.create(model, "", (small.shape[1], small.shape[0]), 0.75)
+        _, faces = det.detect(small)
+        if faces is None or not len(faces):
+            continue
+        f = max(faces, key=lambda r: r[2] * r[3])
+        sw, sh = small.shape[1], small.shape[0]
+        if (f[1] + f[3] / 2) / sh > 0.62:  # lower down = hands or a print, not the speaker's face
+            continue
+        rows.append(((f[0] + f[2] / 2) / sw, (f[1] + f[3] / 2) / sh, f[3] / sh, (f[4] + f[6]) / 2 / sw, (f[5] + f[7]) / 2 / sh))
+    cap.release()
+    if len(rows) < 3:
+        return None
+    med = lambda i: sorted(r[i] for r in rows)[len(rows) // 2]
+    return {"x": round(float(med(0)), 3), "y": round(float(med(1)), 3), "h": round(float(med(2)), 3),
+            "ex": round(float(med(3)), 3), "ey": round(float(med(4)), 3)}
+
+
 def detect_focus(path, duration):
-    """Median face centre and face height (0..1) over a few frames. Falls back to the upper middle."""
+    """Median face centre and face height (0..1) over a few frames (+ eye point with YuNet). Falls back to the upper middle."""
+    try:
+        got = detect_focus_yunet(path, duration)
+        if got:
+            return got
+    except Exception as e:  # the landmark model is a refinement; Haar below still works
+        print("yunet failed, using haar:", type(e).__name__, e)
     try:
         import cv2
         casc = cv2.CascadeClassifier(os.path.join(cv2.data.haarcascades, "haarcascade_frontalface_default.xml"))
@@ -1224,6 +1391,7 @@ def revise_ops(plan, prompt):
 
 
 def _map_time(t, iv):
+    iv = snap_iv(iv)
     off = 0.0
     for a, b in iv:
         if a - 0.001 <= t <= b + 0.001:
@@ -1337,6 +1505,7 @@ def apply_ops(plan, res, job):
             t = b
         if dur - t > 0.05:
             iv.append((round(t, 3), round(dur, 3)))
+        iv = snap_iv(iv)
         pub = os.path.join(REPO, "public", job)
         main_path = os.path.join(pub, "main.mp4")
         tmp = os.path.join(W, "main_cut.mp4")
@@ -1645,8 +1814,9 @@ def main():
     # Learned styles bring their own cutting pace (style.cut); set it before the rough cut.
     _pr0 = PRESETS[register_style(cfg.get("preset"), cfg.get("styleConfig"))]
     _pace = (_pr0.get("cut") or {})
-    global CUT_HEAD, CUT_TAIL, KEEP_GAP
-    for name, key, lo, hi in (("CUT_HEAD", "head", 0.0, 0.25), ("CUT_TAIL", "tail", 0.0, 0.3), ("KEEP_GAP", "keepGap", 0.03, 0.6)):
+    global CUT_HEAD, CUT_TAIL, KEEP_GAP, MAX_QUIET
+    for name, key, lo, hi in (("CUT_HEAD", "head", 0.0, 0.25), ("CUT_TAIL", "tail", 0.0, 0.3), ("KEEP_GAP", "keepGap", 0.03, 0.6),
+                              ("MAX_QUIET", "maxQuiet", 0.06, 1.0)):
         if isinstance(_pace.get(key), (int, float)):
             globals()[name] = max(lo, min(hi, float(_pace[key])))
     raw = drive_file(cfg["videoUrl"], os.path.join(W, "raw"))
@@ -1699,6 +1869,7 @@ def main():
     global ENV
     try:
         ENV = energy_env(base)
+        words = tighten_words(words)
     except Exception as e:  # envelope is a refinement only
         print("audio envelope failed:", e)
     hook = None

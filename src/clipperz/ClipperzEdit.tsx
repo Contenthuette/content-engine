@@ -68,6 +68,9 @@ export const calcClipperz: CalculateMetadataFunction<Plan> = ({props}) => ({
 
 /** Learned styles can fix their zoom strengths (style.zoom.levels = [level 1, level 2]); set per render in ClipperzEdit. */
 let ZOOM_LEVELS: number[] | null = null;
+/** style.zoom.anchor = "eyes" (Contenthütte, Leif 02.11.): every framing zooms around the eyes, so they stay on the same
+ *  spot (height and middle) through all zoom cuts instead of being pulled to the upper third. */
+let ZOOM_ANCHOR: string | null = null;
 
 function levelScale(level: number, h: number, max = 1.7) {
   if (level <= 0) return 1;
@@ -100,6 +103,14 @@ function camera(t: number, zooms: Zoom[], focus: Plan['focus'], drift: number, m
   }
   const fx = focus.x * W;
   const fy = focus.y * H;
+  if (ZOOM_ANCHOR === 'eyes') {
+    // scale around the eye point: it never moves on screen, whatever the zoom (always inside the frame for S >= 1)
+    const ex = (focus.ex ?? focus.x) * W;
+    const ey = (focus.ey ?? focus.y - (focus.h > 0 ? focus.h * 0.12 : 0)) * H;
+    const sx = shake ? Math.sin(t * 90) * shake : 0;
+    const sy = shake ? Math.cos(t * 77) * shake * 0.6 : 0;
+    return {S, tx: ex * (1 - S) + sx, ty: ey * (1 - S) + sy};
+  }
   // Pull the face towards the upper third the closer we get.
   const k = cl((S - 1) / 0.35);
   const tx0 = lerp(k, fx, W / 2) - S * fx;
@@ -1146,6 +1157,7 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
   const preset = presetOf(plan);
   const zl = (preset.zoom as unknown as {levels?: number[]}).levels;
   ZOOM_LEVELS = Array.isArray(zl) ? zl.map(Number).filter((x) => x >= 1 && x <= 2.5) : null;
+  ZOOM_ANCHOR = (preset.zoom as {anchor?: string}).anchor ?? null;
   const fr = (s: number) => Math.max(0, Math.round(s * fps));
   const len = (a: number, b: number) => Math.max(1, Math.round((b - a) * fps));
   const speech = React.useMemo(() => {
