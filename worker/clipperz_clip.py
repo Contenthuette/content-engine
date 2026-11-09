@@ -2341,7 +2341,8 @@ def render(serve, plan, dst, tag=""):
     raw = os.path.join(W, f"render{tag}.mp4")
     conc = max(1, (os.cpu_count() or 2) // RENDER_PARALLEL)
     cmd = ["npx", "remotion", "render", serve, "ClipperzEdit", raw, f"--props={pj}", f"--concurrency={conc}",
-           "--codec=h264", "--crf=19", "--x264-preset=veryfast", "--audio-codec=aac", "--log=error"]
+           "--codec=h264", "--crf=16", "--x264-preset=veryfast", "--audio-codec=aac", "--log=error",
+           "--image-format=png", "--color-space=bt709"]  # sharp caption edges + phone-correct colours (same as EDITZ, 09.11.2026)
     if os.environ.get("CLIPPERZ_BROWSER"):  # own servers: a local Chrome instead of Remotion's download
         cmd.append(f"--browser-executable={os.environ['CLIPPERZ_BROWSER']}")
     if os.environ.get("CLIPPERZ_CHROME_MODE"):  # e.g. "chrome-for-testing" for a full Chrome/Chromium build
