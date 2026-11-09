@@ -472,5 +472,217 @@
     "sfxVol": 0.4,
     "smartPunct": true,
     "grade": "eq=contrast=1.06:saturation=1.10:gamma=0.98"
+  },
+  "capclean": {
+    "label": "Clean Pop",
+    "about": "Untertitel im Creator-Look 2026: klare weiße Schrift (Inter Display, extra fett) mit weichem Schatten, Wörter erscheinen genau beim Sprechen und gleiten sanft rein, das gesprochene Wort leuchtet in deiner Akzentfarbe. Ruhige Zooms, weiche B-Roll.",
+    "captions": true,
+    "cap": {
+      "style": "premium",
+      "look": "clean",
+      "font": "inter",
+      "weight": 800,
+      "upper": false,
+      "size": 76,
+      "words": 4,
+      "y": "chest",
+      "color": "#FFFFFF",
+      "track": -0.025,
+      "shade": true
+    },
+    "accents": [
+      "#FFD400",
+      "#3DFF6E",
+      "#0A66FF"
+    ],
+    "zoom": {
+      "mode": "push",
+      "every": 2,
+      "maxLevel": 1,
+      "drift": 0.03,
+      "shake": false
+    },
+    "broll": "dissolve",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-01"
+      ],
+      "tr": []
+    },
+    "hook": "clean",
+    "progress": false,
+    "music": "music/minimal124.mp3",
+    "musicVol": 0.05,
+    "sfx": {
+      "broll": [
+        "swish"
+      ],
+      "brollOut": [],
+      "zoom": [],
+      "hook": []
+    },
+    "sfxVol": 0.28,
+    "smartPunct": true
+  },
+  "capeditorial": {
+    "label": "Editorial",
+    "about": "Magazin-Untertitel: ruhige Sans-Schrift, Schlüsselwörter in kursiver Serifenschrift in deiner Akzentfarbe. Der Satz steht sofort, gesprochene Wörter werden hell. Sanfte Kamerafahrten, Story-Tempo.",
+    "captions": true,
+    "cap": {
+      "style": "premium",
+      "look": "editorial",
+      "font": "inter",
+      "weight": 600,
+      "upper": false,
+      "size": 66,
+      "words": 5,
+      "y": "chest",
+      "color": "#FFFFFF",
+      "track": -0.02,
+      "shade": true
+    },
+    "accents": [
+      "#FFE7B0",
+      "#F4940C",
+      "#FFFFFF"
+    ],
+    "zoom": {
+      "mode": "push",
+      "every": 1,
+      "maxLevel": 1,
+      "drift": 0.04,
+      "shake": false
+    },
+    "broll": "dissolve",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-01"
+      ],
+      "tr": []
+    },
+    "hook": "story",
+    "progress": false,
+    "music": "music/cinematic128.mp3",
+    "musicVol": 0.05,
+    "sfx": {
+      "broll": [
+        "slide"
+      ],
+      "brollOut": [],
+      "zoom": [],
+      "hook": []
+    },
+    "sfxVol": 0.28,
+    "smartPunct": true
+  },
+  "cappill": {
+    "label": "Highlight-Pille",
+    "about": "Kräftige Großbuchstaben, eine abgerundete Pille in deiner Akzentfarbe gleitet von Wort zu Wort – immer genau auf dem gesprochenen Wort. Schlüsselwörter bleiben farbig. Harte Zoom-Schnitte.",
+    "captions": true,
+    "cap": {
+      "style": "premium",
+      "look": "pill",
+      "font": "montserrat",
+      "weight": 800,
+      "upper": true,
+      "size": 64,
+      "words": 3,
+      "y": "chest",
+      "color": "#FFFFFF",
+      "track": -0.01,
+      "shade": false
+    },
+    "accents": [
+      "#FFD400",
+      "#3DFF6E",
+      "#FF4FD8"
+    ],
+    "zoom": {
+      "mode": "cut",
+      "every": 2,
+      "maxLevel": 1,
+      "drift": 0.02,
+      "shake": false
+    },
+    "broll": "cut",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-01"
+      ],
+      "tr": []
+    },
+    "hook": "karaoke",
+    "progress": false,
+    "music": "music/minimal124.mp3",
+    "musicVol": 0.05,
+    "sfx": {
+      "broll": [
+        "whoosh"
+      ],
+      "brollOut": [],
+      "zoom": [],
+      "hook": []
+    },
+    "sfxVol": 0.28,
+    "smartPunct": true
+  },
+  "caplower": {
+    "label": "Minimal Lower Third",
+    "about": "Dezent und edel: kleine Untertitel auf einer dunklen Glas-Leiste im unteren Bilddrittel, gesprochene Wörter hell, das aktuelle Wort in deiner Akzentfarbe. Viel Bild, wenig Text.",
+    "captions": true,
+    "cap": {
+      "style": "premium",
+      "look": "lower",
+      "font": "inter",
+      "weight": 600,
+      "upper": false,
+      "size": 46,
+      "words": 6,
+      "y": 0.7,
+      "color": "#FFFFFF",
+      "track": -0.012,
+      "shade": false
+    },
+    "accents": [
+      "#3DFF6E",
+      "#FFD400",
+      "#0A66FF"
+    ],
+    "zoom": {
+      "mode": "push",
+      "every": 2,
+      "maxLevel": 1,
+      "drift": 0.03,
+      "shake": false
+    },
+    "broll": "dissolve",
+    "inserts": {
+      "perMin": 0,
+      "codes": {},
+      "bg": [
+        "BG-01"
+      ],
+      "tr": []
+    },
+    "hook": "clean",
+    "progress": false,
+    "music": "music/minimal124.mp3",
+    "musicVol": 0.05,
+    "sfx": {
+      "broll": [
+        "swish"
+      ],
+      "brollOut": [],
+      "zoom": [],
+      "hook": []
+    },
+    "sfxVol": 0.28,
+    "smartPunct": true
   }
 }

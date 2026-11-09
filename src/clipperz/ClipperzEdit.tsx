@@ -38,6 +38,8 @@ import {byCode} from '../lib/registry';
 import {EntryView, SfxCtx} from '../lib/Catalog';
 import {asset, C, SANS, SERIF} from '../lib/core';
 import PRESETS from './presets.json';
+import {PremiumCaptions, type PremiumCap} from './captions/PremiumCaptions';
+import {captionPhrases} from './captions/layout';
 import type {Plan, Word, Zoom} from './types';
 
 const W = 1080;
@@ -292,7 +294,9 @@ export function phrases(words: Word[], max: number): Phrase[] {
       return;
     }
     const prev = words[i - 1];
-    if (cur.length && (cur.length >= max || (prev && w.s - prev.e > 0.3))) {
+    // "nb" (worker/caption_text.py): names, number + unit and "Bau- und Handwerk" never split – up to 2 words over max
+    const glued = !!prev?.nb && !prev.hide && cur.length < max + 2;
+    if (cur.length && !glued && (cur.length >= max || (prev && w.s - prev.e > 0.3))) {
       out.push({words: cur, s: cur[0].w.s, e: cur[cur.length - 1].w.e});
       cur = [];
     }
@@ -845,6 +849,13 @@ const CustomCaptions: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) 
   );
 };
 
+/** Premium caption looks (captions/PremiumCaptions.tsx): same phrases, face guard and safe zone as every other look. */
+const Premium: React.FC<{plan: Plan; preset: Preset; hidden: (t: number) => boolean}> = ({plan, preset, hidden}) => {
+  const cap = preset.cap as unknown as PremiumCap;
+  const list = React.useMemo(() => captionPhrases(plan.words, Math.max(1, cap.words || 4)), [plan.words, cap.words]);
+  return <PremiumCaptions plan={plan} cap={cap} list={list} hidden={hidden} center={(t, h) => safeCenter(captionY(plan, preset, t), h)} />;
+};
+
 // ---------- hook title ----------
 
 const Hook: React.FC<{text: string; end: number; style: string; accent: string; top: number; cap?: CustomCap}> = ({text, end, style, accent, top, cap}) => {
@@ -1220,12 +1231,12 @@ export const ClipperzEdit: React.FC<Plan> = (plan) => {
         );
       })}
 
-      {plan.captions && preset.cap.style !== 'scrim' && !(preset.cap.style === 'custom' && !(preset.cap as unknown as {shade?: boolean}).shade) ? (
+      {plan.captions && preset.cap.style !== 'scrim' && !((preset.cap.style === 'custom' || preset.cap.style === 'premium') && !(preset.cap as unknown as {shade?: boolean}).shade) ? (
         plan.cleanInserts
           ? <HideDuring hidden={inInsert}><Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} /></HideDuring>
           : <Shade y={typeof (preset.cap.y as unknown) === 'number' ? preset.cap.y : captionY(plan, preset, 1) / H} />
       ) : null}
-      {plan.captions ? (preset.cap.style === 'custom' ? <CustomCaptions plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
+      {plan.captions ? (preset.cap.style === 'premium' ? <Premium plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'custom' ? <CustomCaptions plan={plan} preset={preset} hidden={capHidden} /> : preset.cap.style === 'stack' ? <StackCaptions plan={plan} preset={preset} hidden={capHidden} /> : <Captions plan={plan} preset={preset} hidden={capHidden} />) : null}
       {plan.captions && plan.pro && plan.emojis?.length ? <EmojiPops plan={plan} preset={preset} hidden={capHidden} /> : null}
       {showHook && plan.hookMode === 'question' ? <QuestionBar text={plan.hook!.text} end={plan.hook!.e} accent={plan.accent} family={capFamily} />
         : showHook && plan.hookMode === 'zoom' ? <HookWords text={plan.hook!.text} end={plan.hook!.e} accent={plan.accent} top={hl.top} family={capFamily} />

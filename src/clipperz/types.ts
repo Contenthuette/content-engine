@@ -1,6 +1,7 @@
 // CLIPPERZ standard edit: plan written by the Python worker (Claude decides the content, code the mechanics).
 // All times in seconds on the cut timeline.
-export type Word = {s: number; e: number; w: string; /** hidden in the caption editor (still spoken) */ hide?: boolean};
+export type Word = {s: number; e: number; w: string; /** hidden in the caption editor (still spoken) */ hide?: boolean;
+  /** keep with the next word (worker/caption_text.py): never split a caption phrase or line after it */ nb?: boolean};
 
 export type Zoom = {
   s: number;
