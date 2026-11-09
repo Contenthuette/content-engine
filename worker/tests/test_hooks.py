@@ -282,4 +282,5 @@ def test_stutter_keeps_emphasis_and_phrases():
     slow = [{"w": "Parfüm", "s": 0.0, "e": 0.5}, {"w": "Parfüm", "s": 2.0, "e": 2.5}, {"w": "riecht.", "s": 2.6, "e": 3.0}]
     assert cc.stutter_drops(slow) == set()  # said again after a long pause: not a stutter
     s = make_sents([4.0] * 3)
-    assert cc.sent_intervals(s[0], False) == cc.ce.word_intervals(s[0], cc.DURATION)  # no repeat: exactly as before
+    ivs = cc.sent_intervals(s[0], False)  # no repeat: one piece with every word (shared cut rules, worker/cutplan.py)
+    assert len(ivs) == 1 and ivs[0][0] <= s[0][0]["s"] and ivs[0][1] >= s[0][-1]["e"]

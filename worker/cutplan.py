@@ -312,11 +312,20 @@ def find_retakes(words, idxs=None):
     seq = [i for i in seq if norm(words[i]["w"]) not in FILLERS]
     seq, drop, why = _restarts(words, seq)
     tok = [norm(words[i]["w"]) for i in seq]
+    pos = {}
+    for k, t in enumerate(tok):
+        pos.setdefault(t, []).append(k)
     p = 0
     while p < len(seq):
         hit = None
+        # only spans whose first word comes again soon can repeat (keeps this linear on long transcripts)
+        if not tok[p] or not any(p < k <= p + 12 + MAX_FRAG for k in pos.get(tok[p], ())):
+            p += 1
+            continue
         for n in (12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1):
             if p + n > len(seq):
+                continue
+            if n > 4 and tok[p:p + n] != tok[p + n:p + 2 * n]:
                 continue
             a = tok[p:p + n]
             if not all(a) or (n == 1 and a[0] in EMPHASIS):
@@ -385,9 +394,11 @@ def _frame(t, lo, hi):
     return round(f * FR, 4)
 
 
-def build_segments(words, keep, env=None, rules=None, breaks=(), blocks=None, dur=None, frames=True, pads=None):
+def build_segments(words, keep, env=None, rules=None, breaks=(), blocks=None, dur=None, frames=True, pads=None, head=None, tail=None):
     """Kept source ranges in output order. words: refined, sorted, non-overlapping; keep: bool per word.
     blocks: optional list of index lists in output order (smart cut: hook sentence first); default = all kept words in order.
+    head/tail: air before the first / after the last word of the whole output (default HEAD / TAIL; clips use the pause
+    rules between sentences).
     pads: {word index: (before, after)} – manual nudge ON TOP of the rules: `before` moves the start of a kept run that begins
     with this word (+ = more, − = tighter), `after` the end of a run that ends with it. Never into a neighbouring source word,
     never past the word's own other edge."""
@@ -420,11 +431,11 @@ def build_segments(words, keep, env=None, rules=None, breaks=(), blocks=None, du
             if post:
                 hi_b = min(hi_b, max(post[0] - FR, we1))
             lo_a, hi_b = min(lo_a, ws0), max(hi_b, we1)
-            pad_a = HEAD if i0 == first_word else rules.before
-            pad_b = TAIL if i1 == last_word else rules.after
+            pad_a = (HEAD if head is None else head) if i0 == first_word else rules.before
+            pad_b = (TAIL if tail is None else tail) if i1 == last_word else rules.after
             a = fr(q(max(lo_a, ws0 - pad_a), lo_a, ws0), lo_a, ws0)
             # tail: never more than TAIL of silence after the last word (snap stays inside that window)
-            hb = min(hi_b, we1 + TAIL) if i1 == last_word else hi_b
+            hb = min(hi_b, we1 + max(TAIL, pad_b)) if i1 == last_word else hi_b
             b = fr(q(min(hb, we1 + pad_b), we1, hb), we1, hb)
             if i0 in pads and pads[i0][0]:
                 a = round(min(max(a - pads[i0][0], lo_a), words[i0]["e"] - 0.04), 3)
@@ -454,14 +465,24 @@ def tidy(segs, min_len=0.04):
             out[-1] = (out[-1][0], max(out[-1][1], b))
             continue
         out.append((a, b))
-    # pairwise overlap (also between reordered blocks)
+    # pairwise overlap (also between reordered blocks); a piece fully inside another one is the same audio twice → it goes
     order = sorted(range(len(out)), key=lambda k: out[k][0])
     for x, y in zip(order, order[1:]):
         (a1, b1), (a2, b2) = out[x], out[y]
-        if b1 > a2:
+        if b1 >= b2 and a1 <= a2:
+            out[y] = (a2, a2)
+        elif b1 > a2:
             m = round((max(a1, a2) + min(b1, b2)) / 2, 4)
             out[x], out[y] = (a1, max(a1, m)), (min(b2, m), b2)
-    return [(round(a, 3), round(b, 3)) for a, b in out if b - a >= min_len]
+    res = []
+    for a, b in out:  # pieces that touch again after the split: one piece
+        if b - a < min_len:
+            continue
+        if res and abs(a - res[-1][1]) < 0.002:
+            res[-1] = (res[-1][0], max(res[-1][1], b))
+        else:
+            res.append((a, b))
+    return [(round(a, 3), round(b, 3)) for a, b in res]
 
 
 def _gap_around(t, words, dur):

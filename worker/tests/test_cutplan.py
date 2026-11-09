@@ -52,7 +52,7 @@ def covered(segs, a, b):
 # ---------- root cause (old code) ----------
 
 def test_old_padding_bleeds_into_dropped_take():
-    """Documents the bug in the old word_intervals (still used by CLIPPERZ clips): kept 2nd „das“ reaches back into the 1st."""
+    """Documents the bug in the old word_intervals (no longer used by EDITZ or clips): kept 2nd „das“ reaches back into the 1st."""
     ws = W("das@1.0-1.2 das@1.2-1.42 ist@1.47-1.7 gut.@1.75-2.1")
     db = np.full(300, -70.0)
     db[100:142] = -20.0

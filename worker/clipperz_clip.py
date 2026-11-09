@@ -78,6 +78,7 @@ def _load_editor():
 
 
 ce = _load_editor()
+import cutplan  # noqa: E402  shared cut rules (word edges, no shared audio, retakes) – same as the EDITZ rough cut
 
 
 class ClipError(Exception):
@@ -1342,38 +1343,76 @@ def clip_order(c):
     return ([c["teaser"]] if c["teaser"] is not None else []) + [k for k in range(c["start"], c["end"] + 1) if k != c["teaser"] and k not in skip]
 
 
-def sent_intervals(s, opener):
+def _cut_env():
+    """The stream's audio envelope as a cutplan.Env (built once per envelope)."""
+    env = ce.ENV
+    if not env or env.get("db") is None:
+        return None
+    if env.get("_cp") is None:
+        env["_cp"] = cutplan.Env(env["db"], DURATION)
+    return env["_cp"]
+
+
+def _cut_rules():
+    return cutplan.Rules.from_style({"head": ce.CUT_HEAD, "tail": ce.CUT_TAIL, "keepGap": ce.KEEP_GAP, "maxQuiet": ce.MAX_QUIET})
+
+
+def sent_intervals(s, opener, prev=None, nxt=None, last=False):
     """Cut intervals of one sentence exactly as the clip plays it: fillers out; stutter repeats out (stutter_drops: the
-    first of two back-to-back „Parfüm, Parfüm“); the first sentence of the clip never starts on "Und …", "Also …",
-    "Ja, …" – those words carry no meaning on their own."""
-    ws = [w for w in s if norm(w["w"]) not in ce.FILLERS] or s
-    dropped = None
+    first of two back-to-back „Parfüm, Parfüm“) and abandoned restarts inside the sentence (cutplan.find_retakes); the first
+    sentence of the clip never starts on "Und …", "Also …", "Ja, …" – those words carry no meaning on their own.
+    Shared cut rules (worker/cutplan.py, 09.11.2026): word edges measured on the audio, air never reaches into a word that is
+    not played – a dropped word inside the sentence or the neighbouring sentences (prev / nxt: their edge words) –, so two
+    sentences of one clip never share audio (the doubled-word bug). Head 0.10 s on the clip's first sentence, tail ≤ 0.3 s
+    after its last; between sentences the normal pause air."""
+    if not s:
+        return []
+    key = (id(s), len(s), bool(opener), id(prev), id(nxt), bool(last), id(ce.ENV), ce.CUT_HEAD, ce.CUT_TAIL, ce.KEEP_GAP, DURATION)
+    hit = _IV_CACHE.get(key)
+    if hit is not None and hit[0] is s and hit[1] is prev and hit[2] is nxt:
+        return list(hit[3])
+    out = _sent_intervals(s, opener, prev, nxt, last)
+    if len(_IV_CACHE) > 20000:
+        _IV_CACHE.clear()
+    _IV_CACHE[key] = (s, prev, nxt, tuple(out))
+    return out
+
+
+_IV_CACHE = {}
+
+
+def _sent_intervals(s, opener, prev, nxt, last):
+    drop = {id(w) for w in s if norm(w["w"]) in ce.FILLERS}
+    if len(drop) == len(s):
+        drop = set()
+    ws = [w for w in s if id(w) not in drop]
     if opener:
-        while len(ws) > 4 and norm(ws[0]["w"]) in WEAK_OPENERS:
-            dropped, ws = ws[0], ws[1:]
-    gone = stutter_drops(ws)
-    if not gone:
-        part = ce.word_intervals(ws, DURATION)
-    else:  # one interval run per stretch between dropped words, never reaching into a dropped word
-        part, run_ = [], []
-        for k in range(len(ws) + 1):
-            if k < len(ws) and k not in gone:
-                run_.append(k)
-                continue
-            if run_:
-                iv = [list(x) for x in ce.word_intervals([ws[x] for x in run_], DURATION)]
-                a0, b0 = run_[0], run_[-1]
-                if iv and a0 - 1 in gone:  # starts right after a dropped word: not a millisecond of it
-                    iv[0][0] = max(iv[0][0], min(ws[a0 - 1]["e"], ws[a0]["s"]))
-                if iv and b0 + 1 in gone:  # ends right before a dropped word
-                    iv[-1][1] = min(iv[-1][1], max(ws[b0 + 1]["s"], ws[b0]["e"]))
-                part += [(round(a, 3), round(b, 3)) for a, b in iv if b - a > 0.05]
-                run_ = []
-        if not part:
-            part = ce.word_intervals(ws, DURATION)
-    if dropped and part:  # the breathy in-point must not reach back into the dropped word
-        part[0] = (round(max(part[0][0], dropped["e"] + 0.01), 3), part[0][1])
-    return part
+        k = 0
+        while len(ws) - k > 4 and norm(ws[k]["w"]) in WEAK_OPENERS:
+            drop.add(id(ws[k]))
+            k += 1
+        ws = ws[k:]
+    drop |= {id(ws[k]) for k in stutter_drops(ws)}
+    rest = [w for w in ws if id(w) not in drop]
+    gone, _ = cutplan.find_retakes(rest)
+    if len(gone) < len(rest) - 1:
+        drop |= {id(rest[k]) for k in gone}
+    seq = ([dict(prev, _x=True)] if prev else []) + [dict(w, _x=id(w) in drop) for w in s] + ([dict(nxt, _x=True)] if nxt else [])
+    env = _cut_env()
+    rw = cutplan.refine(seq, env)
+    keep = [not w.get("_x") for w in rw]
+    if not any(keep):
+        return []
+    rules = _cut_rules()
+    return cutplan.build_segments(rw, keep, env, rules, dur=DURATION, frames=False,
+                                  head=cutplan.HEAD if opener else rules.before, tail=cutplan.TAIL if last else rules.after)
+
+
+def _neighbours(sents, k):
+    """Edge words of the nearest non-empty sentences before/after k (re-transcribed sentences can be empty)."""
+    prev = next((sents[j][-1] for j in range(k - 1, -1, -1) if sents[j]), None)
+    nxt = next((sents[j][0] for j in range(k + 1, len(sents)) if sents[j]), None)
+    return prev, nxt
 
 
 # Leif 29.10.2026: „Parfüm, Parfüm“ – a word or short phrase said twice back to back sounds like a stutter. The first
@@ -1407,30 +1446,31 @@ def stutter_drops(ws):
 
 
 def order_intervals(order, sents):
+    """Intervals of a clip in play order; consecutive sentences are joined, no two pieces share source time."""
     ivs = []
     for n, k in enumerate(order):
-        ivs += sent_intervals(sents[k], n == 0)
-    return ivs
+        ivs += sent_intervals(sents[k], n == 0, *_neighbours(sents, k), last=n == len(order) - 1)
+    return cutplan.tidy(ivs)
 
 
 _LEN_CACHE = {}
 
 
-def _sent_len(sents, k, opener):
+def _sent_len(sents, k, opener, last=False):
     ref, cache = _LEN_CACHE.get(id(sents), (None, None))
     if ref is not sents:
         cache = {}
         _LEN_CACHE[id(sents)] = (sents, cache)
-    key = (k, opener)
+    key = (k, opener, last)
     if key not in cache:
-        cache[key] = sum(b - a for a, b in sent_intervals(sents[k], opener)) if sents[k] else 0.0
+        cache[key] = sum(b - a for a, b in sent_intervals(sents[k], opener, *_neighbours(sents, k), last=last)) if sents[k] else 0.0
     return cache[key]
 
 
 def played_len(c, sents):
     """Seconds the clip will really run (the cut keeps only these intervals) – the length the viewer sees."""
     order = [k for k in clip_order(c) if sents[k]]
-    return sum(_sent_len(sents, k, n == 0) for n, k in enumerate(order))
+    return sum(_sent_len(sents, k, n == 0, n == len(order) - 1) for n, k in enumerate(order))
 
 
 def fit_length(c, sents, lo, hi, log=True):
