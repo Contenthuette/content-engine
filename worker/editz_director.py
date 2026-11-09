@@ -1504,6 +1504,16 @@ class Director:
             segs.append((x, min(y, st.src_dur)))
         if not segs or sum(y - x for x, y in segs) < 2.0:
             raise Bad("zu wenig Material (< 2 s)")
+        # shared cut rules (worker/cutplan.py): never inside a word, tail ≤ 0.3 s, no source jump, no shared audio
+        try:
+            import cutplan
+            cs = getattr(st.ce, "CUT", None) or {}
+            fitted, fixes = cutplan.fit_segments(segs, st.words, cs.get("env"), cs.get("breaks") or [], st.src_dur)
+            if fixes:
+                self.results.append("Schnittkanten an Wortgrenzen angepasst: " + "; ".join(fixes[:8]))
+            segs = fitted
+        except Exception as e:  # never block the cut over the refinement
+            print("director: segment fit failed:", type(e).__name__, e, flush=True)
         tail = a.get("tail")
         if tail:
             try:
@@ -1983,7 +1993,7 @@ def run(ce, cfg, job, pub, base, words, src_dur, items, llm=None):
         out = finalize(plan, st)
         out["director_state"] = {"spent_usd": round(d.spent, 4), "calls": d.n_calls(), "brief": d.brief, "head": st.head, "segments": st.segments,
                                  "bounds": st.bounds, "vdur": st.vdur, "words": st.cut_words, "phrases": st.phrases, "captions": st.captions,
-                                 "accent": st.accent, "uploads": st.uploads, "kinds": st.kinds}
+                                 "accent": st.accent, "uploads": st.uploads, "kinds": st.kinds, "grade": st.grade}
         out["raw_plan"] = plan
         return final, out
     finally:

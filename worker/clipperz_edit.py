@@ -19,6 +19,9 @@ from urllib.parse import quote
 
 import requests
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cutplan  # noqa: E402  speech-aware cut rules (word edges, retakes, pauses, EDL) – shared by every EDITZ path that cuts
+
 W = os.path.abspath(os.environ.get("CLIPPERZ_WORKDIR", "w"))
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PRESETS = json.load(open(os.path.join(REPO, "src", "clipperz", "presets.json"), encoding="utf-8"))
@@ -305,10 +308,41 @@ def transcribe(path):
     return words
 
 
+# Cut state of the current edit (set by prepare_cut): audio envelope + source breaks of base.mp4, pause rules of the style.
+CUT = {"env": None, "breaks": [], "rules": None}
+
+
+def prepare_cut(src, words, pace=None):
+    """Measures the source once (envelope, discontinuities) and re-measures every word edge on the audio.
+    Returns the refined words (source timeline; these are the EDL words)."""
+    env, breaks = None, []
+    try:
+        env = cutplan.Env.from_file(src)
+        if os.environ.get("CLIPPERZ_NO_BREAKS") != "1":
+            breaks = cutplan.source_breaks(src, env)
+    except Exception as e:  # the envelope is a refinement only – the cut still never overlaps without it
+        print("cut envelope failed:", type(e).__name__, e)
+    CUT.update(env=env, breaks=breaks, rules=cutplan.Rules.from_style(pace))
+    if breaks:
+        print("source discontinuities:", breaks[:20])
+    return cutplan.refine(words, env, breaks)
+
+
+def build_segments(words, keep, blocks=None, duration=None):
+    return cutplan.build_segments(words, keep, CUT["env"], CUT["rules"], CUT["breaks"], blocks=blocks, dur=duration)
+
+
 def rough_cut_plan(words, duration):
-    """Returns keep intervals on the source timeline."""
+    """Keep intervals on the source timeline (rough_cut_keep + the shared cut rules)."""
+    keep = rough_cut_keep(words)
+    return build_segments(words, keep, duration=duration) or [(0.0, duration)]
+
+
+def rough_cut_keep(words):
+    """Which words stay: Claude marks stumbles/takes, fillers go, then the deterministic retake/stutter check (only the
+    LAST complete take stays). Returns one bool per word."""
     if not words:
-        return [(0.0, duration)]
+        return []
     lines = "\n".join(f"{i} [{w['s']:.2f}-{w['e']:.2f}] {w['w']}" for i, w in enumerate(words))
     plan = llm_json([
         {"role": "system", "content": (
@@ -326,10 +360,19 @@ def rough_cut_plan(words, duration):
         except (TypeError, ValueError, IndexError):
             continue
         drop.update(range(max(0, a), min(len(words) - 1, b) + 1))
-    keep = [w for i, w in enumerate(words) if i not in drop and w["w"].lower().strip(".,!?…") not in FILLERS]
-    if len(keep) < max(3, len(words) * 0.25):  # the model removed far too much: keep everything but fillers
-        keep = [w for w in words if w["w"].lower().strip(".,!?…") not in FILLERS]
-    return word_intervals(keep, duration)
+    filler = lambda w: cutplan.norm(w["w"]) in FILLERS
+    keep = [i not in drop and not filler(w) for i, w in enumerate(words)]
+    if sum(keep) < max(3, len(words) * 0.25):  # the model removed far too much: keep everything but fillers
+        keep = [not filler(w) for w in words]
+    return drop_retakes(words, keep)
+
+
+def drop_retakes(words, keep):
+    """Deterministic retake/stutter removal on the kept sequence („Wir haben … wir haben heute“ → last take; „das das“ → one)."""
+    gone, why = cutplan.find_retakes(words, [i for i, k in enumerate(keep) if k])
+    for x in why:
+        print(f"retake ({x['kind']}): drop words {x['drop'][0]}-{x['drop'][1]}: {x['text']}")
+    return [k and i not in gone for i, k in enumerate(keep)]
 
 
 def sentences_of(words):
@@ -488,12 +531,13 @@ def word_intervals(ws, duration):
 
 def smart_cut_plan(words, duration, target=None):
     """Editorial cut on top of the clean cut: boring parts out, the strongest hook first.
-    Returns (intervals in final order, hook text or None)."""
-    clean = rough_cut_plan(words, duration)
-    kept = [w for w in words if any(a - 0.01 <= w["s"] and w["e"] <= b + 0.01 for a, b in clean)]
+    Returns (keep per word, blocks = word-index lists in final order or None, hook text or None).
+    Every block is cut with the same source-clamped rules, so a reordered hook never shares audio with its neighbours."""
+    keep0 = rough_cut_keep(words)
+    kept = [{**w, "i": i} for i, w in enumerate(words) if keep0[i]]
     sents = sentences_of(kept)
     if len(sents) < 3:
-        return clean, None
+        return keep0, None, None
     total = sum(s[-1]["e"] - s[0]["s"] for s in sents)
     lines = "\n".join(f"{i} ({s[-1]['e'] - s[0]['s']:.1f}s): {' '.join(w['w'] for w in s)}" for i, s in enumerate(sents))
     goal = (f"Ziel-Länge: etwa {int(target)} Sekunden (aktuell {total:.0f} s)." if target
@@ -520,7 +564,7 @@ def smart_cut_plan(words, duration, target=None):
         order = [int(x) for x in plan.get("order", [])]
         hook = int(plan.get("hook", order[0] if order else 0))
     except (TypeError, ValueError, AttributeError):
-        return clean, None
+        return keep0, None, None
     seen, final = set(), []
     for i in order:
         if 0 <= i < len(sents) and i not in seen:
@@ -534,16 +578,16 @@ def smart_cut_plan(words, duration, target=None):
     floor = 0.7 * target if target else total / 3
     if not final or kept_s < min(floor, total * 0.9):
         print("smart cut rejected (too short), using clean cut")
-        return clean, None
+        return keep0, None, None
     last = len(sents) - 1
     if last not in seen:
         final.append(last)
-    intervals = []
-    for i in final:
-        intervals += word_intervals(sents[i], duration)
+    blocks = [[w["i"] for w in sents[i]] for i in final]
+    chosen = {i for b in blocks for i in b}
+    keep = [i in chosen for i in range(len(words))]
     hook_text = " ".join(w["w"] for w in sents[final[0]])[:200]
     print(f"smart cut: {len(sents)} -> {len(final)} sentences, hook #{final[0]}: {hook_text}")
-    return intervals, hook_text
+    return keep, blocks, hook_text
 
 
 def _repeats(words):
@@ -558,57 +602,148 @@ def _repeats(words):
     return hits
 
 
-def verify_cut(cut_path, words, duration):
-    """Second pass (after krusemedia reel-recut / cut-video): transcribe the FINISHED rough cut and read it as running
-    text - doubled phrases and false starts only show up once the pieces sit next to each other. Stretched short words
-    (> 0.6 s) often hide a stumble. Claude decides; at most 15 % may go. Returns (path, words, duration)."""
-    global ENV
-    words2 = transcribe(cut_path)
-    if len(words2) < 5:
-        return cut_path, words, duration
-    reps = _repeats(words2)
-    long_short = [i for i, w in enumerate(words2) if len(re.sub(r"\W", "", w["w"])) <= 4 and w["e"] - w["s"] > 0.6]
-    if not reps and not long_short:
-        return cut_path, words2, duration  # fresh timings of the final cut are more exact for captions
-    lines = "\n".join(f"{i} [{w['s']:.2f}-{w['e']:.2f}] {w['w']}" for i, w in enumerate(words2))
+def _check_cut(dst, words, keep, segs):
+    """Re-transcribes the finished cut and compares it with the kept plan (see verify_cut)."""
+    eff = snap_iv(segs)
+    expected = cutplan.words_out(words, keep, eff)
+    actual = transcribe(dst)
+    cmp_ = cutplan.compare(expected, actual) if expected and actual else {"doubled": [], "missing": [], "ratio": 1.0}
+    jp = cutplan.join_problems(eff, CUT["env"], words)
+    jt = cutplan.joins(eff)
+    edge = []  # planned words missing right at a join: probably clipped by the cut
+    for m in cmp_["missing"]:
+        w = expected[m]
+        if any(w["s"] - 0.25 <= t <= w["e"] + 0.25 for t in jt):
+            edge.append({"word": w["w"], "i": w["i"], "t": w["s"]})
+    return {"expected": expected, "actual": actual, "doubled": cmp_["doubled"], "missing": cmp_["missing"], "edge": edge,
+            "joins": jp, "ratio": cmp_["ratio"], "segs": eff}
+
+
+def _fix_cut(words, keep, segs, blocks, rep, duration):
+    """One automatic repair: doubled n-gram → drop the first copy's source words; join in speech → widen it;
+    planned word missing at a join → give it 60 ms more on that side. Returns (keep, segs, list of German notes)."""
+    keep, fixed, eff, segs = list(keep), [], rep["segs"], list(segs)
+    for d in rep["doubled"]:
+        span = lambda a, b: [i for i, w in enumerate(words) if keep[i] and cutplan.to_src(a, eff) - 0.05 <= (w["s"] + w["e"]) / 2 <= cutplan.to_src(b, eff) + 0.05]
+        first, second = span(d["s"], d["e"]), span(d["s2"], d["e2"])
+        if first and second and not set(first) & set(second):
+            for i in first:
+                keep[i] = False
+            fixed.append(f"Doppelung entfernt: „{d['text']}“")
+    if fixed:
+        if blocks:
+            blocks = [[i for i in b if keep[i]] for b in blocks]
+        segs = build_segments(words, keep, blocks, duration) or segs
+    env = CUT["env"]
+    segs = list(segs)
+    tried = set()
+    for _ in range(12):  # each join at most once
+        jp = [j for j in cutplan.join_problems(segs, env, words) if (round(j["end"], 2), round(j["start"], 2)) not in tried]
+        if not jp:
+            break
+        before = list(segs)
+        segs = list(cutplan.widen_join(segs, jp[0]["join"], words, env))
+        tried.add((round(jp[0]["end"], 2), round(jp[0]["start"], 2)))
+        if segs != before:
+            tried.add((round(segs[min(jp[0]["join"], len(segs) - 1)][1], 2), round(segs[min(jp[0]["join"] + 1, len(segs) - 1)][0], 2)))
+            fixed.append(f"Schnitt bei {jp[0]['end']:.2f} s (Quelle) aus dem Wort gerückt")
+    for m in rep["edge"]:
+        i = m["i"]
+        for k, (a, b) in enumerate(segs):
+            w = words[i]
+            if not (a - 1e-3 <= (w["s"] + w["e"]) / 2 <= b + 1e-3):
+                continue
+            nxt = words[i + 1]["s"] - 0.01 if i + 1 < len(words) else duration
+            prv = words[i - 1]["e"] + 0.01 if i > 0 else 0.0
+            if b - w["e"] < 0.12 and k + 1 < len(segs):
+                segs[k] = (a, round(max(b, min(b + 0.06, nxt)), 3))
+            if w["s"] - a < 0.12 and k > 0:
+                segs[k] = (round(min(segs[k][0], max(segs[k][0] - 0.06, prv)), 3), segs[k][1])
+            fixed.append(f"„{m['word']}“ am Schnitt mehr Luft gegeben")
+            break
+    return keep, cutplan.tidy(segs), fixed
+
+
+def _warnings(rep):
+    out = [f"Doppelung im Schnitt: „{d['text']}“ bei {d['s']:.1f} s" for d in rep["doubled"]]
+    out += [f"Schnitt bei {j['end']:.2f} s liegt im gesprochenen Wort" for j in rep["joins"]]
+    out += [f"„{m['word']}“ fehlt am Schnitt bei {m['t']:.1f} s (abgeschnitten?)" for m in rep["edge"]]
+    if rep["expected"] and len(rep["missing"]) > 0.15 * len(rep["expected"]):
+        out.append(f"Gegenprobe weicht stark vom Schnittplan ab ({len(rep['missing'])} Wörter nicht erkannt)")
+    return out
+
+
+def verify_cut(src, words, keep, segs, blocks, dst, duration):
+    """Automatic cut check (Leif 09.11.: „ein Wort wird doppelt gesagt wegen fehlerhaftem Cut“). Cuts `src` → `dst`, transcribes the
+    RESULT and compares it with the kept plan: doubled n-grams that are not in the plan, planned words missing at a join,
+    joins whose cut point lies in speech (source envelope). One automatic fix (drop first copy / widen / more air), then the
+    check runs again; what is still wrong is returned as warnings for the job result. Finally the Claude read-through of the
+    finished text for hidden stumbles (only when the text shows hints; at most 15 % may go).
+    Returns (keep, segs, report {"ok", "fixed", "warnings", "ratio"})."""
+    cut(src, segs, dst)
+    rep = _check_cut(dst, words, keep, segs)
+    fixed = []
+    if rep["doubled"] or rep["joins"] or rep["edge"]:
+        keep2, segs2, fixed = _fix_cut(words, keep, segs, blocks, rep, duration)
+        if fixed and segs2:
+            print("cut check fix:", fixed)
+            keep, segs = keep2, segs2
+            cut(src, segs, dst)
+            rep = _check_cut(dst, words, keep, segs)
+    warnings = _warnings(rep)
+    # Claude read-through (abgebrochene Satzanfänge, Versprecher) – only with hints in the finished text
+    act = rep["actual"]
+    reps = [(p, p + n - 1) for p, n in cutplan.adjacent_repeats([cutplan.norm(w["w"]) for w in act])]
+    long_short = [i for i, w in enumerate(act) if len(re.sub(r"\W", "", w["w"])) <= 4 and w["e"] - w["s"] > 0.6]
+    if len(act) >= 5 and (reps or long_short):
+        try:
+            keep3 = _llm_review(act, rep["segs"], words, keep, reps, long_short)
+        except EditError:
+            keep3 = None
+        if keep3 is not None and keep3 != keep:
+            b2 = [[i for i in b if keep3[i]] for b in blocks] if blocks else None
+            segs3 = build_segments(words, keep3, b2, duration)
+            if segs3:
+                keep, segs = keep3, segs3
+                cut(src, segs, dst)
+                fixed.append("Versprecher nach Gegenprobe entfernt")
+    return keep, segs, {"ok": not warnings, "fixed": fixed, "warnings": warnings, "ratio": rep["ratio"]}
+
+
+def _llm_review(act, eff, words, keep, reps, long_short):
+    """Claude reads the re-transcribed cut as running text; its drops are mapped back to source words. None = nothing."""
+    lines = "\n".join(f"{i} [{w['s']:.2f}-{w['e']:.2f}] {w['w']}" for i, w in enumerate(act))
     hints = [f"Doppelung Wörter {a}-{b}" for a, b in reps] + [f"Wort {i} auffällig lang (versteckter Versprecher?)" for i in long_short]
-    try:
-        plan = llm_json([
-            {"role": "system", "content": (
-                "Du prüfst einen fertig geschnittenen Rohschnitt eines deutschen Kurzvideos. Lies das Transkript als Fließtext. "
-                "Markiere NUR eindeutige Fehler, die der Schnitt übrig gelassen hat: doppelt gesagte Wörter/Satzteile (die ERSTE Version raus), "
-                "abgebrochene Satzanfänge, Versprecher. Gewollte Wiederholungen zur Betonung bleiben. Im Zweifel nichts markieren. "
-                "Antworte NUR mit JSON: {\"drop\": [[von_index, bis_index], ...]}"
-            )},
-            {"role": "user", "content": lines + "\n\nAuffälligkeiten (Hinweise, nicht zwingend Fehler):\n" + "\n".join(hints)},
-        ])
-    except EditError:
-        return cut_path, words2, duration
+    plan = llm_json([
+        {"role": "system", "content": (
+            "Du prüfst einen fertig geschnittenen Rohschnitt eines deutschen Kurzvideos. Lies das Transkript als Fließtext. "
+            "Markiere NUR eindeutige Fehler, die der Schnitt übrig gelassen hat: doppelt gesagte Wörter/Satzteile (die ERSTE Version raus), "
+            "abgebrochene Satzanfänge, Versprecher. Gewollte Wiederholungen zur Betonung bleiben. Im Zweifel nichts markieren. "
+            "Antworte NUR mit JSON: {\"drop\": [[von_index, bis_index], ...]}"
+        )},
+        {"role": "user", "content": lines + "\n\nAuffälligkeiten (Hinweise, nicht zwingend Fehler):\n" + "\n".join(hints)},
+    ])
     drop = set()
     for rng in plan.get("drop", []) if isinstance(plan, dict) else []:
         try:
             a, b = int(rng[0]), int(rng[1])
         except (TypeError, ValueError, IndexError):
             continue
-        drop.update(range(max(0, a), min(len(words2) - 1, b) + 1))
+        drop.update(range(max(0, a), min(len(act) - 1, b) + 1))
     if not drop:
-        return cut_path, words2, duration
-    keep = [w for i, w in enumerate(words2) if i not in drop]
-    lost = sum(words2[i]["e"] - words2[i]["s"] for i in drop)
-    if lost > 0.15 * duration or len(keep) < 3:
+        return None
+    lost = sum(act[i]["e"] - act[i]["s"] for i in drop)
+    if lost > 0.15 * cutplan.out_dur(eff) or len(act) - len(drop) < 3:
         print("verify cut rejected (too much)")
-        return cut_path, words2, duration
-    prev = ENV
-    try:
-        ENV = energy_env(cut_path)
-        iv = word_intervals(keep, duration)
-    finally:
-        ENV = prev
-    out = os.path.join(W, "cut2.mp4")
-    cut(cut_path, iv, out)
-    d2, _ = probe(out)
-    print(f"verify cut: removed {len(drop)} words ({lost:.1f} s)")
-    return out, remap_words(words2, iv), d2
+        return None
+    keep = list(keep)
+    for i in drop:  # re-transcribed word → the source words under it
+        a, b = cutplan.to_src(act[i]["s"], eff), cutplan.to_src(act[i]["e"], eff)
+        for k, w in enumerate(words):
+            if keep[k] and a - 0.03 <= (w["s"] + w["e"]) / 2 <= b + 0.03:
+                keep[k] = False
+    print(f"verify cut: Claude removed {len(drop)} words ({lost:.1f} s)")
+    return keep if sum(keep) >= 3 else None
 
 
 CUT_SELECT_FROM = 3  # more pieces than this: single-pass select for the video (see cut)
@@ -623,6 +758,8 @@ def snap_iv(intervals):
     out = []
     for a, b in intervals:
         a2, b2 = round(round(a / fr) * fr, 4), round(round(b / fr) * fr, 4)
+        if out and out[-1][0] <= a2 < out[-1][1]:  # rounding must never make two pieces share a frame (doubled audio)
+            a2 = out[-1][1]
         if b2 - a2 >= fr:
             out.append((a2, b2))
     return out
@@ -651,14 +788,16 @@ def cut(src, intervals, dst, preset="veryfast", crf=18, seek=False):
         sel = "+".join(f"between(t,{a:.4f},{b - fr / 2:.4f})" for a, b in intervals)
         parts = [f"[0:v]select='{sel}',setpts=N/{FPS}/TB[v]"]
         for i, (a, b) in enumerate(intervals):
-            parts.append(f"[0:a]atrim={a}:{b},asetpts=PTS-STARTPTS,afade=t=in:d=0.008,"
-                         f"afade=t=out:st={max(0.0, b - a - 0.012):.3f}:d=0.012[a{i}]")
+            fo = cutplan.END_FADE if i == len(intervals) - 1 else cutplan.XF  # 15 ms per join, 40 ms at the very end
+            parts.append(f"[0:a]atrim={a}:{b},asetpts=PTS-STARTPTS,afade=t=in:d={cutplan.XF},"
+                         f"afade=t=out:st={max(0.0, b - a - fo):.3f}:d={fo}[a{i}]")
         concat = "".join(f"[a{i}]" for i in range(len(intervals))) + f"concat=n={len(intervals)}:v=0:a=1[a]"
     else:
         parts = []
         for i, (a, b) in enumerate(intervals):
+            fo = cutplan.END_FADE if i == len(intervals) - 1 else cutplan.XF
             parts.append(f"[0:v]trim={a}:{b},setpts=PTS-STARTPTS[v{i}];[0:a]atrim={a}:{b},asetpts=PTS-STARTPTS,"
-                         f"afade=t=in:d=0.01,afade=t=out:st={max(0.0, b - a - 0.015):.3f}:d=0.015[a{i}]")
+                         f"afade=t=in:d={cutplan.XF},afade=t=out:st={max(0.0, b - a - fo):.3f}:d={fo}[a{i}]")
         concat = "".join(f"[v{i}][a{i}]" for i in range(len(intervals))) + f"concat=n={len(intervals)}:v=1:a=1[v][a]"
     with open(os.path.join(W, "cut.filter"), "w") as fh:
         fh.write(";".join(parts) + ";" + concat)
@@ -1390,6 +1529,19 @@ def revise_ops(plan, prompt):
     return res if isinstance(res, dict) else {}
 
 
+def safe_cut_time(words, a, b):
+    """A raw time cut (dead pause) keeps a little air after the word before and before the word after – a silence cut
+    flush against both words sounds clipped. Ranges that contain words are left as they are."""
+    if any(a - 0.01 <= w["s"] and w["e"] <= b + 0.01 for w in words):
+        return a, b
+    prv = [w["e"] for w in words if w["e"] <= a + 0.03]
+    nxt = [w["s"] for w in words if w["s"] >= b - 0.03]
+    rules = CUT.get("rules") or cutplan.Rules()
+    a2 = max(a, (max(prv) + rules.after) if prv else a)
+    b2 = min(b, (min(nxt) - rules.before) if nxt else b)
+    return (round(a2, 3), round(b2, 3)) if b2 > a2 else (a, a)
+
+
 def _map_time(t, iv):
     iv = snap_iv(iv)
     off = 0.0
@@ -1469,6 +1621,9 @@ def apply_ops(plan, res, job):
         except (TypeError, ValueError, IndexError):
             continue
         if 0 <= a < b <= plan["duration"]:
+            a, b = safe_cut_time(words, a, b)
+            if b - a < 0.03:
+                continue
             extra.append((a, b))
             for k, w in enumerate(words):
                 if w["s"] >= a - 0.01 and w["e"] <= b + 0.01:
@@ -1538,6 +1693,14 @@ def apply_ops(plan, res, job):
         plan["zooms"] = zooms
         plan["sfx"] = [{**x, "t": round(m, 3)} for x in plan.get("sfx", []) for m in [_map_time(x["t"], iv)] if m is not None]
         plan["duration"] = round(off, 3)
+        edl = plan.get("edl")
+        if isinstance(edl, dict) and edl.get("segments"):  # the EDL follows the cut of the cut (source timeline)
+            try:
+                src = cutplan.compose([tuple(x) for x in edl["segments"]], iv)
+                ew = cutplan.edl_words(edl)
+                plan["edl"] = cutplan.make_edl(ew, cutplan.keep_from_segments(ew, src), src, edl["duration"])
+            except Exception as e:
+                print("edl update failed:", type(e).__name__, e)
         if plan.get("fg"):
             cutout(main_path, os.path.join(REPO, "public", plan["fg"]))
             changed.add(plan["fg"])
@@ -1615,6 +1778,17 @@ def apply_direct(plan, ed, job):
     return plan, changed
 
 
+def done_extra(plan, check=None):
+    """Extra fields of the done callback: the EDL (contract worker/EDL.md) and the automatic cut check."""
+    out = {}
+    if isinstance(plan, dict) and isinstance(plan.get("edl"), dict):
+        out["edl"] = plan["edl"]
+    if check:
+        out["cutCheck"] = {"ok": bool(check.get("ok")), "fixed": list(check.get("fixed") or [])[:10],
+                           "warnings": list(check.get("warnings") or [])[:10]}
+    return out
+
+
 def job_id():
     return f"job/{re.sub(r'[^A-Za-z0-9]', '', str(P['edit']))[:40] or 'edit'}"
 
@@ -1635,6 +1809,9 @@ def run_director(cfg, pr, base, words, in_dur, items):
         report(note="Regie nicht verfügbar – Standard-Schnitt läuft…")
         return False
     final, plan = res
+    segs = [tuple(s["src"]) for s in (plan.get("director_state") or {}).get("segments") or [] if isinstance(s, dict) and s.get("src")]
+    if segs:  # the Regie cut as EDL (source timeline) for the manual editor
+        plan["edl"] = cutplan.make_edl(words, cutplan.keep_from_segments(words, segs), segs, in_dur)
     report(note="Fertiges Video wird hochgeladen…")
     url = upload(final)
     try:
@@ -1644,7 +1821,8 @@ def run_director(cfg, pr, base, words, in_dur, items):
         plan_url, assets = None, []
     ds = plan.get("director_state") or {}
     report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig (Regie)",
-           stats={"inSec": in_dur, "outSec": plan.get("dur"), "broll": len(items or []), "agentUsd": ds.get("spent_usd"), "agentCalls": ds.get("calls")})
+           stats={"inSec": in_dur, "outSec": plan.get("dur"), "broll": len(items or []), "agentUsd": ds.get("spent_usd"), "agentCalls": ds.get("calls")},
+           **done_extra(plan))
     return True
 
 
@@ -1654,7 +1832,7 @@ def scene_style(pr):
     return st if st in ("minimal", "clean", "doku") else None
 
 
-def run_scenes(cfg, pr, style, cut_path, words, out_dur, in_dur):
+def run_scenes(cfg, pr, style, cut_path, words, out_dur, in_dur, edl=None, check=None):
     """EDITZ scene styles (worker/editz_scenes.py): Opus plans the scenes from fixed templates (with Leif's approved edit as
     example) and checks its own plan, pictures come from public-domain archives, a vision pass checks stills before the
     render. The plan is saved so the customer can correct the video by prompt. Returns False → normal pipeline."""
@@ -1688,6 +1866,9 @@ def run_scenes(cfg, pr, style, cut_path, words, out_dur, in_dur):
         print("scene planner failed, normal pipeline:", type(e).__name__, e, flush=True)
         report(note=f"{label}-Planung nicht verfügbar – Standard-Schnitt läuft…")
         return False
+    if edl:
+        plan["edl"] = edl
+        plan["cutRules"] = CUT["rules"].as_dict() if CUT["rules"] else None
     report(note=f"Video wird gerendert ({label})…", stats={"inSec": in_dur, "outSec": out_dur, "broll": 0})
     final = os.path.join(W, "final.mp4")
     render(plan, final)
@@ -1698,15 +1879,43 @@ def run_scenes(cfg, pr, style, cut_path, words, out_dur, in_dur):
     except Exception as e:
         print("saving the plan for corrections failed:", e)
         plan_url, assets = None, []
-    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note=f"Fertig ({label})")
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note=f"Fertig ({label})", **done_extra(plan, check))
     return True
 
 
+def manual_of(cfg):
+    """The editor's manual cut (edit-config: top level `manual` and/or `revise.manual`), or None."""
+    rv = cfg.get("revise") if isinstance(cfg.get("revise"), dict) else {}
+    m = rv.get("manual") if isinstance(rv.get("manual"), dict) else cfg.get("manual")
+    return m if isinstance(m, dict) else None
+
+
+def load_edl(cfg, plan=None):
+    """The EDL the manual indices refer to: revise.edlUrl (stored by the app) wins over the copy inside the plan."""
+    rv = cfg.get("revise") if isinstance(cfg.get("revise"), dict) else {}
+    if rv.get("edlUrl"):
+        try:
+            r = requests.get(rv["edlUrl"], timeout=60)
+            if r.status_code == 200:
+                e = r.json()
+                if isinstance(e, dict) and e.get("words"):
+                    return e
+            print("edl download failed:", r.status_code)
+        except Exception as e:
+            print("edl download failed:", type(e).__name__)
+    e = (plan or {}).get("edl")
+    return e if isinstance(e, dict) and e.get("words") else None
+
+
 def run_revision(cfg):
-    rv = cfg["revise"]
-    report(status="working", note="Korrektur: Schnittplan wird geladen…", runUrl=RUN_URL)
+    rv = cfg.get("revise") if isinstance(cfg.get("revise"), dict) else {}
+    manual = manual_of(cfg)
+    report(status="working", note="Manueller Schnitt wird vorbereitet…" if manual else "Korrektur: Schnittplan wird geladen…", runUrl=RUN_URL)
+    if manual and not rv.get("planUrl"):  # no saved plan: full edit of the same style, but the cut comes from the editor
+        return run_manual_full(cfg, manual)
     plan = requests.get(rv["planUrl"], timeout=60).json()
     job = os.path.dirname(plan["video"])
+    edl0 = plan.get("edl")
     for a in rv.get("assets") or []:
         rel = a["rel"]
         if not re.fullmatch(r"job/[A-Za-z0-9_]+/[A-Za-z0-9_.-]+", rel):
@@ -1718,6 +1927,8 @@ def run_revision(cfg):
             with open(dst, "wb") as fh:
                 for chunk in r.iter_content(1 << 20):
                     fh.write(chunk)
+    if manual:  # manual cut from the CLIPPERZ editor (EDL, worker/EDL.md): no model, no auto cut, the prompt is ignored
+        return run_manual(cfg, rv, plan, job, manual)
     if plan.get("editz") and not isinstance(rv.get("plan"), dict):  # EDITZ scene styles: Opus changes the scene plan
         import editz_agent
         import editz_scenes
@@ -1734,8 +1945,10 @@ def run_revision(cfg):
         final = os.path.join(W, "final.mp4")
         render(plan, final)
         url = upload(final)
+        if edl0 and not plan.get("edl"):
+            plan["edl"] = edl0
         plan_url, new_assets = save_job(plan, job, only=changed)
-        report(status="done", resultUrl=url, planUrl=plan_url, assets=list(rv.get("assets") or []) + new_assets, note=note)
+        report(status="done", resultUrl=url, planUrl=plan_url, assets=list(rv.get("assets") or []) + new_assets, note=note, **done_extra(plan))
         return
     if plan.get("director") and not isinstance(rv.get("plan"), dict):  # Claude Regie: the correction goes through the agent too
         import editz_director
@@ -1746,8 +1959,10 @@ def run_revision(cfg):
             return
         final, plan = res
         url = upload(final)
+        if edl0 and not plan.get("edl"):
+            plan["edl"] = edl0
         plan_url, new_assets = save_job(plan, job, only=set())
-        report(status="done", resultUrl=url, planUrl=plan_url, assets=list(rv.get("assets") or []), note=note)
+        report(status="done", resultUrl=url, planUrl=plan_url, assets=list(rv.get("assets") or []), note=note, **done_extra(plan))
         return
     if isinstance(rv.get("plan"), dict):  # edited by hand in the CLIPPERZ editor: no Claude needed
         plan, changed = apply_direct(plan, rv["plan"], job)
@@ -1764,7 +1979,216 @@ def run_revision(cfg):
     url = upload(final)
     keep = [a for a in rv.get("assets") or [] if a["rel"] not in changed]
     plan_url, new_assets = save_job(plan, job, only=changed)
-    report(status="done", resultUrl=url, planUrl=plan_url, assets=keep + new_assets, note=note)
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=keep + new_assets, note=note, **done_extra(plan))
+
+
+# ---------- manual cut (CLIPPERZ editor → EDL, contract in worker/EDL.md) ----------
+
+def _old_index_map(old_words, old_segs, words, keep):
+    """Old caption/transcript word index → source word index (by the stored "i", else by time)."""
+    out = {}
+    for k, w in enumerate(old_words or []):
+        if isinstance(w.get("i"), int) and 0 <= w["i"] < len(words):
+            out[k] = w["i"]
+            continue
+        c = cutplan.to_src((w["s"] + w["e"]) / 2, old_segs) if old_segs else (w["s"] + w["e"]) / 2
+        hit = min(range(len(words)), key=lambda i: 0 if words[i]["s"] <= c <= words[i]["e"] else min(abs(words[i]["s"] - c), abs(words[i]["e"] - c)))
+        out[k] = hit
+    return out
+
+
+def _captions_from(words_new, merged):
+    """Empty text from the editor = the word is merged into the one before (its time goes there, it leaves the captions)."""
+    out = []
+    for w in words_new:
+        if not str(w.get("w", "")).strip():
+            if out:
+                out[-1]["e"] = max(out[-1]["e"], w["e"])
+            continue
+        out.append(dict(w))
+    return out
+
+
+def _manual_standard(plan, words_new, src_of_old, old_segs, segs, cut_path, out_dur, job, manual_text):
+    """ClipperzEdit / template plans: new main video, captions from the EDL words, every timed element moved along."""
+    pub = os.path.join(REPO, "public", job)
+    changed = set()
+    prepare_main(cut_path, os.path.join(pub, "main.mp4"), (plan.get("style") or {}).get("grade"))
+    changed.add(f"{job}/main.mp4")
+    old_words = plan.get("words") or []
+    by_src = {}
+    for k, i in src_of_old.items():
+        by_src.setdefault(i, k)
+    em_src = {src_of_old[k] for k in plan.get("emphasis", []) if k in src_of_old}
+    caps = []
+    for w in words_new:
+        i, k = w["i"], by_src.get(w["i"])
+        old = old_words[k] if k is not None and k < len(old_words) else {}
+        txt = manual_text.get(i, old.get("w", w["w"]) if old else w["w"])
+        caps.append({**{x: old[x] for x in ("c", "hide") if x in old}, "s": w["s"], "e": w["e"], "w": txt, "i": i})
+    caps = _captions_from(caps, True)
+    plan["words"] = caps
+    plan["emphasis"] = [k for k, w in enumerate(caps) if w["i"] in em_src]
+    rt = cutplan.retimer(old_segs, segs)
+    cutplan.retime_obj(plan, rt, skip=("words", "emphasis", "style", "edl", "focus", "music", "cutRules", "director_state", "raw_plan", "editz"))
+    for key in ("broll", "inserts"):
+        plan[key] = [x for x in plan.get(key) or [] if not isinstance(x, dict) or not ("s" in x and "e" in x) or x["e"] - x["s"] >= 0.05]
+    zs = sorted([z for z in plan.get("zooms") or [] if z["e"] - z["s"] >= 0.05], key=lambda z: z["s"])
+    for a, b in zip(zs, zs[1:]):  # zoom segments keep covering the whole video
+        a["e"] = b["s"]
+    if zs:
+        zs[0]["s"], zs[-1]["e"] = 0.0, round(out_dur, 3)
+    plan["zooms"] = zs or [{"s": 0.0, "e": round(out_dur, 3), "level": 1, "mode": "cut", "shake": False}]
+    if plan.get("hook") and isinstance(plan["hook"].get("e"), (int, float)):
+        plan["hook"]["e"] = round(max(0.6, min(plan["hook"]["e"], out_dur / 2)), 2)
+    plan["duration"] = round(out_dur, 3)
+    if plan.get("fg"):
+        cutout(os.path.join(pub, "main.mp4"), os.path.join(REPO, "public", plan["fg"]))
+        changed.add(plan["fg"])
+    return plan, changed
+
+
+def _manual_scenes(plan, words_new, src_of_old, cut_path, out_dur, job):
+    """EDITZ scene styles: same scene plan, word indices moved to the new transcript, pictures reused (no model)."""
+    import editz_scenes
+    pub = os.path.join(REPO, "public", job)
+    meta = plan.get("editz") or {}
+    caps = _captions_from(words_new, True)
+    new_of_src = {w["i"]: k for k, w in enumerate(caps)}
+    kept_src = sorted(new_of_src)
+
+    def imap(k):
+        i = src_of_old.get(k)
+        if i is None:
+            return 0
+        nxt = [j for j in kept_src if j >= i]  # a cut word → the next kept one
+        return new_of_src[nxt[0]] if nxt else len(caps) - 1
+    style = meta.get("style")
+    grade = next((p.get("grade") for p in PRESETS.values() if isinstance(p, dict) and p.get("scenes") == style), None)
+    main = os.path.join(pub, "main.mp4")
+    try:
+        import auto_light
+        lit = os.path.join(W, "cut_light.mp4")
+        if auto_light.apply(cut_path, lit):
+            cut_path = lit
+    except Exception as e:
+        print("auto light failed, original footage:", type(e).__name__, e, flush=True)
+    prepare_main(cut_path, main, grade)
+    plan = editz_scenes.recut(plan, caps, round(out_dur, 3), imap)
+    return plan, {f"{job}/main.mp4"}
+
+
+def _manual_director(cfg, plan, base, words, segs, in_dur, words_new, job):
+    """Claude Regie plans: the cut is redone from the source with the same grade, every timed element moves along,
+    the measurable rules (punch at every jump cut, end freeze, captions) are fixed mechanically. No model call."""
+    import editz_director as ed
+    ds = plan.get("director_state") or {}
+    pub = os.path.join(REPO, "public", job)
+    st = ed.State(sys.modules[__name__], {"captions": ds.get("captions"), "accent": ds.get("accent")}, job, pub, base, words, in_dur, [])
+    st.accent = ds.get("accent")
+    st.head = tuple(ds["head"]) if ds.get("head") else None
+    st.uploads, st.kinds = ds.get("uploads") or [], ds.get("kinds") or {}
+    st.grade = ds.get("grade") or "natural"
+    old_segs = [tuple(x["src"]) for x in ds.get("segments") or []]
+    old_vdur = float(ds.get("vdur") or plan.get("dur") or cutplan.out_dur(old_segs))
+    d = ed.Director(st, None, os.path.join(W, "director_manual"), revision=True)
+    res = d.a_cut({"segments": [list(x) for x in segs], "grade": st.grade})
+    print("manual director cut:", str(res)[:300])
+    st.cut_words = [{"w": w["w"], "s": w["s"], "e": w["e"]} for w in _captions_from(words_new, True)]
+    st.phrases = ed.phrases_of(st.cut_words)
+    raw = plan.get("raw_plan") or plan
+    raw = json.loads(json.dumps(raw))
+    new_segs = [tuple(x["src"]) for x in st.segments]
+    rt = cutplan.retimer(old_segs, new_segs)
+    hold = max(0.0, float(raw.get("dur") or old_vdur) - old_vdur)
+    for key in ("framing", "sheet", "wall"):
+        cutplan.retime_obj(raw.get(key) or [], rt, keys=("t", "at", "out"), skip=("phrases", "anchor", "rect"))
+    raw["sfx"] = [[rt(x[0]), *x[1:]] for x in raw.get("sfx") or [] if isinstance(x, list) and x]
+    raw["freeze"] = [[rt(x[0]), rt(x[1]), rt(x[2])] for x in raw.get("freeze") or [] if isinstance(x, list) and len(x) >= 3]
+    raw["marks"] = [[rt(x[0]), rt(x[1])] for x in raw.get("marks") or [] if isinstance(x, list) and len(x) >= 2]
+    raw["dur"] = round(st.vdur + hold, 3)
+    raw["freeze"] = [f for f in raw["freeze"] if f[1] - f[0] > 0.02 and f[0] < st.vdur]
+    for el in raw.get("sheet") or []:
+        if el.get("type") == "captions":
+            el["phrases"] = st.phrases
+    raw["framing"] = sorted(raw.get("framing") or [{"t": 0, "z": 1.0, "tr": "cut"}], key=lambda k: k["t"])
+    notes = ed.autofix(raw, st)
+    print("manual director autofix:", notes)
+    d.wait_matte()
+    final = os.path.join(W, "final.mp4")
+    ed.render(st, raw, final)
+    out = ed.finalize(raw, st)
+    out["director_state"] = {**ds, "segments": st.segments, "bounds": st.bounds, "vdur": st.vdur, "words": st.cut_words,
+                             "phrases": st.phrases, "grade": st.grade}
+    out["raw_plan"] = raw
+    return out, final
+
+
+def run_manual(cfg, rv, plan, job, manual):
+    """Manual cut from the CLIPPERZ editor: rv["manual"] = {"keep": [bool per EDL word], "text": {i: text}, "pad": {i: [before, after]}}.
+    The automatic cut and every Claude cut decision are skipped; segments come from the kept words with the same edge/pause/snap
+    rules (worker/cutplan.py), text fixes go into the captions, the same style is rendered again."""
+    edl = load_edl(cfg, plan)
+    if not edl:
+        report(status="failed", error="Für dieses Video gibt es noch keinen Wort-Schnitt – bitte das Video einmal neu schneiden lassen.")
+        return
+    src_url = rv.get("videoUrl") or cfg.get("videoUrl")
+    if not src_url:
+        report(status="failed", error="Originalvideo nicht gefunden – manueller Schnitt nicht möglich.")
+        return
+    report(note="Manueller Schnitt: Originalvideo wird geladen…")
+    raw = drive_file(src_url, os.path.join(W, "raw"))
+    base = os.path.join(W, "base.mp4")
+    normalize(raw, base, cfg.get("rotate") or 0, hi=not plan.get("director"))
+    in_dur, _ = probe(base)
+    if abs(in_dur - float(edl.get("duration") or in_dur)) > 0.5:
+        report(status="failed", error="Das Originalvideo passt nicht zum gespeicherten Schnitt (andere Länge).")
+        return
+    cr = plan.get("cutRules") if isinstance(plan.get("cutRules"), dict) else {}
+    rules = cutplan.Rules(cr.get("keepGap", 0.21), cr.get("after", 0.06), cr.get("before", 0.05)) if cr else cutplan.Rules()
+    env, breaks = None, []
+    try:
+        env = cutplan.Env.from_file(base)
+        breaks = cutplan.source_breaks(base, env)
+    except Exception as e:
+        print("cut envelope failed:", type(e).__name__, e)
+    CUT.update(env=env, breaks=breaks, rules=rules)
+    try:
+        words, keep, segs = cutplan.apply_manual(edl, manual, env, rules, breaks)
+    except ValueError as e:
+        report(status="failed", error=f"Manueller Schnitt ungültig: {e}"[:300])
+        return
+    manual_text = {int(k): re.sub(r"\s+", " ", v).strip()[:60] for k, v in (manual.get("text") or {}).items()
+                   if str(k).isdigit() and isinstance(v, str)}
+    old_segs = [tuple(x) for x in edl.get("segments") or []] or [(0.0, float(edl["duration"]))]
+    report(note="Manueller Schnitt wird geschnitten…")
+    if plan.get("director"):
+        words_new = cutplan.words_out(words, keep, snap_iv(segs))
+        plan, final = _manual_director(cfg, plan, base, words, segs, in_dur, words_new, job)
+        segs = [tuple(x["src"]) for x in plan["director_state"]["segments"]]
+        changed = {f"{job}/cut.mp4"} | ({plan["fg"]} if plan.get("fg") else set()) | ({plan["audio"]} if plan.get("audio") else set())
+    else:
+        cut_path = os.path.join(W, "cut.mp4")
+        cut(base, segs, cut_path)
+        segs = snap_iv(segs)
+        out_dur, _ = probe(cut_path)
+        words_new = cutplan.words_out(words, keep, segs)
+        if plan.get("editz"):
+            src_of_old = _old_index_map((plan.get("editz") or {}).get("words"), old_segs, words, keep)
+            plan, changed = _manual_scenes(plan, words_new, src_of_old, cut_path, out_dur, job)
+        else:
+            src_of_old = _old_index_map(plan.get("words"), old_segs, words, keep)
+            plan, changed = _manual_standard(plan, words_new, src_of_old, old_segs, segs, cut_path, out_dur, job, manual_text)
+        report(note="Manueller Schnitt wird gerendert…")
+        final = os.path.join(W, "final.mp4")
+        render(plan, final)
+    plan["edl"] = cutplan.make_edl(words, cutplan.keep_from_segments(words, segs) if plan.get("director") else keep, segs, edl["duration"])
+    plan["cutRules"] = rules.as_dict()
+    url = upload(final)
+    keep_assets = [a for a in rv.get("assets") or [] if a["rel"] not in changed]
+    plan_url, new_assets = save_job(plan, job, only=changed)
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=keep_assets + new_assets, note="Manueller Schnitt übernommen",
+           **done_extra(plan))
 
 
 HEX = re.compile(r"#[0-9A-Fa-f]{6}")
@@ -1808,9 +2232,22 @@ def main():
     os.makedirs(W, exist_ok=True)
     global VOCAB
     VOCAB = vocab_list(cfg.get("vocab"))
-    if cfg.get("revise"):
+    if cfg.get("revise") or manual_of(cfg):
         return run_revision(cfg)
+    return run_edit(cfg)
 
+
+def run_manual_full(cfg, manual):
+    """Manual cut without a saved plan: the full edit of the chosen style, but the cut comes from the editor's EDL
+    (no transcription, no automatic cut decisions, no cut check)."""
+    edl = load_edl(cfg)
+    if not edl:
+        report(status="failed", error="Für dieses Video gibt es noch keinen Wort-Schnitt – bitte das Video einmal neu schneiden lassen.")
+        return
+    return run_edit(cfg, manual=manual, edl=edl)
+
+
+def run_edit(cfg, manual=None, edl=None):
     # Learned styles bring their own cutting pace (style.cut); set it before the rough cut.
     _pr0 = PRESETS[register_style(cfg.get("preset"), cfg.get("styleConfig"))]
     _pace = (_pr0.get("cut") or {})
@@ -1861,43 +2298,88 @@ def main():
     # Claude Regie works on a 1080p proxy (one 4K decode, then only the proxy – shared 2-core runners)
     normalize(raw, base, cfg.get("rotate") or 0, hi=not _pr0.get("director"))
     in_dur, _ = probe(base)
+    if manual is not None:
+        return _edit_manual_cut(cfg, _pr0, _pace, base, in_dur, items, manual, edl)
     words = transcribe(base)
+    global ENV
+    try:
+        ENV = energy_env(base)  # older helpers (clips, agent silences) still read it
+    except Exception as e:  # envelope is a refinement only
+        print("audio envelope failed:", e)
+    # Every word edge measured on the audio – these words are the EDL (source timeline) for the manual editor.
+    words = prepare_cut(base, words, _pace)
     if _pr0.get("director"):
         if run_director(cfg, _pr0, base, words, in_dur, items):
             return
         cfg = {**cfg, "preset": _pr0.get("fallback") or "clean", "styleConfig": None}  # model down → the normal pipeline
-    global ENV
-    try:
-        ENV = energy_env(base)
-        words = tighten_words(words)
-    except Exception as e:  # envelope is a refinement only
-        print("audio envelope failed:", e)
-    hook = None
+    hook, check = None, None
     if cfg.get("preCut"):
-        cut_path, words_cut, out_dur = base, words, in_dur
+        keep, segs = [True] * len(words), [(0.0, round(in_dur, 3))]
+        cut_path, out_dur = base, in_dur
     else:
+        blocks = None
         if cfg.get("cutMode") == "smart":
             report(note="Intelligenter Rohschnitt: Wichtiges, Witziges und die stärkste Hook werden gesucht…")
-            intervals, hook = smart_cut_plan(words, in_dur, cfg.get("targetSec"))
+            keep, blocks, hook = smart_cut_plan(words, in_dur, cfg.get("targetSec"))
         else:
             report(note="Rohschnitt: Versprecher und Pausen werden entfernt…")
-            intervals = rough_cut_plan(words, in_dur)
+            keep = rough_cut_keep(words)
         if hook:
             report(hook=hook)
+        segs = build_segments(words, keep, blocks, in_dur) or [(0.0, round(in_dur, 3))]
         cut_path = os.path.join(W, "cut.mp4")
-        cut(base, intervals, cut_path)
-        words_cut = remap_words(words, intervals)
-        out_dur, _ = probe(cut_path)
-        report(note="Rohschnitt wird gegengeprüft (Doppelungen, Versprecher)…")
+        report(note="Rohschnitt wird gegengeprüft (Doppelungen, abgeschnittene Wörter, Versprecher)…")
         try:
-            cut_path, words_cut, out_dur = verify_cut(cut_path, words_cut, out_dur)
+            keep, segs, check = verify_cut(base, words, keep, segs, blocks, cut_path, in_dur)
         except Exception as e:  # the check must never break an edit
-            print("verify cut failed:", e)
+            print("verify cut failed:", type(e).__name__, e)
+            cut(base, segs, cut_path)
+        segs = snap_iv(segs)
+        out_dur, _ = probe(cut_path)
+    words_cut = cutplan.words_out(words, keep, segs)
+    edl = cutplan.make_edl(words, keep, segs, in_dur)
+    if check and check.get("warnings"):
+        print("cut check warnings:", check["warnings"])
+    return finish_edit(cfg, items, cut_path, words_cut, out_dur, in_dur, edl, check, hook)
+
+
+def _edit_manual_cut(cfg, pr0, pace, base, in_dur, items, manual, edl):
+    """run_edit with the editor's cut (see run_manual_full)."""
+    if abs(in_dur - float(edl.get("duration") or in_dur)) > 0.5:
+        report(status="failed", error="Das Originalvideo passt nicht zum gespeicherten Schnitt (andere Länge).")
+        return
+    env, breaks = None, []
+    try:
+        env = cutplan.Env.from_file(base)
+        breaks = cutplan.source_breaks(base, env)
+    except Exception as e:
+        print("cut envelope failed:", type(e).__name__, e)
+    rules = cutplan.Rules.from_style(pace)
+    CUT.update(env=env, breaks=breaks, rules=rules)
+    try:
+        words, keep, segs = cutplan.apply_manual(edl, manual, env, rules, breaks)
+    except ValueError as e:
+        report(status="failed", error=f"Manueller Schnitt ungültig: {e}"[:300])
+        return
+    if pr0.get("director"):  # the Regie agent would cut again – the editor's cut renders in the style's fallback look
+        cfg = {**cfg, "preset": pr0.get("fallback") or "clean", "styleConfig": None}
+    report(note="Manueller Schnitt wird geschnitten…")
+    cut_path = os.path.join(W, "cut.mp4")
+    cut(base, segs, cut_path)
+    segs = snap_iv(segs)
+    out_dur, _ = probe(cut_path)
+    words_cut = _captions_from(cutplan.words_out(words, keep, segs), True)
+    new_edl = cutplan.make_edl(words, keep, segs, edl["duration"])
+    return finish_edit(cfg, items, cut_path, words_cut, out_dur, in_dur, new_edl, None, None)
+
+
+def finish_edit(cfg, items, cut_path, words_cut, out_dur, in_dur, edl, check, hook):
+    """Everything after the cut: scene styles or the plan/render of the chosen style, upload, done callback."""
 
     preset_id = register_style(cfg.get("preset"), cfg.get("styleConfig"))
     pr = PRESETS[preset_id]
     if scene_style(pr):
-        if run_scenes(cfg, pr, scene_style(pr), cut_path, words_cut, out_dur, in_dur):
+        if run_scenes(cfg, pr, scene_style(pr), cut_path, words_cut, out_dur, in_dur, edl=edl, check=check):
             return
         # scene planner down → the normal pipeline in the style's fallback look (the scene compositions need a scene plan)
         preset_id = pr.get("fallback") or "clean"
@@ -1927,6 +2409,8 @@ def main():
         broll_rel.append(f"{job}/b{i}{ext}")
     plan = build_plan(words_cut, out_dur, items, preset_id, cfg.get("captions", pr["captions"]), focus, res, f"{job}/main.mp4", broll_rel,
                       hi_res=min(src_size(cut_path)) >= 1440, src_min=min(src_size(cut_path)))
+    plan["edl"] = edl  # source-timeline cut for the manual editor (worker/EDL.md); agent cuts keep it in sync (apply_ops)
+    plan["cutRules"] = CUT["rules"].as_dict() if CUT["rules"] else None
     apply_customer_look(plan, cfg)
     plan = template_extend(plan, pr, {"words": words_cut, "duration": out_dur, "items": items, "broll_rel": broll_rel, "res": res,
                                       "focus": focus, "job": job, "pub": pub, "cfg": cfg, "llm": llm_json})
@@ -1969,7 +2453,8 @@ def main():
     except Exception as e:
         print("saving the plan for corrections failed:", e)
         plan_url, assets = None, []
-    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig")
+    report(status="done", resultUrl=url, planUrl=plan_url, assets=assets, note="Fertig", **done_extra(plan, check))
+
 
 if __name__ == "__main__":
     try:

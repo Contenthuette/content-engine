@@ -239,22 +239,10 @@ def build(llm, style, words, dur, video_rel, pub, job, tmp, video_path=None, voc
     return plan_dict
 
 
-def revise(llm, plan_dict, instruction, pub, job, tmp, log=print):
-    """Customer correction by prompt. Returns (new plan, note, set of new asset rels)."""
-    meta = plan_dict.get("editz") or {}
-    style, words, dur = meta.get("style"), meta.get("words") or [], meta.get("dur") or plan_dict.get("dur")
-    if style not in STYLES or not words:
-        raise ValueError("plan has no scene data")
-    mod = _mod(style)
-    prompt = (_base_prompt(style, words, dur, meta.get("vocab")) + "\n\nAKTUELLER PLAN:\n" + json.dumps(meta.get("raw"), ensure_ascii=False)
-              + "\n\nANWEISUNG DES KUNDEN:\n" + str(instruction)[:1500] + "\n\n" + REVISE)
-    raw, _ = _ask(llm, prompt, "opus", 8000, log=log)
-    if not raw or not raw.get("scenes"):
-        raise ValueError("Korrektur nicht verstanden")
-    scenes = mod.validate(copy.deepcopy(raw), words, dur)
-    # unchanged picture search (same type + same query) → keep the existing file, only new searches are fetched
+def reuse_pictures(old_scenes, scenes):
+    """Unchanged picture search (same type + same query) → keep the existing file, only new searches are fetched."""
     old = {}
-    for s in plan_dict["scenes"]:
+    for s in old_scenes:
         if s.get("_q") and (s.get("img") or s.get("imgs")):
             old.setdefault((s["type"], json.dumps(s["_q"], ensure_ascii=False)), s)
     for s in scenes:
@@ -272,6 +260,58 @@ def revise(llm, plan_dict, instruction, pub, job, tmp, log=print):
             ats = [im["at"] for im in s.pop("images")]
             s["imgs"] = list(hit["imgs"])
             s["at"] = (ats + list(hit.get("at", [])))[:len(s["imgs"])]
+    return scenes
+
+
+def _remap_idx(obj, imap):
+    """Word-index fields of a raw scene plan ("w0", "w") → indices of the new transcript."""
+    if isinstance(obj, dict):
+        for k, v in list(obj.items()):
+            if k in ("w0", "w") and isinstance(v, int) and not isinstance(v, bool):
+                obj[k] = imap(v)
+            elif isinstance(v, (dict, list)):
+                _remap_idx(v, imap)
+    elif isinstance(obj, list):
+        for v in obj:
+            _remap_idx(v, imap)
+    return obj
+
+
+def recut(plan_dict, words, dur, index_map, video_rel=None):
+    """Manual re-cut (CLIPPERZ editor, worker/EDL.md): the same scene plan on the new transcript – no model call.
+    index_map: old word index → new word index (a cut word maps to the next kept one). Pictures are reused; a scene whose
+    picture cannot be reused falls back to its safe template. Returns the new plan."""
+    meta = plan_dict.get("editz") or {}
+    style = meta.get("style")
+    if style not in STYLES:
+        raise ValueError("plan has no scene data")
+    mod = _mod(style)
+    n = len(words)
+    raw = _remap_idx(copy.deepcopy(meta.get("raw") or {"scenes": []}), lambda i: min(max(0, index_map(i)), max(0, n - 1)))
+    scenes = mod.validate(copy.deepcopy(raw), words, dur)
+    reuse_pictures(plan_dict.get("scenes") or [], scenes)
+    scenes = [(_fallback(style, s, scenes) if (s.get("image") or s.get("images")) else s) for s in scenes]
+    out = {**plan_dict, "scenes": scenes, "dur": dur}
+    if video_rel:
+        out["video"] = video_rel
+    out["editz"] = {**meta, "raw": raw, "words": words, "dur": dur, "rev": int(meta.get("rev") or 0) + 1}
+    return out
+
+
+def revise(llm, plan_dict, instruction, pub, job, tmp, log=print):
+    """Customer correction by prompt. Returns (new plan, note, set of new asset rels)."""
+    meta = plan_dict.get("editz") or {}
+    style, words, dur = meta.get("style"), meta.get("words") or [], meta.get("dur") or plan_dict.get("dur")
+    if style not in STYLES or not words:
+        raise ValueError("plan has no scene data")
+    mod = _mod(style)
+    prompt = (_base_prompt(style, words, dur, meta.get("vocab")) + "\n\nAKTUELLER PLAN:\n" + json.dumps(meta.get("raw"), ensure_ascii=False)
+              + "\n\nANWEISUNG DES KUNDEN:\n" + str(instruction)[:1500] + "\n\n" + REVISE)
+    raw, _ = _ask(llm, prompt, "opus", 8000, log=log)
+    if not raw or not raw.get("scenes"):
+        raise ValueError("Korrektur nicht verstanden")
+    scenes = mod.validate(copy.deepcopy(raw), words, dur)
+    reuse_pictures(plan_dict["scenes"], scenes)
     rev = int(meta.get("rev") or 0) + 1
     scenes, new = pictures(llm, style, scenes, pub, job, os.path.join(tmp, f"pics_r{rev}"), None, words, prefix=f"r{rev}_")
     out = {**plan_dict, "scenes": scenes}

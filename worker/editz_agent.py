@@ -941,7 +941,7 @@ def apply(ce, plan, ops, look, ctx):
     if res:
         cut_iv = None
         if res.get("remove") or res.get("cut_times"):
-            cut_iv = _cut_ranges(plan, res)
+            cut_iv = _cut_ranges(plan, res, ce)
             _clear_cuts(plan, cut_iv)
         hook_e = (plan.get("hook") or {}).get("e")
         plan, changed = ce.apply_ops(plan, res, ctx.job)
@@ -957,10 +957,11 @@ def apply(ce, plan, ops, look, ctx):
     return plan, changed, changed_t
 
 
-def _cut_ranges(plan, res):
-    """Time ranges a cut removes (same rules as clipperz_edit.apply_ops)."""
+def _cut_ranges(plan, res, ce=None):
+    """Time ranges a cut removes (same rules as clipperz_edit.apply_ops, incl. the air kept around raw time cuts)."""
     ws, n, dur = plan["words"], len(plan["words"]), plan["duration"]
-    out = [(float(a), float(b)) for a, b in res.get("cut_times", [])]
+    safe = getattr(ce, "safe_cut_time", lambda w, a, b: (a, b))
+    out = [x for x in (safe(ws, float(a), float(b)) for a, b in res.get("cut_times", [])) if x[1] - x[0] >= 0.03]
     drop = set()
     for a, b in res.get("remove", []):
         drop.update(range(max(0, a), min(n - 1, b) + 1))
