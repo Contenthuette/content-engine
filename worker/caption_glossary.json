@@ -1,0 +1,138 @@
+{
+ "_about": "Deterministic caption spelling (no LLM). Key = canonical spelling, value = extra wrong spellings. Matching ignores case, spaces, hyphens and dots, also across Whisper word splits (\"Content Hütte\", \"Chat -GPT\"). Multi-word names are never split over two lines. The workspace setting vocab (CLIPPERZ Pro) adds its own terms on top.",
+ "terms": {
+  "CLIPPERZ": [
+   "Clippers",
+   "Klippers",
+   "Clipperz",
+   "Clipper's",
+   "Klipperz",
+   "Clippa's"
+  ],
+  "CLIPPERZ Pro": [
+   "Clippers Pro",
+   "Klippers Pro"
+  ],
+  "ULTRA Intelligence": [
+   "Ultra Intelligence",
+   "Ultra-Intelligence",
+   "Ultra Intelligenz",
+   "Ultra-Intelligenz",
+   "Ultraintelligence"
+  ],
+  "Contenthütte": [
+   "Content Hütte",
+   "Content-Hütte",
+   "Kontenthütte",
+   "Kontent Hütte",
+   "Contenthüte",
+   "Content Hüte",
+   "Content Huette"
+  ],
+  "KI": [
+   "Ki",
+   "K.I.",
+   "K. I."
+  ],
+  "ChatGPT": [
+   "Chat GPT",
+   "Chat-GPT",
+   "ChatGBT",
+   "Chat GBT",
+   "Chat-GBT",
+   "Tschad GPT",
+   "Chat-Gpt"
+  ],
+  "TikTok": [
+   "Tiktok",
+   "Tik Tok",
+   "Tik-Tok",
+   "Tick Tock",
+   "TickTock"
+  ],
+  "YouTube": [
+   "Youtube",
+   "You Tube",
+   "You-Tube"
+  ],
+  "Instagram": [
+   "Insta Gram"
+  ],
+  "LinkedIn": [
+   "Linkedin",
+   "Linked In",
+   "Linked-In"
+  ],
+  "WhatsApp": [
+   "Whatsapp",
+   "Whats App",
+   "Whats-App",
+   "WhatsApps"
+  ],
+  "E-Mail": [
+   "Email",
+   "E Mail"
+  ],
+  "E-Mails": [
+   "Emails",
+   "E Mails"
+  ],
+  "Social Media": [
+   "Social-Media",
+   "Socialmedia",
+   "Sozial Media"
+  ],
+  "Reels": [
+   "Riels",
+   "Rils"
+  ],
+  "Shorts": [],
+  "Google": [],
+  "OpenAI": [
+   "Open AI",
+   "Open-AI",
+   "Open Ai"
+  ],
+  "Gemini": [],
+  "Make.com": [
+   "Make com"
+  ],
+  "Zapier": [
+   "Sapier",
+   "Zapir"
+  ],
+  "n8n": [
+   "N8N",
+   "N8n",
+   "n 8 n",
+   "N 8 N"
+  ],
+  "SaaS": [
+   "Saas",
+   "SAAS"
+  ],
+  "B2B": [
+   "B 2 B",
+   "B-2-B",
+   "B to B"
+  ],
+  "CRM": [
+   "Crm"
+  ],
+  "BAFA": [
+   "Bafa",
+   "Barfa"
+  ],
+  "Schwerin": [],
+  "Mecklenburg-Vorpommern": [
+   "Mecklenburg Vorpommern"
+  ]
+ },
+ "prefixes": {
+  "_about": "Compound prefixes: \"Ki-Agent\" -> \"KI-Agent\", \"Ki Automatisierung\" stays two words but gets the right case.",
+  "KI": [
+   "ki",
+   "k.i."
+  ]
+ }
+}
