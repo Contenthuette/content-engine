@@ -1,0 +1,19 @@
+{"concept": "Ein Browserfenster, das sich selbst durch das Tool klickt: jede Karte morpht in die nächste, das Terminal schreibt den Client live, am Ende geht dein Kommentar raus.",
+ "keywords": ["API", "Claude Code", "kostenlos"],
+ "shots": [
+  {"from": 0, "block": "A", "transition": "none", "motion": "push", "idea": "Hook: Titel steht in Frame 0, Repo-Karte kippt ein, Markierung läuft über den Repo-Satz, Push-in auf die Markierung"},
+  {"from": 9, "block": "E", "insert": "i0", "transition": "morph", "motion": "parallax", "props": {"label": "Open Source"}, "idea": "Hook-Karte morpht in die GitHub-Repo-Karte, Name fliegt Buchstabe für Buchstabe ein, Sterne zählen"},
+  {"from": 16, "block": "N", "insert": "i1", "transition": "zoom", "motion": "push", "idea": "Ziffern rollen und landen auf 3.000+, wenn 'dreitausend' fällt"},
+  {"from": 22, "block": "L", "insert": "i2", "transition": "slide", "motion": "drift", "props": {"title": "So funktioniert's"}, "idea": "Platzhalter-Zeilen, die beiden Schritte ploppen beim Sprechen rein"},
+  {"from": 35, "block": "X", "bg": "light", "transition": "push", "motion": "orbit", "idea": "Das Modell schreibt den Client: echter Quick-Start aus dem README tippt sich ins Terminal",
+   "props": {"kind": "terminal", "title": "zsh — reverse-api-engineer", "lines": [
+     {"text": "reverse-api-engineer", "word": 35, "kind": "cmd"},
+     {"text": "> fetch all apple jobs from their careers page", "word": 37, "kind": "out"},
+     {"text": "→ ./scripts/apple_jobs_api/", "word": 39, "kind": "out"},
+     {"text": "api_client.py · README.md · example_usage.py", "word": 41, "kind": "out"}]}},
+  {"from": 43, "block": "N", "insert": "i3", "transition": "zoom", "motion": "parallax", "idea": "10 Sprachen – Zahl rollt auf dunkel"},
+  {"from": 50, "block": "B", "insert": "i4", "transition": "blur", "motion": "push", "props": {"hlWord": 52}, "idea": "README-Karte, Markierung läuft genau bei 'DevTools', Push-in auf den Satz"},
+  {"from": 57, "block": "V", "insert": "i5", "transition": "morph", "motion": "drift", "idea": "Karte morpht ins Browserfenster, Repo scrollt, Cursor fährt mit"},
+  {"from": 68, "block": "K", "bg": "light", "props": {"word": "kostenlos"}, "transition": "zoom", "motion": "push", "idea": "Ein Wort, groß: kostenlos"},
+  {"from": 77, "block": "F", "transition": "push", "motion": "push", "idea": "API wird ins Kommentarfeld getippt, Cursor klickt Senden"}
+ ]}

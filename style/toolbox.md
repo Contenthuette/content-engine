@@ -45,3 +45,20 @@ Element-Bibliothek, Still-Runden, Draft-Frames an jedem Morph, Augen-Check, Fina
 | dir_card / dir_list / dir_icon | Karten | Karte mit Linien-Icon, Checkliste (Haken beim Aussprechen), 47 eigene Linien-Icons (`icons.json`) | gebaut |
 | dir_photo | B-Roll | nur Kunden-Uploads: polaroid / card / window / full / split | gebaut |
 | dir_zoomthrough | Übergang | am Fenster verankerte Zeichnung mit `under: true` → Video wächst darüber (sonst zieht sie halbtransparent über das Video) | Regel |
+
+## Toolnews (10.11. – `toolnews/remotion/`, Composition `ToolNews`, Job `worker/clipperz_toolnews.py`)
+KI-Tool-News im Nick-Saraev-Format ohne Avatar. Geometrie aller Bausteine in `toolnews/layout.json` (Renderer + QA lesen dieselbe Datei).
+Regie: `toolnews/DIRECTOR.md` (Claude wählt Bausteine/Props/Übergänge, prüft Stills, max. 3 Runden; sonst Planer `toolnews/engine/plan.py`).
+| ID | Kategorie | Was | Status |
+|---|---|---|---|
+| TN-A | Hook | Zeile 1 fette Sans + Zeile 2 kursive Serif im Akzent-Kasten + Hook-Screenshot mit Markierung, Frame 0 voll | gebaut |
+| TN-B / TN-D | Material | Browser-Karte (Rand #3366E0 + Glow, r 22) mit echtem Screenshot, Text-Markierung als Sweep, Push-in auf die Markierung; D auf dunklem Blur | gebaut |
+| TN-E | Material | Label-Kasten + großer Name (Serif, Akzent) + Logo-Kachel / GitHub-Repo-Karte (Sterne zählen) / Seitenkarte | gebaut |
+| TN-N | Effekt | Zahl mit rollenden Ziffern + Label, dunkel, Glow, Unterstrich | gebaut |
+| TN-L | Aufbau | Liste 2–4 Punkte, jeder erscheint beim Sprechen (Platzhalter-Zeilen vorher, aktiver Punkt mit Glow) | gebaut |
+| TN-P | Material | Social-Post-Karte (nur echte, vollständige Posts) | gebaut |
+| TN-V | Material | Scroll-Aufnahme (Playwright, 6 s) im Browserfenster + Cursor | gebaut |
+| TN-K / TN-C | Kinetic Type | großes Schlüsselwort / gesprochener Satz groß (Notlösung, ≤ 35 %) | gebaut |
+| TN-F | CTA | „Kommentier“ + WORT wird ins Kommentarfeld getippt, Cursor klickt Senden, Blase poppt | gebaut |
+| TN-X | kreativ | `stack` (3D-Kartenstapel), `kinetic` (Satz als Typo), `compare` (Split), `terminal` (tippt), `statwall` (Zahlen-Wand) – max. 1 pro Video | gebaut |
+Übergänge: `morph` (Shared Element Karte → Karte, FLIP), `blur`, `push`, `zoom`, `slide`; Bewegung: `push`, `parallax`, `drift`, `orbit`.

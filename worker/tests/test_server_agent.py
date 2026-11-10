@@ -184,7 +184,7 @@ def test_claim_run_done(env, capsys, monkeypatch):
     assert names[0] == "hello" and "claim" in names and names[-1] == "done"
     hello = q.routes("hello")[0][1]
     assert hello == {"worker": "test-1", "version": sa.AGENT_VERSION, "heavySlots": 1, "lightSlots": 1}
-    assert set(q.routes("claim")[0][1]["kinds"]) == {"clip", "style", "edit"}
+    assert set(q.routes("claim")[0][1]["kinds"]) == {"clip", "style", "edit", "toolnews"}
     done = q.routes("done")[0][1]
     assert done == {"worker": "test-1", "id": "j1", "ok": True, "exitCode": 0}
     info = json.load(open(out))
@@ -284,8 +284,8 @@ def test_slot_classes(env):
     assert wait_for(lambda: os.path.exists(tmp / "h1.json") and os.path.exists(tmp / "l1.json"))
     time.sleep(0.5)
     started = [c[1]["kinds"] for c in q.routes("claim")]
-    assert started[0] == ["clip", "style", "edit"]  # clip claimed (heavy now full)
-    assert started[1] == ["edit"]                   # only the light class is free
+    assert started[0] == ["clip", "style", "edit", "toolnews"]  # clip claimed (heavy now full)
+    assert started[1] == ["edit", "toolnews"]       # only the light class is free
     assert all(k == [] for k in started[2:])        # all full -> only keepalive claims (if any)
     assert not os.path.exists(tmp / "h2.json") and not os.path.exists(tmp / "l2.json")
     assert sorted(j["id"] for j in q.jobs) == ["h2", "l2"]
@@ -373,4 +373,4 @@ def test_real_scripts_exist():
     assert cfg.repo == REPO
     for kind, path in cfg.scripts.items():
         assert os.path.isfile(path), kind
-    assert cfg.timeouts_min == {"clip": 960, "style": 150, "edit": 60}
+    assert cfg.timeouts_min == {"clip": 960, "style": 150, "edit": 60, "toolnews": 45}

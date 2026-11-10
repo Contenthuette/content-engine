@@ -50,7 +50,10 @@ KINDS = {
     "clip": ("worker/clipperz_clip.py", "heavy", 960, "stream", "clip-status"),
     "style": ("worker/clipperz_style.py", "heavy", 150, "job", "style-status"),
     "edit": ("worker/clipperz_edit.py", "light", 60, "edit", "edit-status"),
+    "toolnews": ("worker/clipperz_toolnews.py", "light", 45, "job", "toolnews-status"),
 }
+# query name of the token on the domain status route (older kinds use "k"; toolnews uses "token")
+TOKEN_PARAM = {"toolnews": "token"}
 
 # Never handed to the scripts: they do not need the worker secret, and CLIPPERZ_JOB_URL would make
 # clipperz_clip.py ignore the event file.
@@ -210,7 +213,7 @@ class Agent:
             api = str(payload["api"]).rstrip("/")
             if not api.startswith(("http://", "https://")):
                 raise ValueError
-            q = urllib.parse.urlencode({key: payload[key], "k": payload["token"]})
+            q = urllib.parse.urlencode({key: payload[key], TOKEN_PARAM.get(kind, "k"): payload["token"]})
         except (KeyError, TypeError, ValueError):
             log(f"{kind}: Statusmeldung nicht möglich (payload unvollständig)")
             return

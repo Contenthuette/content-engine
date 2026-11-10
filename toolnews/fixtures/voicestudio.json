@@ -1,0 +1,84 @@
+{
+  "id": "fx_voicestudio",
+  "script": "Dieses kostenlose Tool klont deine Stimme, komplett lokal auf deinem Rechner. Kein Abo, keine Cloud, deine Daten bleiben bei dir. Es heißt VoiceStudio, ein Open-Source-Voice-Studio, und war auf GitHub Trending das Repository des Tages. Es kann Stimmen klonen, neue Stimmen designen, Videos synchronisieren und Hörbücher erstellen. Und das in sechshundertsechsundvierzig Sprachen. Auf GitHub hat es schon über hunderttausend Sterne und über zwei Millionen Downloads. Es läuft auf Windows, Mac, Linux und sogar auf dem Handy. Wenn du's testen willst, kommentier VOICE und ich schick dir den Link direkt.",
+  "title": {
+    "line1": "Klon deine Stimme",
+    "line2": "komplett lokal"
+  },
+  "hook": {
+    "url": "https://voicestudio.sh",
+    "highlight": "Fully local voice cloning"
+  },
+  "keywords": [
+    "lokal",
+    "Stimme",
+    "Hörbücher"
+  ],
+  "inserts": [
+    {
+      "kind": "name",
+      "anchor": "VoiceStudio",
+      "label": "Open Source",
+      "name": "VoiceStudio",
+      "url": "https://voicestudio.sh"
+    },
+    {
+      "kind": "card",
+      "anchor": "Repository",
+      "url": "https://voicestudio.sh",
+      "highlight": "Repository Of The Day"
+    },
+    {
+      "kind": "list",
+      "anchor": "klonen",
+      "title": "Was es kann",
+      "items": [
+        {
+          "text": "Stimmen klonen",
+          "anchor": "klonen"
+        },
+        {
+          "text": "Stimmen designen",
+          "anchor": "designen"
+        },
+        {
+          "text": "Videos synchronisieren",
+          "anchor": "synchronisieren"
+        },
+        {
+          "text": "Hörbücher erstellen",
+          "anchor": "Hörbücher"
+        }
+      ]
+    },
+    {
+      "kind": "number",
+      "anchor": "sechshundertsechsundvierzig",
+      "value": "646",
+      "label": "Sprachen"
+    },
+    {
+      "kind": "card",
+      "anchor": "hunderttausend",
+      "url": "https://voicestudio.sh",
+      "highlight": "GitHub stars"
+    },
+    {
+      "kind": "clip",
+      "anchor": "Windows",
+      "url": "https://voicestudio.sh"
+    }
+  ],
+  "cta": {
+    "word": "VOICE",
+    "anchor": "kommentier"
+  },
+  "voiceUrl": "https://local.invalid/placeholder.mp3",
+  "words": [],
+  "brand": {
+    "name": "ULTRA",
+    "accent": "#0082FF"
+  },
+  "captions": true,
+  "musicUrl": null
+}

@@ -1,0 +1,80 @@
+{
+  "id": "fx_reverse_api",
+  "script": "Dieses Open-Source-Tool verwandelt jede Website in eine saubere API. Es heißt Reverse API Engineer und hat auf GitHub schon über dreitausend Sterne. So funktioniert's: Website und Ziel rein, ein Browser oder KI-Agent klickt sich durch, und dein Modell schreibt daraus einen fertigen API-Client. In zehn Programmiersprachen, von Python bis Go. Nie mehr DevTools öffnen und cURL-Befehle kopieren. Und es läuft direkt mit Claude Code, Codex, Cursor und OpenCode. Das Ganze ist komplett kostenlos und steht unter MIT-Lizenz. Wenn du's testen willst, kommentier API und ich schick dir den Link direkt.",
+  "title": {
+    "line1": "Jede Website wird",
+    "line2": "deine API"
+  },
+  "hook": {
+    "url": "https://github.com/kalil0321/reverse-api-engineer",
+    "highlight": "Reverse engineer any website into a typed API client."
+  },
+  "keywords": [
+    "API",
+    "Website",
+    "Claude Code"
+  ],
+  "inserts": [
+    {
+      "kind": "name",
+      "anchor": "Reverse API Engineer",
+      "label": "Open Source",
+      "name": "Reverse API Engineer",
+      "url": "https://github.com/kalil0321/reverse-api-engineer"
+    },
+    {
+      "kind": "number",
+      "anchor": "dreitausend",
+      "value": "3.000+",
+      "label": "Sterne auf GitHub"
+    },
+    {
+      "kind": "list",
+      "anchor": "funktioniert",
+      "title": "So funktioniert's",
+      "items": [
+        {
+          "text": "Website + Ziel eingeben",
+          "anchor": "Website"
+        },
+        {
+          "text": "Browser oder Agent klickt",
+          "anchor": "klickt"
+        },
+        {
+          "text": "KI schreibt den API-Client",
+          "anchor": "schreibt"
+        }
+      ]
+    },
+    {
+      "kind": "number",
+      "anchor": "zehn",
+      "value": "10",
+      "label": "Programmiersprachen"
+    },
+    {
+      "kind": "card",
+      "anchor": "DevTools",
+      "url": "https://github.com/kalil0321/reverse-api-engineer",
+      "highlight": "No more manually opening DevTools, copying cURL commands"
+    },
+    {
+      "kind": "clip",
+      "anchor": "Claude Code",
+      "url": "https://github.com/kalil0321/reverse-api-engineer"
+    }
+  ],
+  "cta": {
+    "word": "API",
+    "anchor": "kommentier"
+  },
+  "voiceUrl": "https://local.invalid/placeholder.mp3",
+  "words": [],
+  "brand": {
+    "name": "ULTRA",
+    "accent": "#0082FF"
+  },
+  "captions": true,
+  "musicUrl": null
+}

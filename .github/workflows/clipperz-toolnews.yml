@@ -1,0 +1,51 @@
+# CLIPPERZ toolnews worker (KI-Tool-News für ULTRA, ohne Avatar).
+# Triggered by CLIPPERZ (repository_dispatch "clipperz-toolnews"): job data (script, voice + word times, inserts, CTA) ->
+# screenshots/logos/recordings (Playwright) -> plan + Claude director loop -> Remotion render -> QA -> upload to R2 (/results/).
+name: clipperz-toolnews
+on:
+  repository_dispatch:
+    types: [clipperz-toolnews]
+concurrency:
+  group: clipperz-toolnews-${{ github.event.client_payload.job }}
+jobs:
+  toolnews:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-noto-color-emoji
+          # faster-whisper only runs when CLIPPERZ sends no word times
+          pip install -q -U requests numpy pillow "faster-whisper==1.2.1"
+          npm ci --no-audit --no-fund
+          # one browser for Remotion AND the Playwright screenshots (playwright-core finds it in node_modules/.remotion)
+          npx remotion browser ensure
+      - name: Cache speech model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-small-v1
+      # The payload (job token, callback URL) is read from the event file inside the script,
+      # never passed through env – step env values appear in the logs.
+      - name: Toolnews
+        id: toolnews
+        run: python3 worker/clipperz_toolnews.py
+      - name: Report setup failure
+        if: failure() && steps.toolnews.outcome != 'failure'
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          p = json.load(open(os.environ["GITHUB_EVENT_PATH"]))["client_payload"]
+          q = urllib.parse.urlencode({"job": p["job"], "token": p["token"]})
+          body = json.dumps({"status": "failed", "error": "Worker konnte nicht starten – bitte erneut versuchen."}).encode()
+          req = urllib.request.Request(p["api"].rstrip("/") + "/toolnews-status?" + q, data=body, headers={"Content-Type": "application/json"})
+          try:
+              urllib.request.urlopen(req, timeout=30)
+          except Exception as e:
+              print("status update failed:", type(e).__name__)
+          PY

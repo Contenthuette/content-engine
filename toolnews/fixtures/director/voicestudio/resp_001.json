@@ -1,0 +1,17 @@
+{"concept": "Deine Stimme bleibt bei dir: alles passiert in einem lokalen Studio-Fenster – vom Hook über die Funktionen bis zu den echten Zahlen auf der Seite.",
+ "keywords": ["lokal", "Stimme", "Hörbücher"],
+ "shots": [
+  {"from": 0, "block": "A", "transition": "none", "motion": "push", "idea": "Titel steht in Frame 0, Seite kippt ein, Markierung auf 'Fully local voice cloning'"},
+  {"from": 11, "block": "X", "bg": "dark", "transition": "zoom", "motion": "drift", "idea": "Re-Hook als Kinetic Type: Kein Abo / keine Cloud / Daten bleiben bei dir",
+   "props": {"kind": "kinetic", "lines": [
+     {"text": "Kein Abo", "word": 11, "style": "outline"},
+     {"text": "keine Cloud", "word": 13, "style": "sans"},
+     {"text": "Daten bleiben bei dir", "word": 15, "style": "serif"}]}},
+  {"from": 20, "block": "E", "insert": "i0", "transition": "push", "motion": "parallax", "props": {"label": "Open Source"}, "idea": "Logo-Kachel ploppt, Name in Serif"},
+  {"from": 25, "block": "D", "insert": "i1", "transition": "blur", "motion": "push", "props": {"hlWord": 31}, "idea": "Dieselbe Seite auf dunkel, Markierung auf '#1 Repository Of The Day', Zoom auf den Badge"},
+  {"from": 34, "block": "L", "insert": "i2", "transition": "slide", "motion": "drift", "idea": "Vier Funktionen ploppen im Sprechtakt"},
+  {"from": 46, "block": "N", "insert": "i3", "transition": "zoom", "motion": "push", "idea": "646 rollt und landet auf dem Wort"},
+  {"from": 51, "block": "B", "insert": "i4", "transition": "blur", "motion": "push", "props": {"hlWord": 57}, "idea": "Echte Zahlen der Seite: Markierung auf GitHub stars, Push-in"},
+  {"from": 64, "block": "V", "insert": "i5", "transition": "morph", "motion": "drift", "idea": "Karte morpht ins Fenster, die Seite scrollt"},
+  {"from": 75, "block": "F", "transition": "push", "motion": "push", "idea": "VOICE wird getippt und abgeschickt"}
+ ]}
