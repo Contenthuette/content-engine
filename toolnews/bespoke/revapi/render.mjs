@@ -7,7 +7,7 @@ const [publicDir, propsFile, out, stills] = process.argv.slice(2);
 const inputProps = JSON.parse(fs.readFileSync(propsFile, 'utf8'));
 const serveUrl = await bundle({entryPoint: path.resolve('toolnews/bespoke/revapi/index.ts'), publicDir, symlinkPublicDir: true});
 const browser = await openBrowser('chrome', {browserExecutable: process.env.CLIPPERZ_BROWSER, chromiumOptions: {gl: 'swangle'}});
-const composition = await selectComposition({serveUrl, id: 'RevApi', inputProps, puppeteerInstance: browser});
+const composition = await selectComposition({serveUrl, id: process.env.COMP || 'RevApi', inputProps, puppeteerInstance: browser});
 if (stills) {
   fs.mkdirSync(out, {recursive: true});
   for (const t of stills.split(',').map(Number)) {
