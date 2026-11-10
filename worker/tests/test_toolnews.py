@@ -593,3 +593,18 @@ def test_placeholder_voice_sentence_wise(tmp_path):
     assert len(w) == len(tx.tokens(script))
     assert all(b["s"] >= a["s"] for a, b in zip(w, w[1:])) and w[-1]["e"] <= dur
     assert 2.3 <= len(w) / dur <= 3.6  # natural pace, not word by word
+
+
+def test_director_duplicate_screenshot_becomes_other_crop():
+    job, words, assets, inserts, dur, k_cta, base = director_ctx()
+    card = next(x["id"] for x in inserts if x["kind"] == "card")
+    assets = dict(assets)
+    assets[card] = dict(assets[card], sha=assets["hook"]["sha"])  # same picture as the hook card
+    ans = answer_from(base, words)
+    i = next(n for n, s in enumerate(ans["shots"]) if s.get("insert") == card)
+    ans["shots"][i]["block"] = "B"
+    plan, errs = D.build_from(ans, job, words, assets, inserts, dur, k_cta)
+    assert errs == []
+    sh = next(s for s in plan["shots"] if s.get("insert") == card)
+    assert sh["props"]["card"]["hl"] == [] and sh["props"]["card"]["focus"] > 0.5
+    assert any("another crop" in n for n in plan["meta"]["notes"])

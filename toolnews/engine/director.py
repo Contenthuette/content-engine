@@ -212,6 +212,8 @@ def build_from(answer, job, words, assets, inserts, duration, k_cta):
         return None, errs
     times = [0.0] + [P.cut_time(words, x) for x in ks[1:]] + [P.fr(duration)]
     used, reshow, xs = {}, set(), 0
+    shown = [(assets.get("hook") or {}).get("sha")] if (assets.get("hook") or {}).get("ok") else []  # never the identical picture twice
+    crops = iter((0.62, 0.86, 0.45))
     out = []
     for i, s in enumerate(shots):
         b, r = s["b"], s["r"]
@@ -259,6 +261,12 @@ def build_from(answer, job, words, assets, inserts, duration, k_cta):
                 props = P.block_props(x["kind"], x, a, st, en, words, job["keywords"])
                 if b in ("B", "D") and props_in.get("hlWord") is not None and props.get("card"):
                     props["card"]["hlAt"] = max(st + 0.3, min(_word_t(words, props_in["hlWord"], st + 0.5), en - 0.8))
+                if b in ("B", "D") and props.get("card"):
+                    sha = a.get("sha")
+                    if sha and any(P.same_image(sha, h) for h in shown if h):
+                        props["card"] = P._card_props(a, crop=next(crops, 0.7))
+                        notes.append(f"{iid}: same picture as an earlier card – shown as another crop of the page")
+                    shown.append(sha)
                 if b == "E" and props_in.get("label"):
                     props["label"] = _txt(props_in["label"], 22)
                 if b == "N" and props_in.get("label"):

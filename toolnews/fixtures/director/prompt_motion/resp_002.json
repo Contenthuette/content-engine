@@ -1,1 +1,119 @@
-{"ok": true, "issues": ["Scroll-Aufnahme (V) zeigt noch Newsletter-Feld und Werbekarte – Asset-Fehler der Aufnahme, kein Planfehler"]}
+{
+ "ok": false,
+ "issues": [
+  "Einstellung 7 (B i4) zeigt fast denselben Seitenausschnitt wie Einstellung 3 – durch Typo-Slam ersetzen"
+ ],
+ "concept": "Eine Galerie öffnet sich Schicht für Schicht: Seite → Name → Prompt/Skill als Typo → Zahl → Kategorien → das Video-Grid in Bewegung.",
+ "keywords": [
+  "Prompt",
+  "Skill",
+  "anpassen"
+ ],
+ "shots": [
+  {
+   "from": 0,
+   "block": "A",
+   "transition": "none",
+   "motion": "push",
+   "idea": "Seite fliegt bildfüllend aus der Kamera, Marker auf 'the prompts and skills behind them'"
+  },
+  {
+   "from": 9,
+   "block": "E",
+   "insert": "i0",
+   "transition": "crash",
+   "motion": "orbit",
+   "props": {
+    "label": "Neue Seite"
+   },
+   "idea": "Logo-Kachel dreht sich 1,5-mal in den Raum, Name extrudiert"
+  },
+  {
+   "from": 14,
+   "block": "B",
+   "insert": "i1",
+   "transition": "whip",
+   "motion": "parallax",
+   "props": {
+    "hlWord": 17
+   },
+   "idea": "Ausschnitt 'made with Claude Opus 5.5', Marker genau bei 'Claude'"
+  },
+  {
+   "from": 19,
+   "block": "X",
+   "bg": "dark",
+   "transition": "flip",
+   "motion": "drift",
+   "idea": "Zu jedem Video / der Prompt / oder der Skill – Kinetic Type auf Schwarz",
+   "props": {
+    "kind": "kinetic",
+    "lines": [
+     {
+      "text": "zu jedem Video",
+      "word": 20,
+      "style": "sans"
+     },
+     {
+      "text": "der Prompt",
+      "word": 23,
+      "style": "serif"
+     },
+     {
+      "text": "oder der Skill",
+      "word": 25,
+      "style": "box"
+     }
+    ]
+   }
+  },
+  {
+   "from": 28,
+   "block": "N",
+   "insert": "i2",
+   "transition": "slam",
+   "motion": "push",
+   "idea": "105 rollt und landet auf 'hundertfünf'"
+  },
+  {
+   "from": 34,
+   "block": "L",
+   "insert": "i3",
+   "transition": "flip",
+   "motion": "drift",
+   "props": {
+    "title": "Und dazu"
+   },
+   "idea": "Vier Kategorien klappen im Sprechtakt auf"
+  },
+  {
+   "from": 41,
+   "block": "C",
+   "insert": null,
+   "transition": "crash",
+   "motion": "push",
+   "props": {
+    "emphasis": [
+     "anpassen"
+    ]
+   },
+   "idea": "Jeden Prompt / eigenes Projekt / anpassen slammen – statt zweitem fast gleichem Seitenausschnitt",
+   "bg": "light"
+  },
+  {
+   "from": 50,
+   "block": "V",
+   "insert": "i5",
+   "transition": "whip",
+   "motion": "orbit",
+   "idea": "Das Video-Grid scrollt im Fenster, Kamera umkreist es"
+  },
+  {
+   "from": 59,
+   "block": "F",
+   "transition": "slam",
+   "motion": "push",
+   "idea": "MOTION wird getippt und abgeschickt"
+  }
+ ]
+}

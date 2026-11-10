@@ -3,9 +3,10 @@
 
   python3 toolnews/run.py toolnews/fixtures/reverse_api.json --out /tmp/x --placeholder-voice [--llm-dir DIR [--llm-wait 1800]]
 
---placeholder-voice  free local test voice (espeak-ng, exact word times) instead of the job's voiceUrl – real voice timing untested
---voice FILE         use this audio file (words from the fixture or transcribed)
+--placeholder-voice  free local test voice, sentence by sentence (piper via --piper-model / TOOLNEWS_PIPER_MODEL, else espeak-ng)
+--voice FILE         a real voice file without word times → faster-whisper transcription aligned to the script (job path)
 --llm-dir DIR        replay mode for the director: requests are written to DIR/req_NNN/, answers read from DIR/resp_NNN.json
+                     (the recorded answers for the fixtures: toolnews/fixtures/director/<fixture>/)
                      (waits --llm-wait seconds for a missing answer, then renders what it has)
 """
 import argparse

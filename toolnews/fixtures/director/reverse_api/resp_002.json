@@ -1,1 +1,148 @@
-{"ok": true, "issues": ["Zähler zeigt beim Rollen Werte über dem Ziel (6.578+ auf dem Weg zu 3.000+) – Engine-Fehler im Baustein N, kein Planfehler"]}
+{
+ "ok": false,
+ "issues": [
+  "Einstellung 4 (Terminal) wirkt auf Schwarz fast leer – auf hellen Grund stellen, schwarzes Fenster trägt das Bild"
+ ],
+ "concept": "Die Website wird zerlegt: Seite → Terminal → Traffic → fertiger Client – jedes Bild ein Schritt tiefer ins Tool, alles schwarz-weiß im Raum, nur der rote Faden ist Akzent.",
+ "keywords": [
+  "API",
+  "Traffic",
+  "kostenlos"
+ ],
+ "shots": [
+  {
+   "from": 0,
+   "block": "A",
+   "transition": "none",
+   "motion": "push",
+   "idea": "Repo-Karte fliegt bildfüllend aus der Kamera, Titelwörter slammen, roter Kasten 'deine API'"
+  },
+  {
+   "from": 8,
+   "block": "E",
+   "insert": "i0",
+   "transition": "crash",
+   "motion": "orbit",
+   "props": {
+    "label": "Open Source"
+   },
+   "idea": "Name extrudiert, Repo-Karte klappt aus der Tiefe, Sterne zählen"
+  },
+  {
+   "from": 13,
+   "block": "N",
+   "insert": "i1",
+   "transition": "whip",
+   "motion": "push",
+   "idea": "3.000+ rollt im Raum und landet auf 'dreitausend'"
+  },
+  {
+   "from": 18,
+   "block": "X",
+   "bg": "light",
+   "transition": "flip",
+   "motion": "drift",
+   "idea": "Schwarzes Terminal auf Off-White (Kontrast-Beat nach der dunklen Zahl), README-Quick-Start tippt sich",
+   "props": {
+    "kind": "terminal",
+    "title": "zsh — reverse-api-engineer",
+    "lines": [
+     {
+      "text": "reverse-api-engineer",
+      "word": 18,
+      "kind": "cmd"
+     },
+     {
+      "text": "> fetch all apple jobs from their careers page",
+      "word": 21,
+      "kind": "out"
+     },
+     {
+      "text": "# Browser opens. Navigate, interact, close when done.",
+      "word": 24,
+      "kind": "out"
+     }
+    ]
+   }
+  },
+  {
+   "from": 26,
+   "block": "V",
+   "insert": "i3",
+   "transition": "slam",
+   "motion": "orbit",
+   "idea": "Fenster im Raum, die Seite scrollt, Cursor klickt sich durch"
+  },
+  {
+   "from": 31,
+   "block": "K",
+   "bg": "light",
+   "props": {
+    "word": "Traffic"
+   },
+   "transition": "cut",
+   "motion": "push",
+   "idea": "Ein Wort, riesig: Traffic"
+  },
+  {
+   "from": 35,
+   "block": "B",
+   "insert": "i4",
+   "transition": "crash",
+   "motion": "parallax",
+   "props": {
+    "hlWord": 38
+   },
+   "idea": "README-Ausschnitt, Marker auf 'writes a working API client' genau bei 'schreibt'"
+  },
+  {
+   "from": 43,
+   "block": "G",
+   "insert": "i5",
+   "bg": "dark",
+   "transition": "whip",
+   "motion": "orbit",
+   "idea": "Zehn Sprach-Logos im 3D-Raster, Python und Go springen beim Sprechen nach vorn"
+  },
+  {
+   "from": 50,
+   "block": "B",
+   "insert": "i6",
+   "transition": "flip",
+   "motion": "push",
+   "props": {
+    "hlWord": 51
+   },
+   "idea": "Marker auf 'No more manually opening DevTools'"
+  },
+  {
+   "from": 55,
+   "block": "G",
+   "insert": "auto_logos",
+   "bg": "dark",
+   "transition": "slam",
+   "motion": "drift",
+   "idea": "Läuft mit: jede Agent-Kachel klappt auf, wenn der Name fällt"
+  },
+  {
+   "from": 63,
+   "block": "C",
+   "bg": "light",
+   "props": {
+    "emphasis": [
+     "kostenlos"
+    ]
+   },
+   "transition": "crash",
+   "motion": "push",
+   "idea": "Komplett / kostenlos slammen, kostenlos kursiv mit roter Linie"
+  },
+  {
+   "from": 65,
+   "block": "F",
+   "transition": "whip",
+   "motion": "push",
+   "idea": "API wird getippt und abgeschickt, Kommentar-Wand fliegt durch die Tiefe"
+  }
+ ]
+}

@@ -1,17 +1,17 @@
-{"concept": "Eine Galerie, die sich öffnet: Hook-Screenshot, Logo, die Worte Prompt und Skill als Typo, dann Zahlen, Kategorien und am Ende das Video-Grid, durch das man scrollt.",
- "keywords": ["Prompt", "Skill", "Product UI"],
+{"concept": "Eine Galerie öffnet sich Schicht für Schicht: Seite → Name → Prompt/Skill als Typo → Zahl → Kategorien → das Video-Grid in Bewegung.",
+ "keywords": ["Prompt", "Skill", "anpassen"],
  "shots": [
-  {"from": 0, "block": "A", "transition": "none", "motion": "push", "idea": "Titel in Frame 0, Seite kippt ein, Markierung auf 'the prompts and skills behind them', Push-in"},
-  {"from": 10, "block": "E", "insert": "i0", "transition": "blur", "motion": "parallax", "props": {"label": "Neue Seite"}, "idea": "Logo-Kachel ploppt, Name in Serif fliegt ein"},
-  {"from": 18, "block": "K", "bg": "dark", "props": {"word": "Claude Opus"}, "transition": "zoom", "motion": "push", "idea": "Gemacht mit: Claude Opus groß auf dunkel"},
-  {"from": 25, "block": "X", "bg": "light", "transition": "push", "motion": "drift", "idea": "Zu jedem Video: Prompt oder Skill – als Kinetic Type, jedes Wort landet beim Sprechen",
+  {"from": 0, "block": "A", "transition": "none", "motion": "push", "idea": "Seite fliegt bildfüllend aus der Kamera, Marker auf 'the prompts and skills behind them'"},
+  {"from": 9, "block": "E", "insert": "i0", "transition": "crash", "motion": "orbit", "props": {"label": "Neue Seite"}, "idea": "Logo-Kachel dreht sich 1,5-mal in den Raum, Name extrudiert"},
+  {"from": 14, "block": "B", "insert": "i1", "transition": "whip", "motion": "parallax", "props": {"hlWord": 17}, "idea": "Ausschnitt 'made with Claude Opus 5.5', Marker genau bei 'Claude'"},
+  {"from": 19, "block": "X", "bg": "dark", "transition": "flip", "motion": "drift", "idea": "Zu jedem Video / der Prompt / oder der Skill – Kinetic Type auf Schwarz",
    "props": {"kind": "kinetic", "lines": [
-     {"text": "zu jedem Video", "word": 26, "style": "sans"},
-     {"text": "den Prompt", "word": 31, "style": "serif"},
-     {"text": "oder den Skill", "word": 33, "style": "box"}]}},
-  {"from": 37, "block": "N", "insert": "i2", "transition": "slide", "motion": "push", "props": {"label": "Videos nur für Product UI"}, "idea": "105 rollt hoch und landet auf 'hundertfünf'"},
-  {"from": 47, "block": "L", "insert": "i3", "transition": "blur", "motion": "drift", "props": {"title": "Und dazu"}, "idea": "Vier Kategorien ploppen im Sprechtakt"},
-  {"from": 55, "block": "B", "insert": "i4", "transition": "push", "motion": "push", "props": {"hlWord": 59}, "idea": "Das Beste: Markierung auf 'customize any prompt for your own project'"},
-  {"from": 66, "block": "V", "insert": "i5", "transition": "morph", "motion": "drift", "idea": "Karte morpht ins Fenster, das Video-Grid scrollt"},
-  {"from": 75, "block": "F", "transition": "zoom", "motion": "push", "idea": "MOTION wird getippt und abgeschickt"}
+     {"text": "zu jedem Video", "word": 20, "style": "sans"},
+     {"text": "der Prompt", "word": 23, "style": "serif"},
+     {"text": "oder der Skill", "word": 25, "style": "box"}]}},
+  {"from": 28, "block": "N", "insert": "i2", "transition": "slam", "motion": "push", "idea": "105 rollt und landet auf 'hundertfünf'"},
+  {"from": 34, "block": "L", "insert": "i3", "transition": "flip", "motion": "drift", "props": {"title": "Und dazu"}, "idea": "Vier Kategorien klappen im Sprechtakt auf"},
+  {"from": 41, "block": "B", "insert": "i4", "transition": "crash", "motion": "push", "props": {"hlWord": 49}, "idea": "Marker auf 'customize any prompt for your own project' bei 'anpassen'"},
+  {"from": 50, "block": "V", "insert": "i5", "transition": "whip", "motion": "orbit", "idea": "Das Video-Grid scrollt im Fenster, Kamera umkreist es"},
+  {"from": 59, "block": "F", "transition": "slam", "motion": "push", "idea": "MOTION wird getippt und abgeschickt"}
  ]}

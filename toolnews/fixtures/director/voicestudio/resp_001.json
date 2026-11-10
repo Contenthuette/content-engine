@@ -1,17 +1,17 @@
-{"concept": "Deine Stimme bleibt bei dir: alles passiert in einem lokalen Studio-Fenster – vom Hook über die Funktionen bis zu den echten Zahlen auf der Seite.",
+{"concept": "Deine Stimme bleibt bei dir: alles passiert auf deinem Gerät – vom Studio-Fenster über die Funktionen bis zur Wand der Plattformen.",
  "keywords": ["lokal", "Stimme", "Hörbücher"],
  "shots": [
-  {"from": 0, "block": "A", "transition": "none", "motion": "push", "idea": "Titel steht in Frame 0, Seite kippt ein, Markierung auf 'Fully local voice cloning'"},
-  {"from": 11, "block": "X", "bg": "dark", "transition": "zoom", "motion": "drift", "idea": "Re-Hook als Kinetic Type: Kein Abo / keine Cloud / Daten bleiben bei dir",
+  {"from": 0, "block": "A", "transition": "none", "motion": "push", "idea": "Studio-Seite fliegt bildfüllend aus der Kamera, Marker auf 'Fully local voice cloning'"},
+  {"from": 8, "block": "X", "bg": "dark", "transition": "crash", "motion": "drift", "idea": "Re-Hook als Kinetic Type: Kein Abo / keine Cloud / Daten bleiben bei dir",
    "props": {"kind": "kinetic", "lines": [
-     {"text": "Kein Abo", "word": 11, "style": "outline"},
-     {"text": "keine Cloud", "word": 13, "style": "sans"},
-     {"text": "Daten bleiben bei dir", "word": 15, "style": "serif"}]}},
-  {"from": 20, "block": "E", "insert": "i0", "transition": "push", "motion": "parallax", "props": {"label": "Open Source"}, "idea": "Logo-Kachel ploppt, Name in Serif"},
-  {"from": 25, "block": "D", "insert": "i1", "transition": "blur", "motion": "push", "props": {"hlWord": 31}, "idea": "Dieselbe Seite auf dunkel, Markierung auf '#1 Repository Of The Day', Zoom auf den Badge"},
-  {"from": 34, "block": "L", "insert": "i2", "transition": "slide", "motion": "drift", "idea": "Vier Funktionen ploppen im Sprechtakt"},
-  {"from": 46, "block": "N", "insert": "i3", "transition": "zoom", "motion": "push", "idea": "646 rollt und landet auf dem Wort"},
-  {"from": 51, "block": "B", "insert": "i4", "transition": "blur", "motion": "push", "props": {"hlWord": 57}, "idea": "Echte Zahlen der Seite: Markierung auf GitHub stars, Push-in"},
-  {"from": 64, "block": "V", "insert": "i5", "transition": "morph", "motion": "drift", "idea": "Karte morpht ins Fenster, die Seite scrollt"},
-  {"from": 75, "block": "F", "transition": "push", "motion": "push", "idea": "VOICE wird getippt und abgeschickt"}
+     {"text": "Kein Abo", "word": 8, "style": "box"},
+     {"text": "keine Cloud", "word": 10, "style": "sans"},
+     {"text": "Daten bleiben bei dir", "word": 12, "style": "serif"}]}},
+  {"from": 17, "block": "E", "insert": "i0", "transition": "whip", "motion": "orbit", "props": {"label": "Open Source"}, "idea": "Logo-Kachel dreht sich in den Raum, Name extrudiert"},
+  {"from": 23, "block": "B", "insert": "i1", "transition": "flip", "motion": "parallax", "props": {"hlWord": 27}, "idea": "Marker auf '#1 Repository Of The Day' genau bei 'Repository'"},
+  {"from": 30, "block": "L", "insert": "i2", "transition": "slam", "motion": "drift", "idea": "Vier Funktionen klappen im Sprechtakt auf"},
+  {"from": 40, "block": "N", "insert": "i3", "transition": "whip", "motion": "push", "idea": "646 rollt und landet auf dem Wort"},
+  {"from": 43, "block": "D", "insert": "i4", "transition": "crash", "motion": "orbit", "props": {"hlWord": 44}, "idea": "Echte Zahlen der Seite auf dunkel, Marker auf 'GitHub stars'"},
+  {"from": 50, "block": "G", "insert": "auto_logos", "bg": "light", "transition": "flip", "motion": "drift", "idea": "Läuft auf: Plattform-Kacheln klappen beim Nennen auf"},
+  {"from": 58, "block": "F", "transition": "slam", "motion": "push", "idea": "VOICE wird getippt und abgeschickt"}
  ]}
