@@ -350,7 +350,7 @@ const S5: React.FC<{t: number}> = ({t}) => {
           <div style={{position: 'absolute', left: 74, top: 76, background: '#fff', color: INK, fontFamily: SANS, fontWeight: 800, fontSize: 30, padding: '8px 18px', borderRadius: 12, whiteSpace: 'nowrap'}}>KI-Agent</div>
         </div>
       </Cam>
-      <div style={{position: 'absolute', top: 1620, left: 0, right: 0, textAlign: 'center', ...disp(150, 75), color: '#fff', opacity: 0.95}}>
+      <div style={{position: 'absolute', top: 1620, left: 0, right: 0, textAlign: 'center', ...disp(112, 70), color: '#fff', opacity: 0.95}}>
         {['KLICK', 'KLICK', 'KLICK'].map((w, i) => {
           const q = sp(t, times[i + 1] ?? 9, 300, 14);
           return <span key={i} style={{display: 'inline-block', margin: '0 18px', transform: `scale(${q})`, color: i === 2 ? RED : '#fff'}}>{w}</span>;
@@ -563,8 +563,8 @@ const S10: React.FC<{t: number}> = ({t}) => {
   const m = k < 0 ? 0 : eOut(lin(t, AGENTS[k][2] - T0 - 0.05, AGENTS[k][2] - T0 + 0.28));
   const cx = mix(prev.x, tgt.x, m), cy = mix(prev.y, tgt.y, m);
   const all = eIO(lin(t, 26.5 - T0, 27.0 - T0));
-  const camX = mix(540 - cx, 0, all) * 0.55, camY = mix(960 - cy, 0, all) * 0.55;
-  const zoom = mix(1.12, 0.92, all);
+  const camX = mix(540 - cx, 0, all) * 0.3, camY = mix(960 - cy, 0, all) * 0.35;
+  const zoom = mix(1.04, 0.86, all);
   return (
     <>
       <Cam t={t} len={3.6} push={0.04} roll={-1.8} punches={AGENTS.map((a) => a[2] - T0)} rx={14} ry={-10}>
