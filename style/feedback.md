@@ -147,3 +147,16 @@ Stil-Richtung: Fusion aus lucas.kleinecke × creatoroly.
 - „find's gut“ – frei inszeniert ist die Richtung.
 - Echte Quellen zeigen wie Nick Saraev: Repo/Seite einblenden, worüber gesprochen wird → Beweis-Momente (proof.mjs + ProofShot: echte Seite, Zoom auf den Satz, Quelle unten).
 - Look: lieber Stil von contenthuette.de – iOS/Apple, weiß/#F4F4F5, schwarze Inter-Display-Headlines mit Punkt, weiche Karten, schwarze Pillen, iOS-Elemente (iPhone, Dynamic Island, Mitteilung, Tastatur, App-Icons, iMessage) und 3D.
+
+## 2026-11-10 21:49–21:56 – Leif: „der Skill clean motion ist Dreck“, 7 Referenzvideos (creatoroly) als Dateien = das Zieldesign
+Bild für Bild zerlegt (Kontaktbögen in der Session). Regeln für den „Flow“-Look (`toolnews/bespoke/revapi/VideoFlow.tsx` ist die Vorlage):
+- EINE durchgehende Kamerafahrt, keine Szenen, kein Schnitt. Kamera folgt Caret oder Mauszeiger, reist zwischen den Stationen mit gerichteter Bewegungsunschärfe.
+- EIN kleines Objekt in der Mitte (15–35 % der Breite), sonst Weiß mit ganz zartem Farbschleier, der pro Station die Tönung wechselt. Nie voll.
+- Schrift klein und fein (Inter Display ~40–70 px bei 1080, Gewicht 500–620, Tracking −3,5 %), nie Riesen-Headlines.
+- Jedes Objekt wird zum nächsten (Pille → Icon → Zeile mit Rahmen → Liste wächst drumherum → Karte → Leiste …); das getragene Objekt bleibt beim Kamerawechsel im Bild.
+- Text wird getippt: Buchstaben kommen blau + unscharf und werden schwarz; blauer Caret; Titel starten gesperrt und ziehen sich zusammen. Löschen = markieren (blau) + Backspace.
+- Echte macOS-Mauszeiger klicken (Ripple, Element reagiert), Agent-Cursor blau mit Label.
+- Tiefe nur dezent: Nachbarn kleiner + unscharf, leichte Kippung. Keine fliegenden 3D-Platten, keine Extrusion.
+- Hook wie im Mobbin-Clip: 0,3 s dunkel mit leuchtendem Objekt, dann Weiß.
+- Sound: nur weiche UI-Töne (Tippen, Pop, Tap), leises Bett.
+- Fehler vorher (v5): Headline oben + großes Objekt pro Szene, alles vollgestellt, Szenenwechsel statt Fluss.
