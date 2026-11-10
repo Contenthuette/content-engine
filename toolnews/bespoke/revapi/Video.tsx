@@ -3,6 +3,7 @@ import React from 'react';
 import {AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import '@fontsource-variable/archivo/wdth.css';
 import '@fontsource-variable/inter/index.css';
+import {ProofShot, Shot} from '../kit/Proof';
 
 const FPS = 30;
 const RED = '#FF3B30';
@@ -662,18 +663,40 @@ const S12: React.FC<{t: number}> = ({t}) => {
   );
 };
 
+// Proof scenes: the real repo page, zoomed onto the sentence that backs the claim
+const PHead: React.FC<{t: number; text: React.ReactNode; dark?: boolean}> = ({t, text, dark = true}) => {
+  const q = sp(t, 0.02, 260, 16);
+  return <><div style={{position: 'absolute', left: 0, right: 0, top: 0, height: 460, background: 'linear-gradient(#050505 0%, #050505 62%, rgba(5,5,5,0))'}} /><div style={{position: 'absolute', top: 215, left: 0, right: 0, textAlign: 'center', ...disp(96, 80), color: dark ? '#fff' : INK, transform: `translateY(${mix(-160, 0, q)}px)`, opacity: clamp(q * 3)}}>{text}</div></>;
+};
+const PStars: React.FC<{t: number; shot: Shot}> = ({t, shot}) => (
+  <Cam t={t} len={1.02} push={0.03} roll={1}><ProofShot t={t} len={1.02} shot={shot} zoomTo={2.6} /><PHead t={t} text={<span>ECHT <span style={{color: RED}}>3,3K</span> STERNE</span>} /><Grain dark /></Cam>
+);
+const PHar: React.FC<{t: number; shot: Shot}> = ({t, shot}) => (
+  <Cam t={t} len={1.5} push={0.03} roll={-1}>
+    <ProofShot t={t} len={1.5} shot={shot} zoomTo={2.2} />
+    <div style={{position: 'absolute', left: 0, right: 0, top: 0, height: 460, background: 'linear-gradient(#050505 0%, #050505 62%, rgba(5,5,5,0))'}} />
+    <div style={{position: 'absolute', top: 228, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, fontFamily: SANS, fontWeight: 800, fontSize: 48, color: '#fff'}}>
+      <span style={{width: 34, height: 34, borderRadius: 17, background: RED, opacity: Math.floor(t * 4) % 2 ? 1 : 0.35, boxShadow: `0 0 24px ${RED}`}} /> REC <span style={{fontFamily: MONO, fontWeight: 400, fontSize: 36, color: '#aaa'}}>traffic.har</span>
+    </div>
+    <Grain dark />
+  </Cam>
+);
+const PDev: React.FC<{t: number; shot: Shot}> = ({t, shot}) => (
+  <Cam t={t} len={1.45} push={0.03} roll={1}><ProofShot t={t} len={1.45} shot={shot} zoomTo={1.9} /><PHead t={t} text={<span>KEIN <span style={{color: RED}}>COPY-PASTE</span></span>} /><Grain dark /></Cam>
+);
+
 // ================= sound =================
 type Sfx = {t: number; s: string; v: number};
 const SFX: Sfx[] = [
   {t: 0.0, s: 'whoosh3', v: 0.5}, {t: 0.2, s: 'scan', v: 0.22}, {t: 1.06, s: 'tock', v: 0.3}, {t: 1.32, s: 'tock', v: 0.3}, {t: 2.2, s: 'stamp', v: 0.55},
   {t: 3.33, s: 'swish', v: 0.45}, {t: 3.5, s: 'flap', v: 0.35}, {t: 3.94, s: 'pop2', v: 0.45}, {t: 4.36, s: 'slide2', v: 0.3}, {t: 5.38, s: 'snap', v: 0.4},
-  {t: 6.13, s: 'zip', v: 0.4}, {t: 6.5, s: 'counter', v: 0.22}, {t: 7.56, s: 'pop', v: 0.4}, {t: 8.1, s: 'tap', v: 0.45}, {t: 8.12, s: 'sparkle', v: 0.25},
+  {t: 6.13, s: 'zip', v: 0.4}, {t: 6.5, s: 'counter', v: 0.22}, {t: 7.56, s: 'pop', v: 0.4}, {t: 7.72, s: 'whoosh', v: 0.3}, {t: 8.35, s: 'tick2', v: 0.4},
   {t: 8.68, s: 'whoosh', v: 0.4}, {t: 9.3, s: 'type', v: 0.28}, {t: 10.2, s: 'type', v: 0.28}, {t: 10.62, s: 'select', v: 0.5},
   {t: 10.98, s: 'swipe', v: 0.4}, {t: 11.3, s: 'tap', v: 0.4}, {t: 11.98, s: 'tick2', v: 0.4}, {t: 12.32, s: 'tick3', v: 0.4}, {t: 12.5, s: 'tap', v: 0.4},
-  {t: 13.03, s: 'zip', v: 0.38}, {t: 13.2, s: 'data', v: 0.3}, {t: 13.62, s: 'digital', v: 0.3},
+  {t: 13.03, s: 'zip', v: 0.38}, {t: 13.2, s: 'data', v: 0.3}, {t: 13.7, s: 'tick3', v: 0.4},
   {t: 14.53, s: 'whoosh3', v: 0.4}, {t: 15.15, s: 'type', v: 0.25}, {t: 16.86, s: 'stamp', v: 0.5},
   {t: 17.98, s: 'swish', v: 0.4}, {t: 18.28, s: 'pop2', v: 0.42}, {t: 19.38, s: 'snap', v: 0.4}, {t: 20.04, s: 'snap', v: 0.4},
-  {t: 20.63, s: 'whoosh', v: 0.38}, {t: 21.2, s: 'slide', v: 0.4}, {t: 21.38, s: 'glass', v: 0.5}, {t: 22.0, s: 'pop', v: 0.35}, {t: 22.45, s: 'type', v: 0.25},
+  {t: 20.63, s: 'whoosh', v: 0.38}, {t: 21.2, s: 'slide', v: 0.4}, {t: 21.38, s: 'glass', v: 0.5}, {t: 21.9, s: 'swipe', v: 0.35}, {t: 22.55, s: 'tick2', v: 0.4},
   {t: 23.33, s: 'swipe', v: 0.4}, {t: 23.86, s: 'pop2', v: 0.4}, {t: 24.73, s: 'pop', v: 0.4}, {t: 25.43, s: 'bubble', v: 0.4}, {t: 26.12, s: 'pop2', v: 0.4},
   {t: 26.93, s: 'whoosh3', v: 0.38}, {t: 27.05, s: 'counter', v: 0.22}, {t: 27.66, s: 'stamp', v: 0.5},
   {t: 28.68, s: 'swish', v: 0.38}, {t: 29.22, s: 'type', v: 0.3}, {t: 29.62, s: 'send', v: 0.5}, {t: 30.05, s: 'open', v: 0.4}, {t: 31.15, s: 'riser', v: 0.2}, {t: 31.4, s: 'chime', v: 0.25},
@@ -681,7 +704,7 @@ const SFX: Sfx[] = [
 const WORDS: [number, number][] = [];
 export const VOICE_SEGS = WORDS;
 
-export const RevApi: React.FC<{words: {s: number; e: number}[]}> = ({words}) => {
+export const RevApi: React.FC<{words: {s: number; e: number}[]; proofs: Record<string, Shot>}> = ({words, proofs}) => {
   const f = useCurrentFrame();
   const T = f / FPS;
   const speaking = (x: number) => words.some((w) => w.s - 0.06 <= x && x <= w.e + 0.04);
@@ -689,13 +712,15 @@ export const RevApi: React.FC<{words: {s: number; e: number}[]}> = ({words}) => 
     <AbsoluteFill style={{background: INK}}>
       <Scene T={T} s={0} e={3.45} bg={INK} fin="none" fout="whipL">{(t) => <S1 t={t} />}</Scene>
       <Scene T={T} s={3.45} e={6.25} bg={PAPER} fin="whipL" fout="zoom">{(t) => <S2 t={t} />}</Scene>
-      <Scene T={T} s={6.25} e={8.8} bg="#000" fin="zoom" fout="whipU">{(t) => <S3 t={t} />}</Scene>
+      <Scene T={T} s={6.25} e={7.8} bg="#000" fin="zoom" fout="zoom">{(t) => <S3 t={t} />}</Scene>
+      <Scene T={T} s={7.8} e={8.8} bg="#050505" fin="zoom" fout="whipU">{(t) => <PStars t={t} shot={proofs.stars} />}</Scene>
       <Scene T={T} s={8.8} e={11.1} bg={PAPER} fin="whipU" fout="whipR">{(t) => <S4 t={t} />}</Scene>
       <Scene T={T} s={11.1} e={13.15} bg="#050505" fin="whipR" fout="zoom">{(t) => <S5 t={t} />}</Scene>
-      <Scene T={T} s={13.15} e={14.65} bg="#070707" fin="zoom" fout="flip">{(t) => <S6 t={t} />}</Scene>
+      <Scene T={T} s={13.15} e={14.65} bg="#050505" fin="zoom" fout="flip">{(t) => <PHar t={t} shot={proofs.har} />}</Scene>
       <Scene T={T} s={14.65} e={18.1} bg="#080808" fin="flip" fout="whipL">{(t) => <S7 t={t} />}</Scene>
       <Scene T={T} s={18.1} e={20.75} bg={PAPER} fin="whipL" fout="whipU">{(t) => <S8 t={t} />}</Scene>
-      <Scene T={T} s={20.75} e={23.45} bg="#060606" fin="whipU" fout="whipR">{(t) => <S9 t={t} />}</Scene>
+      <Scene T={T} s={20.75} e={22.0} bg="#060606" fin="whipU" fout="whipL">{(t) => <S9 t={t} />}</Scene>
+      <Scene T={T} s={22.0} e={23.45} bg="#050505" fin="whipL" fout="whipR">{(t) => <PDev t={t} shot={proofs.devtools} />}</Scene>
       <Scene T={T} s={23.45} e={27.05} bg={PAPER} fin="whipR" fout="zoom">{(t) => <S10 t={t} />}</Scene>
       <Scene T={T} s={27.05} e={28.8} bg="#000" fin="zoom" fout="whipL">{(t) => <S11 t={t} />}</Scene>
       <Scene T={T} s={28.8} e={32.2} bg={PAPER} fin="whipL" fout="none">{(t) => <S12 t={t} />}</Scene>
