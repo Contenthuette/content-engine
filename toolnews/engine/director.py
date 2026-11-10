@@ -31,9 +31,9 @@ from .validate import clean_text
 HERE = os.path.dirname(os.path.abspath(__file__))
 SYSTEM_PATH = os.path.join(HERE, "..", "DIRECTOR.md")
 MAX_REVIEWS = 3
-BLOCKS = set("ABDENLPVKCFX")
-NEEDS_INSERT = {"B": ("card", "hook"), "D": ("card", "hook"), "E": ("name",), "N": ("number",), "L": ("list",), "P": ("post",), "V": ("clip",)}
-TRANS = {"none", "blur", "push", "zoom", "slide", "morph"}
+BLOCKS = set("ABDENLPVKCFXG")
+NEEDS_INSERT = {"B": ("card", "hook"), "D": ("card", "hook"), "E": ("name",), "N": ("number",), "L": ("list",), "P": ("post",), "V": ("clip",), "G": ("logos",)}
+TRANS = {"none", "cut", "whip", "crash", "flip", "slam", "morph", "blur", "push", "zoom", "slide"}  # last four: v1 aliases
 MOTIONS = {"push", "parallax", "drift", "orbit"}
 X_KINDS = {"stack", "kinetic", "compare", "terminal", "statwall"}
 
@@ -219,7 +219,7 @@ def build_from(answer, job, words, assets, inserts, duration, k_cta):
         props_in = r.get("props") if isinstance(r.get("props"), dict) else {}
         sh = {"s": st, "e": en, "type": b, "insert": None, "why": "director", "idea": _txt(r.get("idea"), 160)}
         if r.get("transition") in TRANS:
-            sh["transition"] = "none" if i == 0 else ("blur" if r["transition"] == "none" else r["transition"])
+            sh["transition"] = "none" if i == 0 else ("crash" if r["transition"] == "none" else r["transition"])
         if r.get("motion") in MOTIONS:
             sh["motion"] = r["motion"]
         if r.get("bg") in ("light", "dark") and b in ("K", "C", "X"):
@@ -236,7 +236,7 @@ def build_from(answer, job, words, assets, inserts, duration, k_cta):
                     errs.append(f"Einstellung {i + 1}: Hook-Screenshot höchstens einmal nach A")
                     continue
                 reshow.add("hook")
-                sh.update(insert="hook", props={"card": P._card_props(a, _word_t(words, props_in.get("hlWord"), st + 0.5))})
+                sh.update(insert="hook", props={"card": P._card_props(a, crop=0.62)})  # never the identical hook view again
             else:
                 x = by_id.get(iid)
                 if not x or x["kind"] not in kinds:
@@ -247,8 +247,11 @@ def build_from(answer, job, words, assets, inserts, duration, k_cta):
                     errs.append(f"Einstellung {i + 1} ({b}): Material für {iid} fehlt (Screenshot/Aufnahme fehlgeschlagen)")
                     continue
                 if iid in used:
-                    if b == "D" and x["kind"] == "card" and iid not in reshow and st - used[iid] >= 6.0:
+                    if b == "D" and x["kind"] == "card" and iid not in reshow and st - used[iid] >= 4.0:
                         reshow.add(iid)
+                        sh.update(insert=iid, props={"card": P._card_props(a, crop=0.62)})
+                        out.append(sh)
+                        continue
                     else:
                         errs.append(f"Einstellung {i + 1}: {iid} wird doppelt benutzt")
                         continue

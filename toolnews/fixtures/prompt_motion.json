@@ -1,25 +1,83 @@
 {
   "id": "fx_prompt_motion",
-  "script": "Diese Seite zeigt dir die Prompts hinter richtig guten KI-Motion-Videos. Sie heißt Prompt Motion: eine Sammlung von Motion-Videos, gemacht mit Claude Opus fünf Komma fünf, und zu jedem Video bekommst du den Prompt oder den Skill dazu. Allein in der Kategorie Product UI findest du hundertfünf Videos. Dazu Kinetic Type, Charts, Diagramme und sogar Partikel. Das Beste: Du kannst jeden Prompt für dein eigenes Projekt anpassen. Neue Videos kommen per Mail, plus ein wöchentlicher Recap. Wenn du's testen willst, kommentier MOTION und ich schick dir den Link direkt.",
-  "title": {"line1": "Die Prompts hinter", "line2": "KI-Motion-Videos"},
-  "hook": {"url": "https://prompt-motion.com", "highlight": "with the prompts and skills behind them"},
-  "keywords": ["Prompt", "Skill", "Product UI"],
-  "inserts": [
-    {"kind": "name", "anchor": "Prompt Motion", "label": "Neue Seite", "name": "Prompt Motion", "url": "https://prompt-motion.com"},
-    {"kind": "card", "anchor": "Sammlung", "url": "https://prompt-motion.com", "highlight": "A collection of motion videos made with Claude Opus 5.5"},
-    {"kind": "number", "anchor": "hundertfünf", "value": "105", "label": "Videos nur für Product UI"},
-    {"kind": "list", "anchor": "Kinetic", "title": "Kategorien", "items": [
-      {"text": "Kinetic Type", "anchor": "Kinetic"},
-      {"text": "Charts", "anchor": "Charts"},
-      {"text": "Diagramme", "anchor": "Diagramme"},
-      {"text": "Partikel", "anchor": "Partikel"}]},
-    {"kind": "card", "anchor": "anpassen", "url": "https://prompt-motion.com", "highlight": "customize any prompt for your own project"},
-    {"kind": "clip", "anchor": "Neue Videos", "url": "https://prompt-motion.com"}
+  "script": "Hier siehst du die Prompts hinter richtig guten KI-Motion-Videos. Die Seite heißt Prompt Motion: Motion-Videos, gemacht mit Claude Opus, und zu jedem Video der Prompt oder der Skill. Allein Product UI hat hundertfünf Videos. Dazu Kinetic Type, Charts, Diagramme und Partikel. Jeden Prompt kannst du für dein eigenes Projekt anpassen. Neue Videos kommen per Mail, plus ein wöchentlicher Recap. Wenn du's testen willst, kommentier MOTION und ich schick dir den Link.",
+  "title": {
+    "line1": "Die Prompts hinter",
+    "line2": "KI-Motion-Videos"
+  },
+  "hook": {
+    "url": "https://prompt-motion.com",
+    "highlight": "with the prompts and skills behind them"
+  },
+  "keywords": [
+    "Prompt",
+    "Skill",
+    "anpassen"
   ],
-  "cta": {"word": "MOTION", "anchor": "kommentier"},
-  "voiceUrl": "https://local.invalid/placeholder.mp3",
+  "inserts": [
+    {
+      "kind": "name",
+      "anchor": "Prompt Motion",
+      "label": "Neue Seite",
+      "name": "Prompt Motion",
+      "url": "https://prompt-motion.com"
+    },
+    {
+      "kind": "card",
+      "anchor": "Claude Opus",
+      "url": "https://prompt-motion.com",
+      "highlight": "A collection of motion videos made with Claude Opus 5.5"
+    },
+    {
+      "kind": "number",
+      "anchor": "hundertfünf",
+      "value": "105",
+      "label": "Videos nur für Product UI"
+    },
+    {
+      "kind": "list",
+      "anchor": "Kinetic",
+      "title": "Und dazu",
+      "items": [
+        {
+          "text": "Kinetic Type",
+          "anchor": "Kinetic"
+        },
+        {
+          "text": "Charts",
+          "anchor": "Charts"
+        },
+        {
+          "text": "Diagramme",
+          "anchor": "Diagramme"
+        },
+        {
+          "text": "Partikel",
+          "anchor": "Partikel"
+        }
+      ]
+    },
+    {
+      "kind": "card",
+      "anchor": "anpassen",
+      "url": "https://prompt-motion.com",
+      "highlight": "customize any prompt for your own project"
+    },
+    {
+      "kind": "clip",
+      "anchor": "Prompt oder",
+      "url": "https://prompt-motion.com"
+    }
+  ],
+  "cta": {
+    "word": "MOTION",
+    "anchor": "kommentier"
+  },
+  "voiceUrl": "https://local.invalid/voice.mp3",
   "words": [],
-  "brand": {"name": "ULTRA", "accent": "#0082FF"},
-  "captions": true,
-  "musicUrl": null
+  "captions": false,
+  "musicUrl": null,
+  "brand": {
+    "name": "ULTRA"
+  }
 }

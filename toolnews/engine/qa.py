@@ -15,8 +15,8 @@ from .plan import LAYOUT
 
 GRID_W, GRID_H, QA_FPS = 90, 160, 10
 EMPTY_STD, EMPTY_RUN = 9.0, 0.3
-MIN_SHOT, MAX_SHOT, MAX_LONG = 1.8, 6.5, 7.6
-LONG = {"L", "F"}
+MIN_SHOT, MAX_SHOT, MAX_LONG = 1.2, 4.0, 6.0  # v2 tempo (Leif 10.11.: „viel zu langsam“)
+LONG = {"L", "F", "G"}
 
 
 def plan_issues(plan, voice_dur=None):

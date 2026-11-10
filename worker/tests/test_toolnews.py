@@ -34,10 +34,10 @@ def synth_words(script, wps=2.6):
     """Synthetic word times (2.6 words/s, pauses at punctuation) – like the placeholder voice without audio."""
     out, t = [], 0.15
     for tok in tx.tokens(script):
-        d = max(0.16, min(0.7, len(tok) * 0.055))
+        d = max(0.12, min(0.55, len(tok) * 0.045))
         out.append({"t": tok, "s": round(t, 3), "e": round(t + d, 3)})
         b = tx.strength(tok)
-        t += d + (0.34 if b == 2 else 0.16 if b == 1 else 1 / wps - d * 0.6 if 1 / wps > d else 0.04)
+        t += max(d + 0.03, 0.9 / wps) + (0.28 if b == 2 else 0.12 if b == 1 else 0.0)
     return out, t + 0.25
 
 
@@ -55,6 +55,8 @@ def full_assets(job):
             a[x["id"]] = {"ok": True, "logo": {"src": "tn/l.png", "w": 512, "h": 512}, "repo": None, "card": None}
         elif x["kind"] == "clip":
             a[x["id"]] = {"ok": True, "video": "tn/v.mp4", "w": 720, "h": 720, "dur": 6.0, "domain": "x.dev"}
+        elif x["kind"] == "logos":
+            a[x["id"]] = {"ok": True, "tiles": [{"name": i["name"], "src": None} for i in x["items"]]}
     return a
 
 
@@ -101,6 +103,7 @@ def test_numbers_not_spoken():
 # ---------- validation ----------
 
 def test_validation_drops_invalid_inserts():
+    base = len(V.validate(fixture("reverse_api"))[0]["inserts"])
     cfg = fixture("reverse_api")
     cfg["inserts"] += [
         {"kind": "card", "anchor": "Gibtsnicht", "url": "https://x.dev"},
@@ -111,7 +114,7 @@ def test_validation_drops_invalid_inserts():
     cfg["title"]["line1"] = "ULTRA Intelligence testet"
     job, log = V.validate(cfg)
     kinds = [x["kind"] for x in job["inserts"]]
-    assert len(job["inserts"]) == 6 and kinds.count("post") == 0
+    assert len(job["inserts"]) == base and kinds.count("post") == 0
     assert any("anchor not in script" in l for l in log)
     assert any("not spoken" in l for l in log)
     assert any("post incomplete" in l for l in log)
@@ -126,7 +129,8 @@ def test_validation_hard_errors_and_cta_fallback():
     with pytest.raises(V.JobError):
         V.validate({**cfg, "voiceUrl": ""})
     job, _ = V.validate({**cfg, "cta": {}, "brand": {"accent": "blue"}})
-    assert job["cta"]["word"] == "VOICE" and job["brand"]["accent"] == "#0082FF"
+    assert job["cta"]["word"] == "VOICE" and job["brand"]["accent"] == "#FF3B30"  # ULTRA-Rot is the default accent (v2)
+    assert job["captions"] is False and V.validate({**cfg, "captions": True})[0]["captions"] is True  # no captions unless asked
 
 
 # ---------- planner ----------
@@ -142,7 +146,7 @@ def test_planner_rules(name):
         assert not any(w["s"] + 0.02 < c < w["e"] - 0.02 for w in words), c
     for s in shots:
         L = s["e"] - s["s"]
-        assert L >= 1.8 - 1e-6 and L <= (7.6 if s["type"] in ("L", "F") else 6.5) + 1e-6, (s["type"], L)
+        assert L >= Q.MIN_SHOT - 1e-6 and L <= (Q.MAX_LONG if s["type"] in Q.LONG else Q.MAX_SHOT) + 1e-6, (s["type"], L)
     types = [s["type"] for s in shots]
     assert all(a != b for a, b in zip(types, types[1:]))
     assert plan["meta"]["insertsUsed"] / plan["meta"]["insertsTotal"] >= 0.5
@@ -150,6 +154,19 @@ def test_planner_rules(name):
     k = P.cta_start(job, words)
     assert abs(shots[-1]["s"] - P.cut_time(words, k)) < 1e-6 and words[k - 1]["b"] == 2
     assert Q.plan_issues(plan, dur) == []
+    # v2 tempo: average shot ≤ 3 s and a new visual state (cut or camera beat) at least every ~1.3 s
+    assert sum(s["e"] - s["s"] for s in shots) / len(shots) <= 3.0
+    states = len(shots) + sum(len(s["beats"]) for s in shots)
+    assert dur / states <= 1.3, (dur, states)
+    for s in shots:  # beats inside the shot, on word onsets, spaced
+        b = s["beats"]
+        assert all(s["s"] < x < s["e"] for x in b) and all(y - x >= P.BEAT_GAP - 0.05 for x, y in zip(b, b[1:]))
+    tr = [s["transition"] for s in shots]
+    assert tr[0] == "none" and not any(a == b == "morph" for a, b in zip(tr, tr[1:]))
+    assert all(s["type"] in P.CARDLIKE for s in shots if s["transition"] == "morph")
+    for s in shots:  # type-only beats never show the whole sentence (max 4 words)
+        if s["type"] == "C":
+            assert len(s["props"]["words"]) <= 4
 
 
 def test_list_protection_and_list_never_pulled():
@@ -192,8 +209,11 @@ def test_failed_assets_fall_back_to_other_blocks():
     assert all(x != y for x, y in zip(types, types[1:]))
 
 
-def test_captions_hidden_where_text_is_big():
+def test_captions_off_by_default_and_hidden_where_text_is_big():
     _, _, plan, _, _ = build("reverse_api")
+    assert plan["captions"] == []
+    _, _, plan, _, _ = build("reverse_api", mutate=lambda c: c.update(captions=True))
+    assert plan["captions"]
     for c in plan["captions"]:
         mid = (c["s"] + c["e"]) / 2
         sh = next(s for s in plan["shots"] if s["s"] <= mid < s["e"])
@@ -299,7 +319,7 @@ def test_director_accepts_valid_plan_and_rejects_bad_ones():
 def test_director_creative_terminal_and_props_clipped():
     job, words, assets, inserts, dur, k_cta, base = director_ctx()
     ans = answer_from(base, words)
-    i = next(n for n, s in enumerate(ans["shots"]) if s["block"] == "C")
+    i = 3
     ans["shots"][i].update(block="X", insert=None, props={"kind": "terminal", "title": "zsh", "lines": [
         {"text": "uv tool install reverse-api-engineer", "word": 3, "kind": "cmd"}, {"text": "x" * 200, "kind": "out"}]})
     plan, errs = D.build_from(ans, job, words, assets, inserts, dur, k_cta)
@@ -523,3 +543,53 @@ def test_master_two_pass_loudness(tmp_path):
     import re as _re
     lufs = float(_re.findall(r"I:\s+(-?[\d.]+) LUFS", r.stderr)[-1])
     assert -15.0 <= lufs <= -13.0
+
+
+# ---------- v2: logo walls, voice ----------
+
+def test_auto_logo_wall_and_protection():
+    job, _ = V.validate(fixture("reverse_api"))
+    auto = next(x for x in job["inserts"] if x["id"] == "auto_logos")
+    assert [i["name"] for i in auto["items"]] == ["Claude Code", "Codex", "Cursor", "OpenCode"] and auto["title"] == "Läuft mit"
+    assert auto["items"][0]["slug"] == "claude" and auto["items"][1]["slug"] is None
+    job2, _, plan, _, _ = build("reverse_api")
+    words = P.prepare_words(synth_words(job2["script"])[0], job2["script"])
+    g = next(s for s in plan["shots"] if s.get("insert") == "auto_logos")
+    assert g["type"] == "G"
+    spoken = [w["s"] for w in words if w["n"] in ("claude", "codex", "cursor", "opencode")]
+    assert g["s"] <= min(spoken) + 0.01 and max(spoken) < g["e"]  # no cut inside the wall
+    ats = [tl["at"] for tl in g["props"]["tiles"]]
+    assert ats == sorted(ats) and all(g["s"] <= a < g["e"] for a in ats)
+    # an insert in that sentence suppresses the automatic wall; < 3 names → no wall
+    assert V.auto_logos("Läuft mit Claude Code, Codex und Cursor.", [{"anchor": "Codex"}]) is None
+    assert V.auto_logos("Geht mit Python und Go.", []) is None
+
+
+def test_logos_validation():
+    cfg = fixture("reverse_api")
+    cfg["inserts"] = [{"kind": "logos", "anchor": "zehn", "items": [{"name": "Python", "slug": "py thon!", "anchor": "Python"}, {"name": "Nirgends", "anchor": "Nirgends"}]},
+                      {"kind": "logos", "anchor": "zehn", "items": [{"name": "Solo"}]}]
+    job, log = V.validate(cfg)
+    lg = [x for x in job["inserts"] if x["id"] == "i0"][0]
+    assert lg["items"][0]["slug"] == "python" and lg["items"][1]["anchor"] is None
+    assert any("fewer than 2" in l for l in log)
+
+
+def test_reshow_is_another_crop():
+    _, _, plan, _, _ = build("voicestudio")
+    for s in plan["shots"]:
+        if s["why"] == "reshow":
+            assert s["props"]["card"]["hl"] == [] and s["props"]["card"]["focus"] > 0.5
+
+
+def test_placeholder_voice_sentence_wise(tmp_path):
+    import shutil as _sh
+    if not _sh.which("espeak-ng") and not os.environ.get("TOOLNEWS_PIPER_MODEL"):
+        pytest.skip("no local TTS")
+    script = fixture("voicestudio")["script"]
+    wav = str(tmp_path / "v.wav")
+    w = VO.placeholder(script, wav)
+    dur = VO.duration(wav)
+    assert len(w) == len(tx.tokens(script))
+    assert all(b["s"] >= a["s"] for a, b in zip(w, w[1:])) and w[-1]["e"] <= dur
+    assert 2.3 <= len(w) / dur <= 3.6  # natural pace, not word by word

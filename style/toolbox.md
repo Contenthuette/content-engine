@@ -46,19 +46,22 @@ Element-Bibliothek, Still-Runden, Draft-Frames an jedem Morph, Augen-Check, Fina
 | dir_photo | B-Roll | nur Kunden-Uploads: polaroid / card / window / full / split | gebaut |
 | dir_zoomthrough | Übergang | am Fenster verankerte Zeichnung mit `under: true` → Video wächst darüber (sonst zieht sie halbtransparent über das Video) | Regel |
 
-## Toolnews (10.11. – `toolnews/remotion/`, Composition `ToolNews`, Job `worker/clipperz_toolnews.py`)
-KI-Tool-News im Nick-Saraev-Format ohne Avatar. Geometrie aller Bausteine in `toolnews/layout.json` (Renderer + QA lesen dieselbe Datei).
-Regie: `toolnews/DIRECTOR.md` (Claude wählt Bausteine/Props/Übergänge, prüft Stills, max. 3 Runden; sonst Planer `toolnews/engine/plan.py`).
+## Toolnews v2 (10.11. abends – `toolnews/remotion/`, Composition `ToolNews`, Job `worker/clipperz_toolnews.py`)
+Leif zu v1: „viel zu langsam, zu wenig Movement, zu schwache Animation, lieber schwarz-weiß plus kleine Akzente, mehr 3D, viele visuelle Eindrücke“.
+Look v2: Schwarz/Off-White, Screenshots zu 85 % entsättigt (`plan.mono`), EIN Akzent (Default ULTRA-Rot #FF3B30, `brand.accent`) nur für
+Unterstreichung/Punkt/Cursor/Kasten/Zähler-Strich. Bühne in 3D (Boden-Grid in Perspektive, Kontaktschatten, Bodenspiegelung), Kamera nie still,
+Kamera-Beats auf Wortanfängen (~alle 0,5 s), Übergänge 6 Frames mit Bewegungsunschärfe. Keine Untertitel (Schalter `captions: true`).
+Geometrie in `toolnews/layout.json` (Renderer + QA). Regie: `toolnews/DIRECTOR.md`.
 | ID | Kategorie | Was | Status |
 |---|---|---|---|
-| TN-A | Hook | Zeile 1 fette Sans + Zeile 2 kursive Serif im Akzent-Kasten + Hook-Screenshot mit Markierung, Frame 0 voll | gebaut |
-| TN-B / TN-D | Material | Browser-Karte (Rand #3366E0 + Glow, r 22) mit echtem Screenshot, Text-Markierung als Sweep, Push-in auf die Markierung; D auf dunklem Blur | gebaut |
-| TN-E | Material | Label-Kasten + großer Name (Serif, Akzent) + Logo-Kachel / GitHub-Repo-Karte (Sterne zählen) / Seitenkarte | gebaut |
-| TN-N | Effekt | Zahl mit rollenden Ziffern + Label, dunkel, Glow, Unterstrich | gebaut |
-| TN-L | Aufbau | Liste 2–4 Punkte, jeder erscheint beim Sprechen (Platzhalter-Zeilen vorher, aktiver Punkt mit Glow) | gebaut |
-| TN-P | Material | Social-Post-Karte (nur echte, vollständige Posts) | gebaut |
-| TN-V | Material | Scroll-Aufnahme (Playwright, 6 s) im Browserfenster + Cursor | gebaut |
-| TN-K / TN-C | Kinetic Type | großes Schlüsselwort / gesprochener Satz groß (Notlösung, ≤ 35 %) | gebaut |
-| TN-F | CTA | „Kommentier“ + WORT wird ins Kommentarfeld getippt, Cursor klickt Senden, Blase poppt | gebaut |
-| TN-X | kreativ | `stack` (3D-Kartenstapel), `kinetic` (Satz als Typo), `compare` (Split), `terminal` (tippt), `statwall` (Zahlen-Wand) – max. 1 pro Video | gebaut |
-Übergänge: `morph` (Shared Element Karte → Karte, FLIP), `blur`, `push`, `zoom`, `slide`; Bewegung: `push`, `parallax`, `drift`, `orbit`.
+| TN-A | Hook | Screenshot-Karte fliegt bildfüllend aus der Kamera (Frame 0 mitten im Flug), Titelwörter slammen extrudiert, Zeile 2 kursiv im Akzent-Kasten | gebaut |
+| TN-B / TN-D | Material | 3D-Browserkarte (Federeingang aus 58°/38°, Ruhe-Kippung, Orbit), gezoomter Ausschnitt um die Markierung, Akzent-Marker + Linie, Geister-Ebenen, Spiegelung; D = dunkel, als Wiederholung ein ANDERER Ausschnitt | gebaut |
+| TN-E | Material | Label + extrudierter Serif-Name + 3D-Logo-Kachel (1,5 Drehungen, Vorder- und Rückseite mit Logo) / Repo-Karte (Sterne zählen) | gebaut |
+| TN-N | Effekt | riesige extrudierte Zahl im Raum, Ziffern rollen (nie über dem Zielwert), landen auf dem gesprochenen Wort, Akzent-Strich | gebaut |
+| TN-L | Aufbau | Listenzeilen klappen in 3D auf (rotateX-Feder), aktive Zeile schwarz | gebaut |
+| TN-G | Material | Logo-Wand im 3D-Raster: Kacheln klappen beim Nennen auf; simple-icons, sonst Icon der offiziellen Seite, sonst Wortmarken-Chip; automatisch, wenn ≥ 3 Tools in einem Satz genannt werden | gebaut |
+| TN-V | Material | Scroll-Aufnahme im Fenster, Kamera umkreist es, Akzent-Cursor | gebaut |
+| TN-K / TN-C | Kinetic Type | Riesenwort aus der Tiefe / bis 4 starke Wörter slammen (nie der ganze Satz), erstes Element landet auf dem Schnitt | gebaut |
+| TN-F | CTA | WORT wird getippt, Akzent-Senden-Knopf, Cursor-Klick, Blase, Kommentar-Wand fliegt durch die Tiefe | gebaut |
+| TN-X | kreativ | `stack`, `kinetic`, `compare`, `terminal`, `statwall` in 3D, max. 1 pro Video | gebaut |
+Übergänge: `whip`, `crash`, `flip`, `slam`, `cut`, `morph` (nur Karte→Karte, nie zweimal hintereinander). Bewegung: `push`, `orbit`, `drift`, `parallax`.

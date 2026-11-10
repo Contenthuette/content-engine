@@ -16,6 +16,10 @@ import subprocess
 
 import requests
 
+
+def tx_norm(v):
+    return re.sub(r"[^a-z0-9]", "", str(v).lower())
+
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 GH = re.compile(r"^https?://(?:www\.)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/?(?:[#?].*)?$")
 VIDEO_EXT = (".mp4", ".mov", ".webm", ".m4v")
@@ -180,15 +184,30 @@ def fetch(job, pub, work, log=None, runner=None):
                 videos[ins["id"]] = ins["url"]
             else:
                 plan[ins["id"]] = ("record", add(ins["id"], "record", ins["url"], ext="webm"))
+    from .validate import LOGO_SITES
+    site_logo = {}  # tile name → logo task id (names without a simple-icons slug)
+    for x in job["inserts"]:
+        if x["kind"] != "logos":
+            continue
+        for it in x["items"]:
+            site = LOGO_SITES.get(tx_norm(it["name"]))
+            if not it.get("slug") and site:
+                site_logo[it["name"]] = add("lg_" + re.sub(r"[^a-z0-9]", "", it["name"].lower()), "logo", site)
     results = {}
     if tasks:
         tp, rp = os.path.join(work, "asset_tasks.json"), os.path.join(work, "asset_results.json")
         with open(tp, "w", encoding="utf-8") as fh:
             json.dump(tasks, fh, ensure_ascii=False)
-        if runner:
+        cached = os.environ.get("TOOLNEWS_REUSE_ASSETS") and os.path.exists(rp + ".tasks") and open(rp + ".tasks").read() == json.dumps(tasks, ensure_ascii=False)
+        if cached:  # local iteration only (never set in jobs): same tasks → reuse the last asset run
+            print("assets: reusing cached results (TOOLNEWS_REUSE_ASSETS)")
+        elif runner:
             runner(tp, rp)
         else:
             subprocess.run(["node", os.path.join(REPO, "toolnews", "engine", "assets.mjs"), tp, rp], cwd=REPO, timeout=900)
+        if not cached:
+            with open(rp + ".tasks", "w", encoding="utf-8") as fh:
+                fh.write(json.dumps(tasks, ensure_ascii=False))
         try:
             results = {r["id"]: r for r in json.load(open(rp, encoding="utf-8"))}
         except (OSError, json.JSONDecodeError):
@@ -223,10 +242,37 @@ def fetch(job, pub, work, log=None, runner=None):
                     log.append(f"{key}: no logo ≥ 96 px ({r.get('error', 'kein Ergebnis')}) – card instead" if card else f"{key}: no logo, no card – name only")
             elif kind == "record":
                 r = results.get(spec[1]) or {}
-                v = _to_mp4(r["raw"], os.path.join(d, f"{key}.mp4"), r.get("start", 0)) if r.get("ok") else None
+                mp4 = os.path.join(d, f"{key}.mp4")
+                if r.get("ok") and not os.path.exists(r.get("raw", "")) and os.path.exists(mp4):  # cached run: raw already converted
+                    v = {"w": r["w"], "h": r["h"], "dur": 6.0}
+                else:
+                    v = _to_mp4(r["raw"], mp4, r.get("start", 0)) if r.get("ok") else None
                 out[key] = {"ok": True, "video": f"tn/{key}.mp4", "domain": r.get("domain", ""), **v} if v else {"ok": False, "error": r.get("error", "Aufnahme fehlt")}
         except Exception as e:  # one broken asset must never break the job
             out[key] = {"ok": False, "error": f"{type(e).__name__}: {e}"[:160]}
+    logo_ins = [x for x in job["inserts"] if x["kind"] == "logos"]
+    if logo_ins:
+        slugs = sorted({it["slug"] for x in logo_ins for it in x["items"] if it.get("slug")})
+        files = {}
+        if slugs:
+            try:
+                r = subprocess.run(["node", os.path.join(REPO, "toolnews", "engine", "logos.mjs"), d] + slugs, cwd=REPO, capture_output=True, text=True, timeout=60)
+                files = json.loads(r.stdout or "{}")
+            except (subprocess.SubprocessError, ValueError) as e:
+                log.append(f"logo icons failed: {type(e).__name__}")
+        for x in logo_ins:
+            tiles = []
+            for it in x["items"]:
+                src = os.path.relpath(files[it["slug"]], pub) if files.get(it.get("slug")) else None
+                tid = site_logo.get(it["name"])
+                if not src and tid and (results.get(tid) or {}).get("ok"):
+                    try:
+                        lg = _post_logo(results[tid], os.path.join(d, f"{tid}.png"))
+                        src = os.path.relpath(lg["src"], pub) if lg else None
+                    except Exception as e:  # missing logo → wordmark chip
+                        log.append(f"logo {it['name']}: {type(e).__name__}")
+                tiles.append({"name": it["name"], "src": src})
+            out[x["id"]] = {"ok": True, "tiles": tiles, "icons": sum(1 for t in tiles if t["src"])}
     for key, url in videos.items():
         raw = _video(url, os.path.join(d, f"{key}.mp4"))
         v = _to_mp4(raw, os.path.join(d, f"{key}.mp4")) if raw else None

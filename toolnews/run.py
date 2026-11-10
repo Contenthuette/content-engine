@@ -27,6 +27,8 @@ def main(argv=None):
     ap.add_argument("--voice")
     ap.add_argument("--llm-dir")
     ap.add_argument("--llm-wait", type=float, default=0)
+    ap.add_argument("--piper-model", help="local piper .onnx voice for --placeholder-voice (else espeak-ng, sentence by sentence)")
+    ap.add_argument("--stills", action="store_true", help="only assets + plan + stills at every cut/beat (contact sheet), no video")
     a = ap.parse_args(argv)
     cfg = json.load(open(a.fixture, encoding="utf-8"))
     os.makedirs(a.out, exist_ok=True)
@@ -34,17 +36,20 @@ def main(argv=None):
     os.makedirs(work, exist_ok=True)
     if a.placeholder_voice:
         src = os.path.join(work, "voice_src.wav")
-        cfg["words"] = VO.placeholder(cfg["script"], src)
+        cfg["words"] = VO.placeholder(cfg["script"], src, model=a.piper_model)
     elif a.voice:
         src = a.voice
     else:
         sys.exit("--placeholder-voice or --voice needed (no download in local runs)")
     llm = D.ReplayLLM(a.llm_dir, wait=a.llm_wait) if a.llm_dir else None
     try:
-        res = J.run(cfg, src, work, llm=llm, note=lambda m: print("·", m, flush=True))
+        res = J.run(cfg, src, work, llm=llm, note=lambda m: print("·", m, flush=True), stills_only=a.stills)
     except V.JobError as e:
         print("FAILED:", e)
         return 2
+    if a.stills:
+        print("stills:", res["sheet"], "| plan:", res["planString"])
+        return 0
     vid = os.path.join(a.out, f"{cfg.get('id', 'job')}.mp4")
     shutil.copy(res["final"], vid)
     if res.get("sheet"):

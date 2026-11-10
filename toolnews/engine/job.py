@@ -21,7 +21,7 @@ def _noop(_msg):
     pass
 
 
-def run(cfg, voice_src, work, llm=None, note=_noop, music_src=None, assets_runner=None, keep_raw=False, max_reviews=D.MAX_REVIEWS):
+def run(cfg, voice_src, work, llm=None, note=_noop, music_src=None, assets_runner=None, keep_raw=False, max_reviews=D.MAX_REVIEWS, stills_only=False):
     """Returns {"ok", "final", "poster", "sheet", "qa", "plan", "planString", "durationSec", "log", "timing"}.
     Raises validate.JobError (customer message) or render.RenderError."""
     t0 = time.time()
@@ -69,6 +69,11 @@ def run(cfg, voice_src, work, llm=None, note=_noop, music_src=None, assets_runne
             plan["meta"]["director"] = d.log
             timing["director"] = round(time.time() - t2, 1)
         plan_path = R.write_plan(plan, os.path.join(work, "plan.json"))
+        if stills_only:  # quick check: one still per shot entrance and per beat → contact sheet
+            times = still_times(plan)
+            files = renderer.stills(plan_path, [round(t * P.FPS) for t, _ in times], os.path.join(work, "stills"), scale=0.5)
+            sheet = sheet_of(files, [lbl for _, lbl in times], os.path.join(work, "stills_sheet.jpg"))
+            return {"sheet": sheet, "planString": P.plan_string(plan), "plan": plan, "log": log}
 
         def render_and_check(pl, path):
             note("Video wird gerendert…")
@@ -89,6 +94,11 @@ def run(cfg, voice_src, work, llm=None, note=_noop, music_src=None, assets_runne
             log.append("director plan failed QA (" + "; ".join(res["issues"])[:300] + ") – deterministic plan rendered")
             plan = base
             plan_path = R.write_plan(plan, os.path.join(work, "plan.json"))
+        if stills_only:  # quick check: one still per shot entrance and per beat → contact sheet
+            times = still_times(plan)
+            files = renderer.stills(plan_path, [round(t * P.FPS) for t, _ in times], os.path.join(work, "stills"), scale=0.5)
+            sheet = sheet_of(files, [lbl for _, lbl in times], os.path.join(work, "stills_sheet.jpg"))
+            return {"sheet": sheet, "planString": P.plan_string(plan), "plan": plan, "log": log}
             final, res = render_and_check(plan, plan_path)
     finally:
         renderer.close()
@@ -97,3 +107,26 @@ def run(cfg, voice_src, work, llm=None, note=_noop, music_src=None, assets_runne
     return {"ok": res["ok"], "final": final, "poster": poster, "sheet": res["stats"].get("sheet"), "qa": {"ok": res["ok"], "issues": res["issues"]},
             "qaStats": res["stats"], "plan": plan, "planString": P.plan_string(plan), "durationSec": round(Q.probe(final)["dur"], 2),
             "log": log, "timing": timing, "source": plan["meta"].get("source")}
+
+
+def still_times(plan):
+    out = [(0.0, "0.00 F0")]
+    for i, sh in enumerate(plan["shots"]):
+        out.append((sh["s"] + 0.1, f"{sh['s'] + 0.1:.2f} {i + 1}{sh['type']} in"))
+        out.append((sh["s"] + 0.3, f"{sh['s'] + 0.3:.2f} {i + 1}{sh['type']}"))
+        for b in sh.get("beats") or []:
+            out.append((b + 0.2, f"{b + 0.2:.2f} {i + 1}{sh['type']} beat"))
+    return out
+
+
+def sheet_of(files, labels, out, cols=8, tw=216, th=384):
+    from PIL import Image, ImageDraw
+    rows = (len(files) + cols - 1) // cols
+    sh = Image.new("RGB", (cols * tw, rows * (th + 18)), "white")
+    dr = ImageDraw.Draw(sh)
+    for i, (f, lbl) in enumerate(zip(files, labels)):
+        x, y = (i % cols) * tw, (i // cols) * (th + 18)
+        sh.paste(Image.open(f).resize((tw, th)), (x, y + 18))
+        dr.text((x + 3, y + 3), lbl, fill="black")
+    sh.save(out, quality=82)
+    return out

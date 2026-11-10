@@ -40,7 +40,7 @@ const launch = async () => {
 };
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
-const W = 540, SHOT_H = 700;
+const W = 540, SHOT_H = 1200;  // tall capture: the blocks show different crops (highlight, below it) of one page
 
 // cookie banners: reject first, else accept, else hide
 const REJECT = [/^(alle )?ablehnen$/i, /^nur (notwendige|erforderliche|essenzielle)/i, /^reject( all)?$/i, /^decline( all)?$/i, /^do not consent$/i,
@@ -223,7 +223,7 @@ const shot = async (browser, task) => {
         found = await page.evaluate(FIND_JS, task.highlight);
       }
       if (!found) return {ok: false, error: 'Markierter Text nicht auf der Seite'};
-      y = Math.max(0, found.top - SHOT_H * 0.38);
+      y = Math.max(0, found.top - SHOT_H * 0.24);
     } else {
       y = await page.evaluate(() => {
         const h = [...document.querySelectorAll('h1, article h2, main h2')].find((e) => e.getBoundingClientRect().height > 0);
@@ -243,7 +243,7 @@ const shot = async (browser, task) => {
       if (!again) return {ok: false, error: 'Markierter Text verschwunden'};
       const top = Math.min(...again.rects.map((r) => r[1])), bot = Math.max(...again.rects.map((r) => r[1] + r[3]));
       if (top < 0 || bot > SHOT_H || again.rects.some((r) => r[0] < -2 || r[0] + r[2] > W + 2)) {
-        await page.evaluate((yy) => window.scrollTo(0, yy), Math.max(0, again.top - SHOT_H * 0.38));
+        await page.evaluate((yy) => window.scrollTo(0, yy), Math.max(0, again.top - SHOT_H * 0.24));
         await page.waitForTimeout(400);
       }
       const fin = await page.evaluate(FIND_JS, task.highlight);
@@ -281,7 +281,7 @@ const shot = async (browser, task) => {
     await settle(page);
     await page.screenshot({path: task.out, clip: {x: 0, y: 0, width: W, height: SHOT_H}});
     const domain = new URL(page.url()).hostname.replace(/^www\./, '');
-    return {ok: true, img: task.out, w: W * 2, h: SHOT_H * 2, hl: rects, domain, title: info.title.slice(0, 120), focus: found ? 0.38 : 0.2};
+    return {ok: true, img: task.out, w: W * 2, h: SHOT_H * 2, hl: rects, domain, title: info.title.slice(0, 120), focus: found ? 0.24 : 0.12};
   } catch (e) {
     return {ok: false, error: 'Screenshot fehlgeschlagen: ' + String(e.message || e).slice(0, 120)};
   } finally {
@@ -363,7 +363,10 @@ const record = async (browser, task) => {
     await page.evaluate(PROMO_JS);
     await page.evaluate(HIDE_JS, false);
     await page.waitForTimeout(250);
-    const startAt = (Date.now() - t0) / 1000;
+    // Playwright's video clock runs ahead of Date.now() by up to ~1.5 s: hold the clean, hidden page still for 1.6 s and cut with a
+    // 1.2 s safety margin, so the clip never starts on the not-yet-hidden page
+    await page.waitForTimeout(1600);
+    const startAt = (Date.now() - t0) / 1000 - 0.4;
     // keep hiding promos during the take from the Node side (an in-page observer would need eval, which CSP often blocks)
     let rolling = true;
     const keepHiding = (async () => {

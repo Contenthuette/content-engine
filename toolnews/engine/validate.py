@@ -8,8 +8,8 @@ import re
 
 from . import text as tx
 
-DEFAULT_ACCENT = "#0082FF"
-KINDS = ("card", "name", "number", "list", "post", "clip")
+DEFAULT_ACCENT = "#FF3B30"  # ULTRA-Rot (Leif 10.11.: schwarz-weiß plus kleine Akzente)
+KINDS = ("card", "name", "number", "list", "post", "clip", "logos")
 POST_FIELDS = ("network", "author", "handle", "text", "date", "url")
 
 
@@ -69,7 +69,7 @@ def validate(cfg):
         "voiceUrl": _url(cfg.get("voiceUrl")),
         "words": _words(cfg.get("words")),
         "brand": {"name": "ULTRA", "accent": accent},
-        "captions": cfg.get("captions") is not False,
+        "captions": cfg.get("captions") is True,  # Leif: fertige Videos immer ohne Untertitel – nur auf ausdrücklichen Wunsch
         "musicUrl": _url(cfg.get("musicUrl")) or None,
         "resultPut": cfg.get("resultPut") if isinstance(cfg.get("resultPut"), dict) else None,
     }
@@ -125,6 +125,17 @@ def validate(cfg):
             missing = [f for f in POST_FIELDS if not vals[f]]
             out.update(vals)
             why = f"post incomplete ({', '.join(missing)})" if missing else None
+        elif not why and kind == "logos":
+            items = []
+            for it in (ins.get("items") or [])[:12]:
+                nm = clean_text((it or {}).get("name"), 24)
+                if not nm:
+                    continue
+                a = clean_text((it or {}).get("anchor"), 40)
+                slug = re.sub(r"[^a-z0-9]", "", str((it or {}).get("slug") or "").lower())[:40]
+                items.append({"name": nm, "slug": slug or None, "anchor": a if a and tx.anchor_in_text(script, a) else None})
+            out.update(title=clean_text(ins.get("title"), 30), items=items)
+            why = None if len(items) >= 2 else "logos with fewer than 2 items"
         elif not why and kind == "clip":
             out.update(url=_url(ins.get("url")))
             why = None if out["url"] else "clip without url"
@@ -133,6 +144,10 @@ def validate(cfg):
             continue
         job["inserts"].append(out)
 
+    auto = auto_logos(script, job["inserts"])
+    if auto:
+        job["inserts"].append(auto)
+        log.append(f"auto logo wall: {', '.join(i['name'] for i in auto['items'])}")
     cta = cfg.get("cta") or {}
     word = clean_text(cta.get("word"), 18).upper()
     if not word:
@@ -146,3 +161,48 @@ def validate(cfg):
         anchor = None
     job["cta"] = {"word": re.sub(r"[^A-Z0-9ÄÖÜ]", "", word)[:16] or word[:16], "anchor": anchor}
     return job, log
+
+
+# tools / languages / platforms the script may name → simple-icons slug (None = monogram tile, no icon available)
+TOOLS = [("Claude Code", "claude"), ("Claude", "claude"), ("Codex", None), ("Cursor", "cursor"), ("OpenCode", "opencode"), ("Gemini", "googlegemini"),
+         ("ChatGPT", None), ("GitHub", "github"), ("Docker", "docker"), ("Python", "python"), ("JavaScript", "javascript"), ("TypeScript", "typescript"),
+         ("Windows", None), ("Mac", "apple"), ("macOS", "apple"), ("Linux", "linux"), ("Android", "android"), ("iOS", "ios"), ("Vercel", "vercel"),
+         ("Notion", "notion"), ("Slack", "slack"), ("Figma", "figma"), ("n8n", "n8n"), ("Zapier", "zapier")]
+
+
+# official sites for names without a simple-icons logo → the page's own icon (assets.py, logo task ≥ 96 px)
+# (openai.com answers 403 to headless browsers; chatgpt.com/codex serves the 180 px app icon.) Windows: only a Microsoft wordmark
+# exists on its page → wordmark chip instead of a wrong logo.
+LOGO_SITES = {"codex": "https://chatgpt.com/codex", "chatgpt": "https://chatgpt.com", "openai": "https://chatgpt.com"}
+
+
+def auto_logos(script, inserts):
+    """≥ 3 known tools named in ONE sentence („läuft mit Claude Code, Codex, Cursor und OpenCode“) → a logo wall, unless an
+    insert already sits in that sentence. Deterministic, only names that are really spoken."""
+    toks = tx.tokens(script)
+    norms = [tx.norm(t) for t in toks]
+    taken = set()
+    for ins in inserts:
+        i = tx.find_anchor(norms, ins["anchor"])
+        if i is not None:
+            taken.add(i)
+    sent, start = [], 0
+    for i, t in enumerate(toks):
+        if tx.strength(t) == 2 or i == len(toks) - 1:
+            sent.append((start, i))
+            start = i + 1
+    for a, b in sent:
+        found, used = [], set()
+        for name, slug in TOOLS:
+            j = tx.find_anchor(norms[a:b + 1], name)
+            if j is None or (a + j) in used or any(x["slug"] == slug and slug for x in found):
+                continue
+            used.update(range(a + j, a + j + len(name.split())))
+            found.append({"name": name, "slug": slug, "anchor": name, "i": a + j})
+        if len(found) >= 3 and not any(a <= i <= b for i in taken):
+            found.sort(key=lambda x: x["i"])
+            lead = [tx.display(t) for t in toks[a:found[0]["i"]]][-3:]  # „Läuft mit“ → title of the wall
+            title = clean_text(" ".join(lead), 24) if lead and len(" ".join(lead)) <= 24 else ""
+            return {"id": "auto_logos", "kind": "logos", "anchor": found[0]["anchor"], "title": title,
+                    "items": [{k: v for k, v in x.items() if k != "i"} for x in found]}
+    return None

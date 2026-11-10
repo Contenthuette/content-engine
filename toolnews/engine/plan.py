@@ -29,13 +29,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LAYOUT = json.load(open(os.path.join(HERE, "..", "layout.json"), encoding="utf-8"))
 FPS = 30
 
-MIN_SHOT, MAX_SHOT, MAX_LIST, TARGET = 2.0, 5.0, 7.5, 3.4
-LEFTOVER_AGE, PULL_AHEAD, RESHOW_GAP = 2.5, 3.0, 6.0
+# v2 (Leif 10.11.: „viel zu langsam“): a new shot every ~1.4–3.4 s, inside every shot camera beats every ~0.7 s
+MIN_SHOT, MAX_SHOT, MAX_LIST, TARGET = 1.4, 3.4, 5.5, 2.2
+LEFTOVER_AGE, PULL_AHEAD, RESHOW_GAP = 2.0, 2.0, 4.0
+BEAT_GAP, BEAT_MIN = 0.5, 0.35
 LIST_TAIL = 0.7
-BLOCK_OF = {"card": "B", "name": "E", "number": "N", "list": "L", "post": "P", "clip": "V"}
-DARK = {"D", "N", "V", "F"}
+BLOCK_OF = {"card": "B", "name": "E", "number": "N", "list": "L", "post": "P", "clip": "V", "logos": "G"}
+DARK = {"D", "N", "V", "F", "G"}
 HERO = {"A": "card", "B": "card", "D": "card", "V": "window", "P": "post"}
-TRANSITIONS = ("blur", "push", "zoom", "slide")
+TRANSITIONS = ("whip", "crash", "flip", "slam", "cut")
+CARDLIKE = {"A", "B", "D", "V", "P"}
 CTA_LINE1 = "Kommentier"
 CTA_LINE2 = "und ich schick dir den Link per DM"
 
@@ -84,6 +87,12 @@ def locate(job, words):
                 log.append(f"{ins['id']} list with < 2 spoken items – dropped")
                 continue
             x["items"] = items
+        if ins["kind"] == "logos":
+            its = []
+            for it in ins["items"]:
+                j = tx.find_anchor(norms, it["anchor"], start=i) if it.get("anchor") else None
+                its.append(dict(it, at=words[j]["s"] if j is not None else None))
+            x["items"] = its
         located.append(x)
     located.sort(key=lambda x: x["at"])
     return located, log
@@ -100,6 +109,9 @@ def cta_start(job, words):
     norms = [w["n"] for w in words]
     i = tx.find_anchor(norms, job["cta"]["anchor"], last=True) if job["cta"].get("anchor") else None
     k = sentence_start(words, len(words) - 1 if i is None else i)
+    # a slow CTA sentence („Wenn du's testen willst, kommentier …“) longer than 5 s of speech starts at the comma before the anchor
+    if i is not None and i > k and words[-1]["e"] - words[k]["s"] > 5.0 and words[i - 1]["b"] >= 1:
+        k = i
     # the CTA shot must not be shorter than the minimum: include the previous sentence then
     while k > 0 and words[-1]["e"] - words[k]["s"] < MIN_SHOT:
         k = sentence_start(words, k - 1)
@@ -118,16 +130,23 @@ def plan_cuts(words, inserts, k_cta, log, relax=0):
     """Returns cut times [0, …, cta_t] (the CTA shot runs from cta_t to the end)."""
     cta_t = cut_time(words, k_cta) if k_cta > 0 else 0.0
     cands = [(0.0, None)] + [(cut_time(words, k), k) for k in range(1, k_cta)] + [(cta_t, k_cta)]
-    lists = [(x["at"], x["items"][-1]["at"] + LIST_TAIL) for x in inserts if x["kind"] == "list"] if relax < 1 else []
+    protect = relax in (0, 1)  # relax 0: normal · 1: protection kept, longer shots · 2: protection dropped · 3: dropped + longer
+    lists = [(x["at"], x["items"][-1]["at"] + LIST_TAIL) for x in inserts if x["kind"] == "list"] if protect else []
+    # a logo wall is protected like a list: its anchored names stay in one shot
+    ends = {w["s"]: w["e"] for w in words}
+    for x in inserts:  # walls: protected until the last named tool has been said (never past its word into the next sentence)
+        named = [i["at"] for i in x.get("items") or [] if x["kind"] == "logos" and i.get("at") is not None]
+        if protect and len(named) >= 2:
+            lists.append((x["at"], ends.get(max(named), max(named) + 0.4) + 0.02))
     anchors = sorted(x["at"] for x in inserts)
-    mn = MIN_SHOT if relax < 2 else 1.8
-    mx, mxl = (MAX_SHOT, MAX_LIST) if relax < 2 else (6.5, 7.6)
+    mn = MIN_SHOT if relax < 3 else 1.2
+    mx, mxl = (MAX_SHOT, MAX_LIST) if relax in (0, 2) else (4.0, 6.0)
 
     def bcost(k):
         if k is None or k == k_cta:
             return 0.0
         b, gap = words[k - 1]["b"], words[k]["s"] - words[k - 1]["e"]
-        return {2: 0.0, 1: 0.8, 0: 3.2}[b] - min(0.6, max(0.0, gap - 0.15))
+        return {2: 0.0, 1: 0.6, 0: 2.2}[b] - min(0.6, max(0.0, gap - 0.15))
 
     def forbidden(t):
         return any(a < t < b for a, b in lists)
@@ -146,20 +165,23 @@ def plan_cuts(words, inserts, k_cta, log, relax=0):
             if L < mn:
                 continue
             has_list = any(ti <= a and b <= tj + 0.01 for a, b in lists) or any(ti < a < tj for a, _ in lists)
-            if L > (mxl if has_list else mx):
+            if L > mxl:
                 break
+            if L > (mxl if has_list else mx):
+                continue  # an earlier start may still hold the whole list/wall
             if best[i] == float("inf"):
                 continue
             inside = [a for a in anchors if ti - 0.05 <= a < tj - 0.05]
-            c = 0.45 * (L - TARGET) ** 2 + bcost(kj)
-            c += 2.4 * max(0, len(inside) - 1) + (0.9 if not inside and i > 0 else 0.0)
+            c = 0.9 * (L - TARGET) ** 2 + bcost(kj)
+            c += 2.4 * max(0, len(inside) - 1) + (0.5 if not inside and i > 0 else 0.0)
             if inside and inside[0] - ti <= 1.2 and i > 0:
                 c -= 0.6
             if best[i] + c < best[j]:
                 best[j], prev[j] = best[i] + c, i
     if best[n - 1] == float("inf"):
-        if relax < 2:
-            log.append("cut plan: " + ("list protection dropped" if relax == 0 else "shot limits relaxed to 1.8–6.5 s"))
+        if relax < 3:
+            log.append("cut plan: " + ("shots up to 4.0 s (list/wall 6.0 s) to keep the protection", "list/wall protection dropped",
+                                       "protection dropped, shots 1.2–4.0 s")[relax])
             return plan_cuts(words, inserts, k_cta, log, relax + 1)
         # last resort: even pieces
         m = max(1, round(cta_t / TARGET))
@@ -174,9 +196,13 @@ def plan_cuts(words, inserts, k_cta, log, relax=0):
 
 # ---------- blocks ----------
 
-def _card_props(a, hl_at=None):
+def _card_props(a, hl_at=None, crop=None):
+    """crop: show another region of the (tall) page instead of the highlight – reshows never repeat the identical view."""
     if not a:
         return None
+    if crop is not None:
+        return {"src": a["img"], "w": a["w"], "h": a["h"], "hl": [], "dark": bool(a.get("dark")), "domain": a.get("domain", ""),
+                "hlAt": None, "focus": crop, "blur": a.get("blur")}
     return {"src": a["img"], "w": a["w"], "h": a["h"], "hl": a.get("hl") or [], "dark": bool(a.get("dark")), "domain": a.get("domain", ""),
             "hlAt": hl_at, "focus": a.get("focus", 0.42), "blur": a.get("blur")}
 
@@ -203,6 +229,16 @@ def block_props(kind, ins, asset, s, e, words, keywords):
             for n, k in enumerate(late):
                 items[k]["at"] = round(a + step * (n + (1 if k0 else 0)), 3)
         return {"title": ins["title"], "items": items}
+    if kind == "logos":
+        a = asset or {}
+        tiles = []
+        names = [it["name"] for it in ins["items"]]
+        times = {it["name"]: it.get("at") for it in ins["items"]}
+        for n, tl in enumerate(a.get("tiles") or [{"name": x, "src": None} for x in names]):
+            at = times.get(tl["name"])
+            at = at - 0.08 if at is not None and s <= at < e - 0.2 else s + 0.12 + 0.07 * n
+            tiles.append({"name": tl["name"], "src": tl.get("src"), "at": round(at, 3)})
+        return {"title": ins.get("title") or "", "tiles": tiles}
     if kind == "post":
         return {k: ins[k] for k in ("network", "author", "handle", "text", "date")}
     if kind == "clip":
@@ -219,8 +255,14 @@ def kw_hit(w, keywords):
     return any(tx.token_match(w["n"], tx.norm(k.split()[0])) for k in keywords)
 
 
-def headline_props(words, s, e, keywords):
-    return {"words": [{"w": w["w"], "at": max(s, w["s"] - 0.05), "kw": kw_hit(w, keywords)} for w in spoken(words, s, e)][:14]}
+def headline_props(words, s, e, keywords, n=4):
+    """Type-only beat: up to n strong words of the spoken phrase in spoken order (keywords first) – never the whole sentence."""
+    sp = spoken(words, s, e)
+    score = lambda w: (kw_hit(w, keywords) * 3 + (w["w"][:1].isupper() and w["n"] not in STOP) * 2 + min(len(w["n"]), 12) / 6
+                       - (w["n"] in STOP or len(w["n"]) < 3) * 5)
+    best = sorted(sorted(range(len(sp)), key=lambda i: -score(sp[i]))[:n])
+    best = [i for i in best if score(sp[i]) > 0] or best[:1]
+    return {"words": [{"w": sp[i]["w"], "at": max(s, sp[i]["s"] - 0.05), "kw": kw_hit(sp[i], keywords)} for i in best]}
 
 
 STOP = {"dieses", "diese", "dieser", "das", "die", "der", "und", "oder", "aber", "wenn", "dann", "auch", "noch", "schon", "nicht", "sogar",
@@ -310,7 +352,7 @@ def assign(shots, words, inserts, assets, job, log):
         re_id = next((cid for cid, end in shown.items() if cid not in reshown and s - end >= RESHOW_GAP), None)
         if re_id and prev != "D":
             reshown.add(re_id)
-            sh.update(type="D", insert=re_id, why="reshow", props={"card": _card_props(assets.get(re_id), s + 0.5)})
+            sh.update(type="D", insert=re_id, why="reshow", props={"card": _card_props(assets.get(re_id), crop=0.62)})
             prev = "D"
             continue
         if prev == "C" and si > 1:
@@ -335,8 +377,7 @@ def assign(shots, words, inserts, assets, job, log):
                 continue
             if re_id:
                 reshown.add(re_id)
-                sh.update(type="D", insert=re_id, why="reshow",
-                          props={"card": _card_props(assets.get(re_id), s + 0.5)})
+                sh.update(type="D", insert=re_id, why="reshow", props={"card": _card_props(assets.get(re_id), crop=0.62)})
                 prev = "D"
                 continue
         sh.update(type="C", insert=None, why="headline", props=headline_props(words, s, e, kw))
@@ -384,6 +425,8 @@ def hero_rect(sh):
         return B["V"]["window"]
     if t == "P":
         return B["P"]["post"]
+    if t == "G":
+        return B["G"]["grid"]
     if t == "E" and p.get("repo"):
         return B["E"]["repo"]
     if t == "E" and p.get("card") and not p.get("logo"):
@@ -455,12 +498,25 @@ def captions(words, shots, enabled, keywords):
     return out
 
 
+def beats(words, s, e, gap=BEAT_GAP, first=BEAT_MIN):
+    """Camera beats inside a shot (punch/angle change), on word onsets, ~every `gap` s – a new visual state every 15–25 frames."""
+    out, last = [], s
+    for w in words:
+        t = w["s"]
+        if t < s + first or t > e - 0.35:
+            continue
+        if t - last >= gap:
+            out.append(round(t - 0.03, 3))
+            last = t
+    return out
+
+
 def finish(job, words, shots, duration, assets):
     prev_bg = "light"
     for i, sh in enumerate(shots):
         t = sh["type"]
         bg = "dark" if t in DARK else "light"
-        if t == "K":
+        if t in ("K", "C", "G"):
             bg = "light" if prev_bg == "dark" else "dark"
         if t.startswith("X"):
             bg = (sh.get("props") or {}).get("bg") or ("dark" if prev_bg == "light" else "light")
@@ -470,13 +526,14 @@ def finish(job, words, shots, duration, assets):
         if "transition" not in sh:
             if i == 0:
                 sh["transition"] = "none"
-            elif sh["hero"] and shots[i - 1].get("hero"):
-                sh["transition"] = "morph"
+            elif t in CARDLIKE and shots[i - 1]["type"] in CARDLIKE and shots[i - 1].get("transition") != "morph":
+                sh["transition"] = "morph"  # shared element card → card, never twice in a row
             else:
-                sh["transition"] = TRANSITIONS[i % len(TRANSITIONS)]
-        if sh["transition"] == "morph" and not (sh["hero"] and i and shots[i - 1].get("hero")):
+                sh["transition"] = TRANSITIONS[(i * 3 + len(words)) % len(TRANSITIONS)]
+        if sh["transition"] == "morph" and not (sh["hero"] and i and shots[i - 1].get("hero") and t in CARDLIKE):
             sh["transition"] = "blur"  # a shared-element morph needs a hero on both sides
-        sh.setdefault("motion", "push" if i % 2 == 0 else "parallax")
+        sh.setdefault("motion", ("push", "orbit", "drift", "parallax")[i % 4])
+        sh["beats"] = beats(words, sh["s"], sh["e"]) if sh["type"] not in ("F",) else []
         sh["boxes"] = boxes(sh)
         sh["s"], sh["e"] = fr(sh["s"]), fr(sh["e"])
     for i, sh in enumerate(shots):
@@ -495,6 +552,7 @@ def finish(job, words, shots, duration, assets):
         "keywords": job["keywords"],
         "shots": shots,
         "captions": captions(words, shots, job["captions"], job["keywords"]),
+        "mono": job.get("mono", 0.85),
         "words": [{"w": w["w"], "s": round(w["s"], 3), "e": round(w["e"], 3)} for w in words],
         "meta": {"id": job["id"]},
     }

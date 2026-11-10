@@ -1,6 +1,6 @@
 {
   "id": "fx_reverse_api",
-  "script": "Dieses Open-Source-Tool verwandelt jede Website in eine saubere API. Es heißt Reverse API Engineer und hat auf GitHub schon über dreitausend Sterne. So funktioniert's: Website und Ziel rein, ein Browser oder KI-Agent klickt sich durch, und dein Modell schreibt daraus einen fertigen API-Client. In zehn Programmiersprachen, von Python bis Go. Nie mehr DevTools öffnen und cURL-Befehle kopieren. Und es läuft direkt mit Claude Code, Codex, Cursor und OpenCode. Das Ganze ist komplett kostenlos und steht unter MIT-Lizenz. Wenn du's testen willst, kommentier API und ich schick dir den Link direkt.",
+  "script": "Dieses Tool macht aus jeder Website eine API. Reverse API Engineer: Open Source, über dreitausend Sterne auf GitHub. Du gibst eine Website und ein Ziel ein. Ein KI-Agent klickt sich durch, schneidet den Traffic mit, und dein Modell schreibt daraus einen fertigen API-Client. In zehn Sprachen, von Python bis Go. Keine DevTools mehr, kein cURL-Kopieren. Läuft mit Claude Code, Codex, Cursor und OpenCode. Komplett kostenlos. Kommentier API und ich schick dir den Link.",
   "title": {
     "line1": "Jede Website wird",
     "line2": "deine API"
@@ -11,8 +11,8 @@
   },
   "keywords": [
     "API",
-    "Website",
-    "Claude Code"
+    "Open Source",
+    "kostenlos"
   ],
   "inserts": [
     {
@@ -29,29 +29,69 @@
       "label": "Sterne auf GitHub"
     },
     {
-      "kind": "list",
-      "anchor": "funktioniert",
-      "title": "So funktioniert's",
-      "items": [
-        {
-          "text": "Website + Ziel eingeben",
-          "anchor": "Website"
-        },
-        {
-          "text": "Browser oder Agent klickt",
-          "anchor": "klickt"
-        },
-        {
-          "text": "KI schreibt den API-Client",
-          "anchor": "schreibt"
-        }
-      ]
+      "kind": "card",
+      "anchor": "gibst",
+      "url": "https://github.com/kalil0321/reverse-api-engineer",
+      "highlight": "You give it a website and a goal"
     },
     {
-      "kind": "number",
+      "kind": "clip",
+      "anchor": "klickt",
+      "url": "https://github.com/kalil0321/reverse-api-engineer"
+    },
+    {
+      "kind": "card",
+      "anchor": "schreibt",
+      "url": "https://github.com/kalil0321/reverse-api-engineer",
+      "highlight": "reads the traffic and writes a working API client"
+    },
+    {
+      "kind": "logos",
       "anchor": "zehn",
-      "value": "10",
-      "label": "Programmiersprachen"
+      "title": "10 Sprachen",
+      "items": [
+        {
+          "name": "Python",
+          "slug": "python",
+          "anchor": "Python"
+        },
+        {
+          "name": "JavaScript",
+          "slug": "javascript"
+        },
+        {
+          "name": "TypeScript",
+          "slug": "typescript"
+        },
+        {
+          "name": "Go",
+          "slug": "go",
+          "anchor": "Go"
+        },
+        {
+          "name": "Java",
+          "slug": "openjdk"
+        },
+        {
+          "name": "C#",
+          "slug": "dotnet"
+        },
+        {
+          "name": "PHP",
+          "slug": "php"
+        },
+        {
+          "name": "Ruby",
+          "slug": "ruby"
+        },
+        {
+          "name": "C",
+          "slug": "c"
+        },
+        {
+          "name": "PowerShell"
+        }
+      ]
     },
     {
       "kind": "card",
@@ -60,21 +100,21 @@
       "highlight": "No more manually opening DevTools, copying cURL commands"
     },
     {
-      "kind": "clip",
-      "anchor": "Claude Code",
-      "url": "https://github.com/kalil0321/reverse-api-engineer"
+      "kind": "card",
+      "anchor": "kostenlos",
+      "url": "https://github.com/kalil0321/reverse-api-engineer",
+      "highlight": "MIT license"
     }
   ],
   "cta": {
     "word": "API",
-    "anchor": "kommentier"
+    "anchor": "Kommentier"
   },
-  "voiceUrl": "https://local.invalid/placeholder.mp3",
+  "voiceUrl": "https://local.invalid/voice.mp3",
   "words": [],
   "brand": {
-    "name": "ULTRA",
-    "accent": "#0082FF"
+    "name": "ULTRA"
   },
-  "captions": true,
+  "captions": false,
   "musicUrl": null
 }
