@@ -132,3 +132,18 @@ Stil-Richtung: Fusion aus lucas.kleinecke × creatoroly.
 
 ## 2026-10-15 09:18 – Leif: „finde die Videos jetzt schon sehr gut“ (3 Nacht-Reels R1/R2/R3)
 - Das ist der aktuelle Maßstab: Bühnenwechsel ~1 s, durchgehendes Leitobjekt, echte Screens unverzerrt, Stimme klar vorne (SFX-Ducking + Stimmen-Tasche), kein Arcade.
+
+## 2026-11-10 18:43 – Leif zu Tool-News v1 (CLIPPERZ-Autopilot, 3 Fixtures): „viel zu langsam, zu wenig movement, zu schwache animation, lieber schwarz weiss plus kleine akzente und mehr 3D“
+- Tool-News-Look: Schwarz-Weiß als Basis, Akzent nur klein (Strich, Punkt, ein Wort) – kein Blau-Verlauf, keine Farbglows als Fläche.
+- Mehr echtes 3D (Perspektive, gekippte Karten/Devices im Raum, Tiefen-Ebenen, Orbit) statt flacher Karten.
+- Tempo wie 15.10.: Bühnenwechsel ~1 s, kein stehender Frame, Eingänge mit Wucht (Spring/Slam/Flip), Hook ab Frame 0 bildfüllend.
+- Platzhalterstimme (espeak wortweise) nie wieder für Leif-Vorschau – klingt kaputt und verfälscht das Tempo.
+
+## 2026-11-10 20:10 – Leif: Tool-News v2 „eine Enttäuschung“, „alle anderen erstellen mit Opus 5.5 mega krasse Videos“
+- Vorlagen-Engine (feste Bausteine A/E/N/L/B/V/K/F) für Tool-News verworfen – wirkt wie animierte Präsentation.
+- Schnittplan-Zwang (14.10.) für Tool-News aufgehoben (Leif „okay ja“): jedes Video wird von Opus frei inszeniert – eigene Leitidee, eigene Szenen, eigener Motion-Code pro Video.
+
+## 2026-11-10 20:44 / 21:02 – Leif zu Reverse API v3/v4
+- „find's gut“ – frei inszeniert ist die Richtung.
+- Echte Quellen zeigen wie Nick Saraev: Repo/Seite einblenden, worüber gesprochen wird → Beweis-Momente (proof.mjs + ProofShot: echte Seite, Zoom auf den Satz, Quelle unten).
+- Look: lieber Stil von contenthuette.de – iOS/Apple, weiß/#F4F4F5, schwarze Inter-Display-Headlines mit Punkt, weiche Karten, schwarze Pillen, iOS-Elemente (iPhone, Dynamic Island, Mitteilung, Tastatur, App-Icons, iMessage) und 3D.
