@@ -415,7 +415,11 @@ def visible_text(sh):
     parts = [p.get(k) for k in ("line1", "line2", "label", "name", "title", "word", "value", "text")]
     parts += [it.get("text") for it in p.get("items") or [] if isinstance(it, dict)]
     parts += [ln.get("text") for ln in p.get("lines") or [] if isinstance(ln, dict)]
-    return {tx.norm(t) for x in parts if isinstance(x, str) for t in tx.tokens(x)} - {""}
+    out = {tx.norm(t) for x in parts if isinstance(x, str) for t in tx.tokens(x)}
+    for k in ("value", "from", "to"):  # a big number on screen also hides its spoken form („sechshundertsechsundvierzig“)
+        if p.get(k) is not None:
+            out |= tx.number_forms(p[k])
+    return out - {""}
 
 
 def captions(words, shots, enabled, keywords):
