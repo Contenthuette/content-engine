@@ -362,21 +362,16 @@ const record = async (browser, task) => {
     // pages re-render after hydration / lazy load: hide promos again right before the take, and keep hiding during it
     await page.evaluate(PROMO_JS);
     await page.evaluate(HIDE_JS, false);
-    await page.evaluate(([a, b]) => {
-      const promo = new Function('return (' + a + ')')(), overlays = new Function('return (' + b + ')')();
-      let busy = false;
-      const mo = new MutationObserver(() => {
-        if (busy) return;
-        busy = true;
-        try { promo(); overlays(false); } catch {}
-        busy = false;
-      });
-      mo.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open']});
-      // toasts that only animate in (no DOM change) are caught by a slow re-check
-      setInterval(() => { if (!busy) { busy = true; try { promo(); overlays(false); } catch {} busy = false; } }, 300);
-    }, [PROMO_JS.toString(), HIDE_JS.toString()]);
     await page.waitForTimeout(250);
     const startAt = (Date.now() - t0) / 1000;
+    // keep hiding promos during the take from the Node side (an in-page observer would need eval, which CSP often blocks)
+    let rolling = true;
+    const keepHiding = (async () => {
+      while (rolling) {
+        try { await page.evaluate(PROMO_JS); await page.evaluate(HIDE_JS, false); } catch {}
+        await page.waitForTimeout(200);
+      }
+    })();
     await page.evaluate(async (y0) => {
       const H = Math.max(0, Math.min(1500, document.documentElement.scrollHeight - innerHeight - y0));
       const T = 6000, t0 = performance.now();
@@ -390,6 +385,8 @@ const record = async (browser, task) => {
         requestAnimationFrame(step);
       });
     }, start);
+    rolling = false;
+    await keepHiding;
     await page.waitForTimeout(300);
     const video = page.video();
     await ctx.close();
