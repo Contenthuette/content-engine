@@ -1,0 +1,25 @@
+[
+ {
+  "id": "stars",
+  "ok": true,
+  "file": "public/flowkit/proof_stars.png",
+  "url": "https://github.com/kalil0321/reverse-api-engineer",
+  "pageTitle": "GitHub - kalil0321/reverse-api-engineer: Reverse engineer any website into a typed API client. Works with Claude Code, Codex, Cursor and OpenCode. · GitHub",
+  "w": 2560,
+  "h": 1200,
+  "rects": [
+   {
+    "x": 2000,
+    "y": 440,
+    "w": 59.9375,
+    "h": 34
+   },
+   {
+    "x": 2059.9375,
+    "y": 440,
+    "w": 71.28125,
+    "h": 34
+   }
+  ]
+ }
+]

@@ -1,0 +1,2648 @@
+[
+{
+"clip": "mobbin",
+"frames": [
+2,
+8
+],
+"kategorie": "Erscheinen",
+"was": "Weißes, schräg gedrehtes Rechteck fliegt von rechts in die Bildmitte und wird zum Logo",
+"dauer_f": 5.0,
+"bezier": [
+0.5,
+0.91,
+0.35,
+0.98
+],
+"ueberschwingen": 2.4,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+1,
+9
+],
+"kategorie": "Erscheinen",
+"was": "Bläulich-weißer Schein um das Logo baut sich auf",
+"dauer_f": 6.8,
+"bezier": [
+0.84,
+0.75,
+0.19,
+0.42
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+12,
+22
+],
+"kategorie": "Verschwinden",
+"was": "Schein um das Logo klingt ab, bevor/als der Hintergrund hell wird",
+"dauer_f": 8.3,
+"bezier": [
+0.0,
+0.48,
+0.83,
+0.31
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+18,
+27
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Hintergrund blendet von Fast-Schwarz (#080808) auf Weiß",
+"dauer_f": 6.7,
+"bezier": [
+0.46,
+0.4,
+0.7,
+1.01
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+8,
+31
+],
+"kategorie": "Kamera Zoom",
+"was": "Logo wird während Schein/Hintergrundwechsel langsam kleiner (Kamera fährt zurück)",
+"dauer_f": 19.5,
+"bezier": [
+0.91,
+0.0,
+0.32,
+0.67
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "mobbin",
+"frames": [
+32,
+39
+],
+"kategorie": "Verschwinden",
+"was": "Schwarzes Logo beschleunigt nach links aus der Mitte und verschmilzt zum Caret",
+"dauer_f": 6.6,
+"bezier": [
+0.63,
+-0.0,
+0.9,
+0.5
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "mobbin",
+"frames": [
+42,
+50
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Caret (aus dem Logo entstanden) läuft von links auf seine Ruheposition aus",
+"dauer_f": 6.6,
+"bezier": [
+0.1,
+0.56,
+0.26,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+43,
+51
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Caret wechselt von Hellblau zu Fast-Schwarz",
+"dauer_f": 7.2,
+"bezier": [
+1.0,
+1.01,
+0.35,
+0.76
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+50,
+58
+],
+"kategorie": "Kamera Fahrt",
+"was": "Kamera beginnt dem getippten Text nach rechts zu folgen: Caret wandert nach links aus dem Bild",
+"dauer_f": 7.3,
+"bezier": [
+0.47,
+0.0,
+0.82,
+0.26
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "mobbin",
+"frames": [
+179,
+191
+],
+"kategorie": "Kamera Fahrt",
+"was": "Nach dem Klick fällt die angeklickte Zeile nach unten aus dem Bild (Kamera fährt nach oben)",
+"dauer_f": 10.4,
+"bezier": [
+0.45,
+0.05,
+0.78,
+0.03
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "mobbin",
+"frames": [
+180,
+187
+],
+"kategorie": "Kamera Zoom",
+"was": "Kamera zoomt nach dem Klick in die Zeile hinein",
+"dauer_f": 6.4,
+"bezier": [
+0.5,
+0.11,
+0.59,
+1.19
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+181,
+186
+],
+"kategorie": "Mauszeiger",
+"was": "Klick-Welle: blaue Füllung der Zeile zieht sich zu einem Kreis am Klickpunkt zusammen",
+"dauer_f": 4.7,
+"bezier": [
+0.21,
+0.63,
+0.65,
+0.83
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+193,
+209
+],
+"kategorie": "Erscheinen",
+"was": "Telefon-Gruppe setzt sich nach dem Zoom-Sprung: sinkt nach unten auf die Endposition",
+"dauer_f": 15.9,
+"bezier": [
+0.14,
+0.97,
+0.48,
+0.9
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+193,
+202
+],
+"kategorie": "Erscheinen",
+"was": "Telefon-Gruppe wird scharf",
+"dauer_f": 7.9,
+"bezier": [
+0.64,
+0.11,
+0.17,
+0.56
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+208,
+220
+],
+"kategorie": "Verschwinden",
+"was": "Telefon-Gruppe zieht nach links ab",
+"dauer_f": 11.1,
+"bezier": [
+0.41,
+0.07,
+0.84,
+0.11
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "mobbin",
+"frames": [
+222,
+232
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Blauer Balken (von rechts hereingeschossen) verdünnt sich zur Unterstreichung",
+"dauer_f": 7.4,
+"bezier": [
+0.53,
+1.18,
+1.0,
+0.85
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+224,
+233
+],
+"kategorie": "Text einfliegen",
+"was": "'Screens' steigt hinter der Linie hervor",
+"dauer_f": 9.3,
+"bezier": [
+0.22,
+0.66,
+0.32,
+0.96
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+225,
+237
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "'Screens' + Linie wechseln von Blau zu Fast-Schwarz",
+"dauer_f": 11.5,
+"bezier": [
+0.89,
+0.95,
+0.51,
+0.75
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+229,
+253
+],
+"kategorie": "Kamera Fahrt",
+"was": "Kamera fährt nach rechts: 'Screens' wandert nach links, macht Platz für 'UI Elements' und 'Flows'",
+"dauer_f": 21.9,
+"bezier": [
+0.74,
+0.33,
+0.15,
+0.85
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+229,
+253
+],
+"kategorie": "Kamera Zoom",
+"was": "Gleichzeitig mit der Fahrt zoomt die Kamera heraus",
+"dauer_f": 25.7,
+"bezier": [
+0.53,
+0.22,
+0.12,
+0.94
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+244,
+257
+],
+"kategorie": "Text einfliegen",
+"was": "'Flows' senkt sich von oben auf die Grundlinie",
+"dauer_f": 13.8,
+"bezier": [
+0.16,
+0.69,
+0.3,
+0.87
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+2,
+18
+],
+"kategorie": "Erscheinen",
+"was": "Weißer Schleier gibt das Himmel-Foto frei (radial von der Mitte nach außen)",
+"dauer_f": 15.1,
+"bezier": [
+0.59,
+0.05,
+0.28,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "diktier",
+"frames": [
+10,
+24
+],
+"kategorie": "Erscheinen",
+"was": "Kleines Dock fährt von unten ins Bild",
+"dauer_f": 13.6,
+"bezier": [
+0.0,
+0.33,
+0.35,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+13,
+24
+],
+"kategorie": "Text einfliegen",
+"was": "Buchstabe 5 von »ohhhh« steigt von unten auf die Grundlinie (jeder Buchstabe einzeln)",
+"dauer_f": 10.3,
+"bezier": [
+0.03,
+0.1,
+0.08,
+0.89
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+99,
+118
+],
+"kategorie": "Mauszeiger",
+"was": "Hand-Zeiger fährt von unten rechts auf den Send-Knopf (x-Anteil)",
+"dauer_f": 15.1,
+"bezier": [
+0.24,
+0.97,
+0.58,
+0.95
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+101,
+108
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Textcursor (senkrechter Magenta-Strich) kippt um 90° und wächst zum Send-Knopf",
+"dauer_f": 6.5,
+"bezier": [
+0.73,
+0.15,
+0.33,
+0.0
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "diktier",
+"frames": [
+120,
+131
+],
+"kategorie": "Verschwinden",
+"was": "Szene (Chat-Fenster) sackt nach unten weg und wird unscharf, dann harter Schnitt auf Weiß",
+"dauer_f": 12.4,
+"bezier": [
+0.3,
+0.03,
+0.93,
+0.0
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "diktier",
+"frames": [
+132,
+140
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Rosa Schleier-Band läuft nach dem Schnitt von unten nach oben über das Weiß",
+"dauer_f": 7.3,
+"bezier": [
+0.0,
+0.38,
+0.76,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+140,
+156
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Rosa Schleier am oberen Rand blendet auf Weiß aus",
+"dauer_f": 15.5,
+"bezier": [
+1.0,
+0.89,
+0.53,
+0.28
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "diktier",
+"frames": [
+138,
+145
+],
+"kategorie": "Erscheinen",
+"was": "Diktier-Pille (schwarz) poppt unter dem Titel auf",
+"dauer_f": 6.0,
+"bezier": [
+0.22,
+1.15,
+1.0,
+0.89
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+151,
+188
+],
+"kategorie": "Kamera Fahrt",
+"was": "Notiz-Fenster wandert von der Mitte nach links oben (x-Anteil), Pille bleibt stehen",
+"dauer_f": 28.3,
+"bezier": [
+0.9,
+0.07,
+0.0,
+0.54
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "diktier",
+"frames": [
+160,
+188
+],
+"kategorie": "Kamera Fahrt",
+"was": "Notiz-Fenster wandert nach oben (y-Anteil) – langes Anfahren, Sprung, Ausklingen",
+"dauer_f": 28.1,
+"bezier": [
+1.0,
+0.04,
+0.04,
+0.93
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "diktier",
+"frames": [
+197,
+218
+],
+"kategorie": "Kamera Fahrt",
+"was": "Seite rollt nach oben, während der Fließtext Zeile für Zeile getippt wird",
+"dauer_f": 21.2,
+"bezier": [
+0.83,
+0.07,
+0.01,
+0.92
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "diktier",
+"frames": [
+219,
+238
+],
+"kategorie": "Kamera Zoom",
+"was": "Kamera fährt an die letzte Textzeile heran",
+"dauer_f": 21.7,
+"bezier": [
+0.78,
+0.18,
+0.0,
+0.38
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "diktier",
+"frames": [
+221,
+229
+],
+"kategorie": "Text markieren",
+"was": "Farbverlaufs-Balken wischt von links über das Wort »typing«",
+"dauer_f": 8.4,
+"bezier": [
+0.66,
+0.87,
+0.35,
+1.02
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+244,
+250
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Verlaufs-Balken springt zur fn-Taste auf: Taste wächst in den Endmaßstab",
+"dauer_f": 5.8,
+"bezier": [
+0.0,
+0.84,
+0.0,
+0.89
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+244,
+254
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "fn-Taste verliert den Farbverlauf (Magenta/Orange → Gelb → Weiß)",
+"dauer_f": 8.5,
+"bezier": [
+0.36,
+0.33,
+0.47,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+250,
+279
+],
+"kategorie": "Kamera Schwenk",
+"was": "Kamera schwenkt nach rechts mit dem getippten Satz mit (Inhalt wandert nach links, fn-Taste verlässt das Bild)",
+"dauer_f": 28.8,
+"bezier": [
+0.97,
+0.04,
+0.27,
+0.76
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "diktier",
+"frames": [
+262,
+277
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Frisch getippter Buchstabe »a« wechselt von Blau auf Fast-Schwarz",
+"dauer_f": 13.9,
+"bezier": [
+0.38,
+0.96,
+0.68,
+0.0
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "diktier",
+"frames": [
+283,
+289
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Satzpunkt löst sich, fällt nach unten und wächst (wird zum Logo-Punkt)",
+"dauer_f": 6.7,
+"bezier": [
+0.47,
+-0.06,
+0.79,
+0.29
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "diktier",
+"frames": [
+289,
+301
+],
+"kategorie": "Abspann",
+"was": "Logo-Punkt fährt in die Endposition (x-Anteil)",
+"dauer_f": 11.1,
+"bezier": [
+0.25,
+0.48,
+0.6,
+1.01
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+289,
+301
+],
+"kategorie": "Abspann",
+"was": "Logo-Dreieck fliegt von rechts ein und dreht sich dabei",
+"dauer_f": 8.7,
+"bezier": [
+1.0,
+1.15,
+0.0,
+0.7
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+294,
+301
+],
+"kategorie": "Abspann",
+"was": "Wortmarke unter dem Logo blendet ein",
+"dauer_f": 6.4,
+"bezier": [
+1.0,
+1.09,
+0.47,
+0.23
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "pinned",
+"frames": [
+0,
+23
+],
+"kategorie": "Erscheinen",
+"was": "Punkt 1 fliegt von links unten in einem Bogen (S-Kurve) über das Feld und landet als Buchstabe P",
+"dauer_f": 21.3,
+"bezier": [
+0.78,
+1.1,
+0.69,
+0.24
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "pinned",
+"frames": [
+22,
+41
+],
+"kategorie": "Erscheinen",
+"was": "Buchstabe P entsteht am Landepunkt: erst hellblau leuchtend, dunkelt dann zu Schwarz ab",
+"dauer_f": 18.0,
+"bezier": [
+0.0,
+0.5,
+0.0,
+0.56
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+45,
+57
+],
+"kategorie": "Sonstiges",
+"was": "Fertiges Logo PINNED schrumpft auf ca. 53 % und rückt nach oben, wird dabei grau und unscharf, macht Platz für Text",
+"dauer_f": 13.4,
+"bezier": [
+0.89,
+0.21,
+0.0,
+0.92
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "pinned",
+"frames": [
+45,
+57
+],
+"kategorie": "Sonstiges",
+"was": "Logo PINNED rückt nach oben (gleiche Bewegung wie Schrumpfen)",
+"dauer_f": 11.8,
+"bezier": [
+0.93,
+0.14,
+0.0,
+0.84
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "pinned",
+"frames": [
+46,
+53
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Weißes Feld tönt sich hellblau, während das Logo nach oben rückt",
+"dauer_f": 6.4,
+"bezier": [
+1.0,
+0.9,
+0.56,
+0.66
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "pinned",
+"frames": [
+52,
+59
+],
+"kategorie": "Text tippen",
+"was": "Zeile 'Stop Scrolling.' wird getippt (15 Zeichen)",
+"dauer_f": 7.9,
+"bezier": [
+0.78,
+1.1,
+0.0,
+0.61
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+68,
+80
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Mintgrüner Verlauf oben im Feld klingt zu Weiß ab",
+"dauer_f": 11.5,
+"bezier": [
+0.21,
+0.35,
+0.28,
+0.95
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+136,
+173
+],
+"kategorie": "Sonstiges",
+"was": "Blauer Strich läuft um die Karte: startet oben links, läuft die linke Kante hinunter, um die Ecke und bremst auf der Unterkante aus",
+"dauer_f": 35.1,
+"bezier": [
+0.8,
+0.38,
+0.0,
+0.86
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+159,
+188
+],
+"kategorie": "Kamera Fahrt",
+"was": "Karte samt Kaffee-Pin fährt nach oben (Bild rückt hoch, macht unten Platz für die Info-Karte); Karteninhalt wird dabei unscharf und heller",
+"dauer_f": 31.4,
+"bezier": [
+0.94,
+0.11,
+0.22,
+0.8
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "pinned",
+"frames": [
+188,
+205
+],
+"kategorie": "Kamera Fahrt",
+"was": "Karte + Info-Karte ziehen nach links aus dem Bild (Abgang), dabei verblassen sie",
+"dauer_f": 17.6,
+"bezier": [
+0.98,
+0.07,
+0.74,
+0.58
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "pinned",
+"frames": [
+177,
+184
+],
+"kategorie": "Erscheinen",
+"was": "Info-Karte: erscheint als kräftig blaue Pille und bleicht zu Weiß aus",
+"dauer_f": 8.0,
+"bezier": [
+0.22,
+0.51,
+0.53,
+1.06
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+175,
+181
+],
+"kategorie": "Erscheinen",
+"was": "Info-Karte wächst aus einer kleinen Pille auf volle Breite",
+"dauer_f": 8.1,
+"bezier": [
+0.09,
+1.29,
+1.0,
+0.91
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+195,
+208
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Weiße Info-Karte schrumpft zur kleinen Pille und wird zum Knopf des Schiebereglers",
+"dauer_f": 15.7,
+"bezier": [
+1.0,
+0.07,
+0.47,
+1.02
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "pinned",
+"frames": [
+213,
+235
+],
+"kategorie": "Erscheinen",
+"was": "Etikett 'Must try' springt über dem Regler-Knopf heraus: fährt hoch, schwingt über und pendelt aus (mit Drehung)",
+"dauer_f": 10.5,
+"bezier": [
+0.4,
+1.3,
+0.37,
+1.46
+],
+"ueberschwingen": 23.3,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+252,
+268
+],
+"kategorie": "Abspann",
+"was": "Schluss: Regler und Etikett blenden zu Weiß aus",
+"dauer_f": 17.1,
+"bezier": [
+0.86,
+0.09,
+0.63,
+0.66
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "pinned",
+"frames": [
+128,
+133
+],
+"kategorie": "Verschwinden",
+"was": "Text 'Spark moments instantly.' blendet aus, während die Icon-Reihe zur Karte wird",
+"dauer_f": 5.6,
+"bezier": [
+0.76,
+0.06,
+0.56,
+0.0
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "flugzeug",
+"frames": [
+14,
+21
+],
+"kategorie": "Text tippen",
+"was": "Wort „know“ blendet rechts neben der fertigen Zeile ein (Wort für Wort, nicht Buchstabe für Buchstabe)",
+"dauer_f": 6.0,
+"bezier": [
+0.23,
+0.35,
+0.03,
+0.0
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "flugzeug",
+"frames": [
+17,
+27
+],
+"kategorie": "Kamera Fahrt",
+"was": "Zeilenruck: die Textzeile springt um eine Wortbreite nach links, sobald das nächste Wort („where“) kommt",
+"dauer_f": 15.1,
+"bezier": [
+1.0,
+-0.07,
+0.0,
+1.04
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "flugzeug",
+"frames": [
+60,
+69
+],
+"kategorie": "Erscheinen",
+"was": "Chat-Blase: weiße Füllung blendet ein, nachdem die Kontur gezeichnet wurde",
+"dauer_f": 7.8,
+"bezier": [
+0.31,
+-0.0,
+0.75,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "flugzeug",
+"frames": [
+60,
+100
+],
+"kategorie": "Erscheinen",
+"was": "Flugzeug-Emoji fliegt von rechts ins Bild und gleitet danach gleichmäßig weiter nach links",
+"dauer_f": 39.7,
+"bezier": [
+0.0,
+0.07,
+0.46,
+0.55
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "flugzeug",
+"frames": [
+68,
+108
+],
+"kategorie": "Kamera Fahrt",
+"was": "Szene 1 zieht ab: Blase/Flugzeug gleiten erst langsam, dann immer schneller nach unten, dabei leichter Zoom (Blasenbreite 374 → 386 px)",
+"dauer_f": 38.4,
+"bezier": [
+0.37,
+0.16,
+0.81,
+0.21
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "flugzeug",
+"frames": [
+103,
+114
+],
+"kategorie": "Verschwinden",
+"was": "Chat-Blase + Flugzeug lösen sich im blauen Dunst auf (Ausblenden + Weichzeichnen + Wegziehen gleichzeitig)",
+"dauer_f": 8.9,
+"bezier": [
+0.66,
+0.36,
+0.82,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "flugzeug",
+"frames": [
+115,
+135
+],
+"kategorie": "Tiefe/3D",
+"was": "Nach dem Schnitt: Kamera senkt/schwenkt sich ein, Sitz (Vordergrund) wandert gegen das Fenster, Schärfe wird gezogen",
+"dauer_f": 17.9,
+"bezier": [
+0.07,
+0.16,
+0.0,
+0.56
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "flugzeug",
+"frames": [
+136,
+163
+],
+"kategorie": "Kamera Zoom",
+"was": "Kamera fährt auf das Fenster zu: erst sanft, dann immer schneller, bis das Fenster das Bild füllt und in die Karte geschnitten wird",
+"dauer_f": 24.6,
+"bezier": [
+0.43,
+0.52,
+0.69,
+0.31
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "flugzeug",
+"frames": [
+196,
+218
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Bildfüllende Karte schrumpft zum Telefon-Bildschirm: Ecken runden sich, Hintergrund wird hellblau, alles wird kurz unscharf",
+"dauer_f": 27.8,
+"bezier": [
+0.72,
+-0.0,
+0.3,
+0.95
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "flugzeug",
+"frames": [
+227,
+238
+],
+"kategorie": "Erscheinen",
+"was": "Dunkle Nachrichten-Karte („Drake new Album Hotels“) schießt von unten vor das Telefon, leicht gekippt",
+"dauer_f": 8.7,
+"bezier": [
+0.57,
+0.61,
+0.0,
+0.82
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "flugzeug",
+"frames": [
+277,
+304
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Ganze Szene (Telefon auf Blau) wird zum App-Icon: Bild bekommt runde Ecken, schrumpft auf Weiß, wird zur unscharfen blauen Kugel",
+"dauer_f": 26.4,
+"bezier": [
+0.84,
+0.08,
+0.1,
+0.94
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "flugzeug",
+"frames": [
+335,
+355
+],
+"kategorie": "Abspann",
+"was": "Avatar-Emoji (Kopf mit Kopfhörern) taucht an Stelle der Kugel auf: startet groß und unscharf, zieht sich zusammen und wird scharf",
+"dauer_f": 18.0,
+"bezier": [
+0.14,
+1.19,
+0.96,
+0.93
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "airbuds",
+"frames": [
+16,
+22
+],
+"kategorie": "Text ersetzen",
+"was": "Wort „firend“ wird durch violetten Avatar-Chip ersetzt (Frame 16 Wort grau/halb weg, 17 Chip da), Chip wächst nach",
+"dauer_f": 5.6,
+"bezier": [
+0.0,
+1.19,
+0.0,
+0.81
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "airbuds",
+"frames": [
+21,
+29
+],
+"kategorie": "Sonstiges",
+"was": "Leuchtschein hinter dem Avatar blitzt auf (Übergang Textzeile → großer Avatar)",
+"dauer_f": 6.4,
+"bezier": [
+0.88,
+0.42,
+0.43,
+0.42
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "airbuds",
+"frames": [
+25,
+33
+],
+"kategorie": "Erscheinen",
+"was": "Emoji (schwindlig, rechts unten) poppt neben dem Avatar auf, schießt über",
+"dauer_f": 4.4,
+"bezier": [
+0.0,
+0.54,
+0.75,
+1.0
+],
+"ueberschwingen": 15.9,
+"familie": "Ausklingen"
+},
+{
+"clip": "airbuds",
+"frames": [
+73,
+100
+],
+"kategorie": "Erscheinen",
+"was": "Dunkle Telefon-Karte fährt von unten ins Bild (Oberkante sichtbar ab 77), geht nahtlos in langsame Drift über",
+"dauer_f": 21.0,
+"bezier": [
+0.42,
+0.49,
+0.0,
+0.85
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "airbuds",
+"frames": [
+109,
+119
+],
+"kategorie": "Verschwinden",
+"was": "Emoji links (Mondgesicht) schrumpft und blendet weich weg; Herz/Flamme/Katze rechts gehen 111–116 genauso",
+"dauer_f": 11.0,
+"bezier": [
+0.94,
+0.06,
+0.95,
+0.26
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "airbuds",
+"frames": [
+108,
+138
+],
+"kategorie": "Kamera Fahrt",
+"was": "Kamera fährt am Telefon nach unten (Inhalt schiebt ~340 px nach oben), dabei leichter Zoom auf ~1,07",
+"dauer_f": 34.1,
+"bezier": [
+1.0,
+0.05,
+0.07,
+0.93
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "airbuds",
+"frames": [
+123,
+131
+],
+"kategorie": "Mauszeiger",
+"was": "Mauszeiger fliegt von rechts oben herein (dreht sich dabei aus der Kante ins Flache) und bremst ab",
+"dauer_f": 8.0,
+"bezier": [
+0.16,
+0.42,
+0.2,
+0.84
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "airbuds",
+"frames": [
+131,
+145
+],
+"kategorie": "Mauszeiger",
+"was": "Mauszeiger zieht nach links auf den Menüpunkt „Song“ und klickt (Karte reagiert ab 143)",
+"dauer_f": 11.6,
+"bezier": [
+0.45,
+0.14,
+0.8,
+0.24
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "airbuds",
+"frames": [
+142,
+150
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Menü (3 Zeilen) wird zur Song-Karte: Zeilen klappen weg, dieselbe dunkle Fläche wächst nach unten zum Cover",
+"dauer_f": 8.9,
+"bezier": [
+0.99,
+0.27,
+0.32,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "airbuds",
+"frames": [
+152,
+171
+],
+"kategorie": "Kamera Schwenk",
+"was": "Reißschwenk nach rechts (Inhalt rast nach links aus dem Bild), verdeckt den Schnitt zum Kachel-Raster",
+"dauer_f": 22.9,
+"bezier": [
+1.0,
+0.0,
+1.0,
+0.42
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "airbuds",
+"frames": [
+179,
+186
+],
+"kategorie": "Erscheinen",
+"was": "Kachel 3 (links unten) lugt am unteren Rand hervor, schießt dann in einem Satz auf ihren Platz",
+"dauer_f": 5.1,
+"bezier": [
+0.83,
+0.1,
+0.51,
+0.41
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "airbuds",
+"frames": [
+181,
+205
+],
+"kategorie": "Kamera Zoom",
+"was": "Ganzes Raster zoomt langsam heraus, während die Kacheln noch landen",
+"dauer_f": 23.0,
+"bezier": [
+0.41,
+0.2,
+0.13,
+0.81
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "airbuds",
+"frames": [
+206,
+218
+],
+"kategorie": "Verschwinden",
+"was": "Raster sackt nach unten weg, wird ab 215 unscharf und dunkel (Übergang zum Logo)",
+"dauer_f": 13.7,
+"bezier": [
+0.64,
+0.0,
+1.0,
+0.52
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "airbuds",
+"frames": [
+220,
+236
+],
+"kategorie": "Abspann",
+"was": "Logo „Airbuds“ setzt die Abwärtsbewegung des Rasters fort und bremst weich auf seinen Platz, wird dabei scharf",
+"dauer_f": 15.3,
+"bezier": [
+0.11,
+0.9,
+0.51,
+0.95
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "airbuds",
+"frames": [
+224,
+235
+],
+"kategorie": "Abspann",
+"was": "Unterzeile „mini concept by creatoroly“ blendet ein",
+"dauer_f": 13.3,
+"bezier": [
+0.33,
+0.26,
+0.22,
+0.85
+],
+"ueberschwingen": 0.5,
+"familie": "Ausklingen"
+},
+{
+"clip": "raster",
+"frames": [
+7,
+24
+],
+"kategorie": "Erscheinen",
+"was": "OL: schwarzes Quadrat (Widget-Rohling) fährt von unten in die Kachelmitte",
+"dauer_f": 17.2,
+"bezier": [
+0.15,
+0.51,
+0.31,
+1.03
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "raster",
+"frames": [
+57,
+69
+],
+"kategorie": "Tiefe/3D",
+"was": "OL: Ausholbewegung – Uhr-Widget dreht 30° gegen die spätere Drehrichtung und hebt sich dabei 77 px",
+"dauer_f": 11.5,
+"bezier": [
+0.49,
+0.19,
+0.19,
+0.93
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "raster",
+"frames": [
+70,
+88
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "OL: Uhr-Widget schwingt 120° durch (−30° → +90°), wächst dabei auf das 1,94-Fache und landet als Hochkant-Karte „Battery Widget\"",
+"dauer_f": 17.9,
+"bezier": [
+0.76,
+0.04,
+0.21,
+1.01
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "raster",
+"frames": [
+113,
+128
+],
+"kategorie": "Verschwinden",
+"was": "OL: Batterie-Karte fällt nach unten aus der Kachel",
+"dauer_f": 15.1,
+"bezier": [
+0.49,
+0.02,
+0.88,
+0.14
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "raster",
+"frames": [
+38,
+60
+],
+"kategorie": "Mauszeiger",
+"was": "OR: Pfeil-Zeiger kommt von rechts unten zum Button „Add Widget +\"",
+"dauer_f": 19.7,
+"bezier": [
+0.17,
+0.8,
+0.71,
+0.97
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "raster",
+"frames": [
+93,
+98
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "OR: kleines App-Icon (31 px) platzt zur leuchtenden Karte auf",
+"dauer_f": 3.3,
+"bezier": [
+0.02,
+0.48,
+0.81,
+0.67
+],
+"ueberschwingen": 6.6,
+"familie": "weich"
+},
+{
+"clip": "raster",
+"frames": [
+84,
+96
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "UL: Musik-Player-Karte klappt senkrecht zur schmalen Titel-Pille zusammen",
+"dauer_f": 11.1,
+"bezier": [
+0.65,
+0.09,
+0.8,
+0.85
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "raster",
+"frames": [
+107,
+122
+],
+"kategorie": "Sonstiges",
+"was": "UL: Titel-Pille gleitet 64 px nach rechts",
+"dauer_f": 13.3,
+"bezier": [
+0.53,
+0.15,
+0.31,
+0.87
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "raster",
+"frames": [
+7,
+27
+],
+"kategorie": "Erscheinen",
+"was": "UR: Figma-Icon wird von der Greifhand von rechts oben in die Kachel gezogen",
+"dauer_f": 19.0,
+"bezier": [
+0.23,
+0.69,
+0.61,
+0.94
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "raster",
+"frames": [
+59,
+72
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "UR: weiße Karte „Frame Selection\" klappt nach unten zur Tastenleiste zusammen",
+"dauer_f": 11.5,
+"bezier": [
+0.57,
+0.14,
+0.41,
+0.26
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "raster",
+"frames": [
+155,
+163
+],
+"kategorie": "Text ersetzen",
+"was": "UR: Wort-Pille wechselt von „get\" auf „yours\" – Pille wird breiter",
+"dauer_f": 6.4,
+"bezier": [
+0.65,
+0.38,
+0.47,
+0.0
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "raster",
+"frames": [
+179,
+190
+],
+"kategorie": "Verschwinden",
+"was": "UR: Pille „now\" schrumpft auf null",
+"dauer_f": 9.9,
+"bezier": [
+0.17,
+0.1,
+0.77,
+0.13
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+2,
+8
+],
+"kategorie": "Erscheinen",
+"was": "Logo „it'“ erscheint riesig + unscharf und schrumpft auf Endgröße (flüssig verzerrt)",
+"dauer_f": 4.8,
+"bezier": [
+0.0,
+0.25,
+0.44,
+0.99
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+322,
+358
+],
+"kategorie": "Erscheinen",
+"was": "Blauer Ring erscheint oben (unscharf, hell) und sinkt in die Bildmitte, wird dabei scharf und dunkler",
+"dauer_f": 36.9,
+"bezier": [
+0.12,
+0.48,
+0.29,
+0.96
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+204,
+216
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Senkrechte grüne Pille wächst nach rechts zum breiten Videofenster (linke Kante bleibt stehen)",
+"dauer_f": 12.9,
+"bezier": [
+0.65,
+0.37,
+0.28,
+0.85
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "showreel",
+"frames": [
+521,
+530
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Dunkle Pille „Choose a Portal“ zieht sich zur breiten Player-Leiste auseinander (beide Seiten symmetrisch), Text rutscht nach links, Icons folgen",
+"dauer_f": 7.9,
+"bezier": [
+1.0,
+0.94,
+0.19,
+0.49
+],
+"ueberschwingen": 15.4,
+"familie": "weich"
+},
+{
+"clip": "showreel",
+"frames": [
+670,
+682
+],
+"kategorie": "Sonstiges",
+"was": "Schwarze Timer-Kachel kippt um 30° und hebt sich 85 px (läuft weiter, zählt dabei Minuten hoch)",
+"dauer_f": 12.0,
+"bezier": [
+0.45,
+0.16,
+0.18,
+0.96
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+683,
+700
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Gekippte Timer-Kachel dreht zurück und weiter um insgesamt 120° und streckt sich dabei zur hohen Telefon-Karte („70 %“-Regler)",
+"dauer_f": 17.0,
+"bezier": [
+0.78,
+0.04,
+0.25,
+0.96
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "showreel",
+"frames": [
+89,
+96
+],
+"kategorie": "Verschwinden",
+"was": "Stadtplan wird von oben nach unten weggewischt (weiche Kante, Karte selbst steht)",
+"dauer_f": 5.2,
+"bezier": [
+0.12,
+0.0,
+1.0,
+0.69
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "showreel",
+"frames": [
+270,
+294
+],
+"kategorie": "Text ersetzen",
+"was": "Textzeile „psilocybin God off a Goomba“: Hervorhebung springt Wort für Wort weiter, die Zeile rutscht nach links, bis das letzte Wort mittig steht",
+"dauer_f": 23.1,
+"bezier": [
+0.63,
+0.42,
+0.11,
+0.71
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+31,
+35
+],
+"kategorie": "Text tippen",
+"was": "„SHOWREEL 25“ wird von links nach rechts aufgedeckt, vordere Buchstaben blau + unscharf, dahinter schwarz + scharf",
+"dauer_f": 5.1,
+"bezier": [
+1.0,
+1.23,
+0.17,
+0.99
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+608,
+643
+],
+"kategorie": "Kamera Fahrt",
+"was": "Der ganze Karten-Streifen fährt nach links durch: drei alte Karten raus, drei neue rein (Fußzeile „@creatoroly“ bleibt stehen)",
+"dauer_f": 32.9,
+"bezier": [
+0.87,
+0.04,
+0.23,
+0.96
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "showreel",
+"frames": [
+142,
+153
+],
+"kategorie": "Kamera Zoom",
+"was": "Kamera fährt auf die beiden Chat-Blasen zu (und leicht nach oben-links)",
+"dauer_f": 13.5,
+"bezier": [
+0.88,
+0.21,
+0.41,
+0.74
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+129,
+135
+],
+"kategorie": "Erscheinen",
+"was": "Zweite Chat-Blase wächst aus dem Avatar-Kreis nach rechts auf (erst bläulich, dann grau)",
+"dauer_f": 5.4,
+"bezier": [
+0.69,
+0.82,
+0.16,
+0.88
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+74,
+89
+],
+"kategorie": "Kamera Schwenk",
+"was": "Stadtplan samt Flaschen-Raster rutscht nach unten und macht oben Platz für die Textzeile „To the bag“",
+"dauer_f": 15.6,
+"bezier": [
+0.69,
+0.12,
+0.23,
+0.8
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "showreel",
+"frames": [
+238,
+248
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Hintergrund blendet von Weiß auf Hellgrün #C5FCC0, während das Videofenster zur Textzeile wird",
+"dauer_f": 10.2,
+"bezier": [
+0.19,
+0.3,
+0.36,
+0.84
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+400,
+413
+],
+"kategorie": "Mauszeiger",
+"was": "Sonnen-Emoji fällt nach rechts unten, wird zum Mauszeiger, der in einem Bogen nach links zum Text fährt und dort zur Zeigehand wird",
+"dauer_f": 11.5,
+"bezier": [
+0.51,
+0.63,
+0.18,
+0.93
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+358,
+400
+],
+"kategorie": "Sonstiges",
+"was": "Ring rückt aus der Mitte nach links und macht Platz für den getippten Text „What is Portal?“",
+"dauer_f": 42.5,
+"bezier": [
+0.83,
+-0.0,
+0.26,
+0.89
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "showreel",
+"frames": [
+730,
+741
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Cremefarbener Kreis wächst aus der Bildmitte und füllt das Bild",
+"dauer_f": 11.0,
+"bezier": [
+0,
+0,
+1,
+1
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "showreel",
+"frames": [
+766,
+779
+],
+"kategorie": "Kamera Zoom",
+"was": "Zoom auf das schwarze Etikett „Best tech youtuber“, endet im Match-Cut auf die Foto-Karte",
+"dauer_f": 12.4,
+"bezier": [
+0.46,
+0.25,
+0.59,
+0.04
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+818,
+839
+],
+"kategorie": "Kamera Fahrt",
+"was": "Schwenk nach rechts: Foto-Karte und Text wandern nach links, zwei weitere Fotos fliegen nach",
+"dauer_f": 20.2,
+"bezier": [
+0.85,
+0.15,
+0.45,
+0.84
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+841,
+854
+],
+"kategorie": "Kamera Zoom",
+"was": "Herauszoomen: Foto-Stapel schrumpft auf etwa die halbe Breite",
+"dauer_f": 12.9,
+"bezier": [
+0.55,
+0.41,
+0.2,
+0.59
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "showreel",
+"frames": [
+854,
+862
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Drei Fotos fallen zusammen und werden zum runden Profilbild der Kanal-Karte",
+"dauer_f": 7.2,
+"bezier": [
+0.75,
+0.3,
+0.38,
+0.8
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "showreel",
+"frames": [
+858,
+871
+],
+"kategorie": "Erscheinen",
+"was": "Kanal-Karte blendet ein (dunkel → weiß)",
+"dauer_f": 11.7,
+"bezier": [
+0.36,
+0.11,
+0.51,
+0.56
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "showreel",
+"frames": [
+859,
+876
+],
+"kategorie": "Erscheinen",
+"was": "Kanal-Karte schiebt von unten hoch",
+"dauer_f": 17.0,
+"bezier": [
+0.19,
+1.18,
+1.0,
+0.95
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+882,
+903
+],
+"kategorie": "Verschwinden",
+"was": "Kanal-Karte fliegt nach oben aus dem Bild, Button bleibt stehen",
+"dauer_f": 16.3,
+"bezier": [
+1.0,
+0.14,
+0.77,
+0.26
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+893,
+922
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Subscribe-Button löst sich aus der Karte und wächst zum alleinigen Objekt",
+"dauer_f": 10.9,
+"bezier": [
+0.86,
+0.33,
+0.36,
+1.0
+],
+"ueberschwingen": 11.5,
+"familie": "Schwung"
+},
+{
+"clip": "showreel",
+"frames": [
+893,
+922
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Button wandert beim Lösen zur Bildmitte (vertikal)",
+"dauer_f": 9.8,
+"bezier": [
+0.83,
+0.2,
+0.48,
+1.0
+],
+"ueberschwingen": 9.4,
+"familie": "Schwung"
+},
+{
+"clip": "showreel",
+"frames": [
+924,
+934
+],
+"kategorie": "Text einfliegen",
+"was": "Riesiges „WWDC24“ steigt von unten ins Bild und wird scharf",
+"dauer_f": 9.5,
+"bezier": [
+0.09,
+0.36,
+0.37,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+970,
+991
+],
+"kategorie": "Hintergrund/Farbwechsel",
+"was": "Hintergrund blendet von Weiß nach Fast-Schwarz, während türkise Formen aufsteigen",
+"dauer_f": 18.5,
+"bezier": [
+0.47,
+0.0,
+0.41,
+1.0
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "showreel",
+"frames": [
+1012,
+1020
+],
+"kategorie": "Tiefe/3D",
+"was": "Umgekippte türkise Kapsel wird zur weißen Pille und dreht sich in die Waagerechte aus",
+"dauer_f": 7.6,
+"bezier": [
+0.45,
+1.05,
+0.98,
+0.95
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+1022,
+1029
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Weiße Pille zieht sich waagerecht zusammen und zerfällt in drei runde Icons",
+"dauer_f": 6.6,
+"bezier": [
+0.51,
+-0.0,
+0.78,
+0.36
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+1053,
+1074
+],
+"kategorie": "Erscheinen",
+"was": "Logo fliegt von rechts herein und wird scharf",
+"dauer_f": 20.0,
+"bezier": [
+0.16,
+0.21,
+0.05,
+0.99
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+1074,
+1086
+],
+"kategorie": "Übergang Objekt→Objekt",
+"was": "Großes Logo schrumpft und landet als Aufdruck auf dem Becher (Becher-Umriss erscheint 1081–1084)",
+"dauer_f": 9.8,
+"bezier": [
+0.68,
+0.12,
+0.74,
+0.76
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+1147,
+1177
+],
+"kategorie": "Kamera Fahrt",
+"was": "Schwenk nach rechts: Bestell-Karte und kleiner Becher wandern links raus, großer Becher kommt",
+"dauer_f": 29.5,
+"bezier": [
+0.94,
+0.03,
+0.49,
+0.7
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+1198,
+1234
+],
+"kategorie": "Verschwinden",
+"was": "Sprechblase und Becher rutschen nach unten aus dem Bild",
+"dauer_f": 35.0,
+"bezier": [
+0.37,
+0.02,
+0.85,
+0.05
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+1250,
+1264
+],
+"kategorie": "Abspann",
+"was": "Schlusswort „CREATOROLY“ zoomt beschleunigend auf, bis es ersetzt wird",
+"dauer_f": 13.0,
+"bezier": [
+0.68,
+0.09,
+0.86,
+0.4
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "showreel",
+"frames": [
+1265,
+1278
+],
+"kategorie": "Text ersetzen",
+"was": "„CREATOROLY“ wird in einem Frame durch „TO BE CONTINUED“ ersetzt, das den Zoom ausbremst",
+"dauer_f": 12.5,
+"bezier": [
+0.23,
+0.75,
+0.46,
+0.87
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "showreel",
+"frames": [
+1320,
+1342
+],
+"kategorie": "Abspann",
+"was": "Schlusstext blendet wortweise aus (hier: „TO“)",
+"dauer_f": 21.5,
+"bezier": [
+0.55,
+0.44,
+0.08,
+0.11
+],
+"ueberschwingen": 0,
+"familie": "weich"
+},
+{
+"clip": "mobbin",
+"frames": [
+80,
+93
+],
+"kategorie": "Kamera Fahrt",
+"was": "Zeile rutscht beim Tippen in die Mitte",
+"dauer_f": 13.0,
+"bezier": [
+0.13,
+0.64,
+0.46,
+0.97
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+97,
+117
+],
+"kategorie": "Kamera Zoom",
+"was": "Zoom Zeile→Liste 1,22→1,0",
+"dauer_f": 20.1,
+"bezier": [
+0.4,
+0.46,
+0,
+0.78
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+127,
+145
+],
+"kategorie": "Kamera Fahrt",
+"was": "Liste scrollt eine Zeile",
+"dauer_f": 17.7,
+"bezier": [
+0.84,
+0.01,
+0.13,
+0.94
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "mobbin",
+"frames": [
+150,
+167
+],
+"kategorie": "Kamera Zoom",
+"was": "Zoom vor dem Klick 1,0→0,87",
+"dauer_f": 17.2,
+"bezier": [
+0.61,
+0.38,
+0,
+0.78
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+96,
+109
+],
+"kategorie": "Sonstiges",
+"was": "Rahmen-Komet Kopf",
+"dauer_f": 12.2,
+"bezier": [
+0.59,
+0.92,
+0.25,
+0.64
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "mobbin",
+"frames": [
+145,
+158
+],
+"kategorie": "Verschwinden",
+"was": "Pfeil-Button schiebt sich unter die Zeile",
+"dauer_f": 13.0,
+"bezier": [
+0.78,
+0.26,
+0.99,
+0.21
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "mobbin",
+"frames": [
+285,
+297
+],
+"kategorie": "Abspann",
+"was": "Wortmarke rückt zur Seite",
+"dauer_f": 11.7,
+"bezier": [
+0.87,
+0.1,
+0.09,
+0.84
+],
+"ueberschwingen": 0,
+"familie": "Schwung"
+},
+{
+"clip": "diktier",
+"frames": [
+44,
+59
+],
+"kategorie": "Kamera Zoom",
+"was": "Kamera fährt an das Dock heran",
+"dauer_f": 15.1,
+"bezier": [
+0.55,
+0.2,
+0.16,
+0.85
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "diktier",
+"frames": [
+61,
+70
+],
+"kategorie": "Verschwinden",
+"was": "Dock sackt nach unten weg",
+"dauer_f": 8.2,
+"bezier": [
+1,
+0.09,
+0.82,
+0.45
+],
+"ueberschwingen": 0,
+"familie": "Anlauf"
+},
+{
+"clip": "diktier",
+"frames": [
+134,
+145
+],
+"kategorie": "Erscheinen",
+"was": "Fenster fällt von oben ein",
+"dauer_f": 11.0,
+"bezier": [
+0.23,
+1,
+0.87,
+0.93
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+109,
+118
+],
+"kategorie": "Sonstiges",
+"was": "Icon-Reihe rückt nach",
+"dauer_f": 9.0,
+"bezier": [
+0.32,
+0.56,
+0,
+0.76
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+},
+{
+"clip": "pinned",
+"frames": [
+134,
+149
+],
+"kategorie": "Erscheinen",
+"was": "Karte erscheint 1,24→1",
+"dauer_f": 15.0,
+"bezier": [
+0.25,
+0.67,
+0,
+0.59
+],
+"ueberschwingen": 0,
+"familie": "Ausklingen"
+}
+]
