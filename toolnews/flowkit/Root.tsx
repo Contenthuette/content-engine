@@ -10,6 +10,7 @@ import {X1_DEF} from './clips/X1';
 import {R1_DEF} from './clips/R1';
 import {E1_DEF} from './clips/E1';
 import {T6_DEF} from './clips/T6';
+import {PFPreviews} from './PFPreviews';
 import {SurvivorPreviews} from './SurvivorPreviews';
 import {TipButtonPreviews} from './TipButtonPreviews';
 import {KeyShrinkPreviews} from './KeyShrinkPreviews';
@@ -69,6 +70,7 @@ export const Root: React.FC = () => (
     <SurvivorPreviews />
     <TipButtonPreviews />
     <KeyShrinkPreviews />
+    <PFPreviews />
   </Folder>
   <Previews />
   <Previews2 />
