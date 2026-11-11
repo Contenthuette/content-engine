@@ -6,6 +6,10 @@ import {Previews} from './Previews';
 import {Previews2} from './Previews2';
 import {Previews3} from './Previews3';
 import {clipViews} from './clips/Views';
+import {X1_DEF} from './clips/X1';
+import {R1_DEF} from './clips/R1';
+import {E1_DEF} from './clips/E1';
+import {T6_DEF} from './clips/T6';
 import {SurvivorPreviews} from './SurvivorPreviews';
 import {TipButtonPreviews} from './TipButtonPreviews';
 import {KeyShrinkPreviews} from './KeyShrinkPreviews';
@@ -58,6 +62,10 @@ export const Root: React.FC = () => (
     {clipViews({id: 'T3b', src: 'ref_local/wispr.mp4', start: T3B_START, frames: T3B_FRAMES, w: 1280, h: 720, comp: T3bClip})}
     {clipViews({id: 'X3', src: 'ref_local/raster.mp4', start: X3_START, frames: X3_FRAMES, w: 360, h: 364, comp: X3Clip, crop: [X3_CROP[0], X3_CROP[1], 720, 1280]})}
     {clipViews({id: 'T1', src: 'ref_local/showreel.mp4', start: T1_START, frames: T1_FRAMES, w: 1280, h: 720, comp: T1Clip})}
+    {clipViews(X1_DEF)}
+    {clipViews(R1_DEF)}
+    {clipViews(E1_DEF)}
+    {clipViews(T6_DEF)}
     <SurvivorPreviews />
     <TipButtonPreviews />
     <KeyShrinkPreviews />
