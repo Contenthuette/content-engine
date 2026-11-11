@@ -10,6 +10,7 @@ import {X1_DEF} from './clips/X1';
 import {R1_DEF} from './clips/R1';
 import {E1_DEF} from './clips/E1';
 import {T6_DEF} from './clips/T6';
+import {K1_DEF} from './clips/K1';
 import {PFPreviews} from './PFPreviews';
 import {SurvivorPreviews} from './SurvivorPreviews';
 import {TipButtonPreviews} from './TipButtonPreviews';
@@ -67,6 +68,7 @@ export const Root: React.FC = () => (
     {clipViews(R1_DEF)}
     {clipViews(E1_DEF)}
     {clipViews(T6_DEF)}
+    {clipViews(K1_DEF)}
     <SurvivorPreviews />
     <TipButtonPreviews />
     <KeyShrinkPreviews />
