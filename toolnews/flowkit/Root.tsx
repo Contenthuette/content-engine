@@ -8,6 +8,8 @@ import {Previews3} from './Previews3';
 import {clipViews} from './clips/Views';
 import {SurvivorPreviews} from './SurvivorPreviews';
 import {TipButtonPreviews} from './TipButtonPreviews';
+import {KeyShrinkPreviews} from './KeyShrinkPreviews';
+import {EXAMPLE_PLAN, FlowVideo, flowMeta} from './flowvideo';
 import {T3Clip, T3_FRAMES, T3_START} from './clips/T3';
 import {T3bClip, T3B_FRAMES, T3B_START} from './clips/T3b';
 import {T1Clip, T1_FRAMES, T1_START} from './clips/T1';
@@ -49,12 +51,17 @@ const Ueberblendung: React.FC = () => (
 
 export const Root: React.FC = () => (
   <>
-  {clipViews({id: 'T3', src: 'ref_local/showreel.mp4', start: T3_START, frames: T3_FRAMES, w: 1280, h: 720, comp: T3Clip})}
-  {clipViews({id: 'T3b', src: 'ref_local/wispr.mp4', start: T3B_START, frames: T3B_FRAMES, w: 1280, h: 720, comp: T3bClip})}
-  {clipViews({id: 'X3', src: 'ref_local/raster.mp4', start: X3_START, frames: X3_FRAMES, w: 360, h: 364, comp: X3Clip, crop: [X3_CROP[0], X3_CROP[1], 720, 1280]})}
-  {clipViews({id: 'T1', src: 'ref_local/showreel.mp4', start: T1_START, frames: T1_FRAMES, w: 1280, h: 720, comp: T1Clip})}
-  <SurvivorPreviews />
-  <TipButtonPreviews />
+  <Composition id="FlowVideo" component={FlowVideo} durationInFrames={1} fps={30} width={1080} height={1920} defaultProps={{plan: EXAMPLE_PLAN}} calculateMetadata={flowMeta} />
+  {/* Abnahme: alles, was ich selbst nachgeprüft habe (Zahlen + alle Frames im Bild). Leif nimmt hier ab. */}
+  <Folder name="Abnahme">
+    {clipViews({id: 'T3', src: 'ref_local/showreel.mp4', start: T3_START, frames: T3_FRAMES, w: 1280, h: 720, comp: T3Clip})}
+    {clipViews({id: 'T3b', src: 'ref_local/wispr.mp4', start: T3B_START, frames: T3B_FRAMES, w: 1280, h: 720, comp: T3bClip})}
+    {clipViews({id: 'X3', src: 'ref_local/raster.mp4', start: X3_START, frames: X3_FRAMES, w: 360, h: 364, comp: X3Clip, crop: [X3_CROP[0], X3_CROP[1], 720, 1280]})}
+    {clipViews({id: 'T1', src: 'ref_local/showreel.mp4', start: T1_START, frames: T1_FRAMES, w: 1280, h: 720, comp: T1Clip})}
+    <SurvivorPreviews />
+    <TipButtonPreviews />
+    <KeyShrinkPreviews />
+  </Folder>
   <Previews />
   <Previews2 />
   <Previews3 />
