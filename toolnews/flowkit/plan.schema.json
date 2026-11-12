@@ -1,10 +1,11 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "flowkit/plan.schema.json",
- "title": "Flow-Regieplan",
- "description": "Ein Video nur aus dieser Datei: Liste von Schritten (Baustein, Inhalte, Startzeit, Dauer, Übergang zum nächsten). Koordinaten in Bühnen-Pixeln: Bühne 720 breit (1080×1920 → 720×1280). Zeiten in Frames.",
+ "$id": "toolnews/flowkit/plan.schema.json",
+ "title": "FlowVideo-Regieplan, Version 2",
+ "description": "Ein Video als Kette von Objekten: jeder Schritt nennt ein Objekt, wann es steht (Frame oder Wort der Stimme) und den Übergang zum nächsten Objekt. Eine Kamera läuft durch (Dauerdrift, Kamera-Fahrten), bei jeder Ankunft blitzt der Hintergrund in der Objektfarbe. Bühne: 720 breit (1080×1920 → 720×1280); alle Maße in Bühnen-Pixeln. Version 1 (Bausteine hintereinander, nur hart/überblenden): plan.v1.schema.json.",
  "type": "object",
  "required": [
+  "version",
   "width",
   "height",
   "fps",
@@ -12,6 +13,9 @@
  ],
  "additionalProperties": false,
  "properties": {
+  "version": {
+   "const": 2
+  },
   "title": {
    "type": "string"
   },
@@ -25,12 +29,15 @@
    "type": "integer"
   },
   "bg": {
-   "type": "string",
-   "description": "Hintergrundfarbe, Standard #FFFFFF"
+   "type": "string"
   },
   "accent": {
    "type": "string",
-   "description": "Akzentfarbe für Knöpfe, Rahmen, Markierungen"
+   "description": "eine Akzentfarbe pro Video (STIL Regel 9.3)"
+  },
+  "duration": {
+   "type": "integer",
+   "description": "Länge in Frames; Standard: Ende der Stimme + 15 f bzw. letzte Ankunft + 30 f"
   },
   "audio": {
    "type": "object",
@@ -41,14 +48,83 @@
    "properties": {
     "src": {
      "type": "string",
-     "description": "Tondatei unter public/, z. B. flowkit_local/stimme.mp3"
+     "description": "Datei unter public/"
     },
     "volume": {
      "type": "number"
     },
     "startFrom": {
-     "type": "integer",
-     "description": "Frames, die am Anfang der Tondatei übersprungen werden"
+     "type": "integer"
+    },
+    "words": {
+     "type": "string",
+     "description": "Wortzeiten unter public/: [{t, s, e}] oder {words: [...]} (Sekunden)"
+    }
+   }
+  },
+  "words": {
+   "type": "array",
+   "description": "Wortzeiten direkt im Plan (statt audio.words)",
+   "items": {
+    "type": "object",
+    "required": [
+     "t",
+     "s",
+     "e"
+    ],
+    "properties": {
+     "t": {
+      "type": "string"
+     },
+     "s": {
+      "type": "number"
+     },
+     "e": {
+      "type": "number"
+     }
+    }
+   }
+  },
+  "shots": {
+   "type": "object",
+   "description": "Screenshots nach Namen",
+   "additionalProperties": {
+    "$ref": "#/$defs/shot"
+   }
+  },
+  "proof": {
+   "type": "string",
+   "description": "Ergebnis-Datei von toolnews/engine/proof.mjs unter public/ (Liste mit id, file, w, h, rects, url); die ids sind dann als shot-Namen ansprechbar"
+  },
+  "camera": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "drift": {
+     "type": "object",
+     "additionalProperties": false,
+     "description": "Dauerdrift in der Ruhe (STIL Regel 2.1), pro Frame. Richtung wechselt von Schritt zu Schritt.",
+     "properties": {
+      "zoom": {
+       "type": "number",
+       "description": "Maßstab-Zuwachs pro Frame (Standard 0,0006)"
+      },
+      "dx": {
+       "type": "number",
+       "description": "px pro Frame (Standard 0,18)"
+      },
+      "dy": {
+       "type": "number"
+      }
+     }
+    },
+    "flash": {
+     "type": "boolean",
+     "description": "Farbblitz bei jeder Ankunft (STIL Regel 9.2: 5 f hoch, 3 halten, 6 runter); Standard true"
+    },
+    "blur": {
+     "type": "number",
+     "description": "Faktor auf die Bewegungsunschärfe der Kamera-Fahrten (Standard 0,4)"
     }
    }
   },
@@ -56,228 +132,63 @@
    "type": "array",
    "minItems": 1,
    "items": {
-    "oneOf": [
-     {
-      "type": "object",
-      "required": [
-       "block",
-       "at",
-       "dur",
-       "props"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "id": {
-        "type": "string",
-        "description": "frei wählbarer Name des Schritts"
-       },
-       "block": {
-        "const": "TypedTravel"
-       },
-       "at": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Startzeit in Frames"
-       },
-       "dur": {
-        "type": "integer",
-        "minimum": 1,
-        "description": "Dauer in Frames; danach ist der Schritt weg"
-       },
-       "props": {
+    "type": "object",
+    "required": [
+     "object",
+     "at"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "object": {
+      "oneOf": [
+       {
         "type": "object",
+        "description": "Getippte Textzeile mit Cursor am Ende (max. 5 Wörter gleichzeitig sind die Regel – keine Untertitel).",
         "required": [
+         "type",
          "text"
         ],
         "additionalProperties": false,
         "properties": {
+         "type": {
+          "const": "text"
+         },
          "text": {
           "type": "string"
-         },
-         "x": {
-          "type": "number"
-         },
-         "y": {
-          "type": "number"
-         },
-         "anchor": {
-          "type": "integer"
          },
          "size": {
           "type": "number"
          },
-         "hold": {
+         "weight": {
           "type": "number"
          },
-         "exit": {
-          "type": "boolean"
-         }
-        }
-       },
-       "transition": {
-        "$ref": "#/$defs/transition"
-       }
-      }
-     },
-     {
-      "type": "object",
-      "required": [
-       "block",
-       "at",
-       "dur",
-       "props"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "id": {
-        "type": "string",
-        "description": "frei wählbarer Name des Schritts"
-       },
-       "block": {
-        "const": "SourceCard"
-       },
-       "at": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Startzeit in Frames"
-       },
-       "dur": {
-        "type": "integer",
-        "minimum": 1,
-        "description": "Dauer in Frames; danach ist der Schritt weg"
-       },
-       "props": {
-        "type": "object",
-        "required": [
-         "shot"
-        ],
-        "additionalProperties": false,
-        "properties": {
-         "shot": {
-          "oneOf": [
-           {
-            "enum": [
-             "stars",
-             "works"
-            ],
-            "description": "vorhandener Screenshot aus fixtures/proof_*.json"
-           },
-           {
-            "type": "object",
-            "required": [
-             "file",
-             "w",
-             "h",
-             "rects",
-             "url"
-            ],
-            "properties": {
-             "file": {
-              "type": "string",
-              "description": "Pfad unter public/"
-             },
-             "w": {
-              "type": "number"
-             },
-             "h": {
-              "type": "number"
-             },
-             "url": {
-              "type": "string"
-             },
-             "rects": {
-              "type": "array",
-              "items": {
-               "type": "object",
-               "required": [
-                "x",
-                "y",
-                "w",
-                "h"
-               ],
-               "properties": {
-                "x": {
-                 "type": "number"
-                },
-                "y": {
-                 "type": "number"
-                },
-                "w": {
-                 "type": "number"
-                },
-                "h": {
-                 "type": "number"
-                }
-               }
-              }
-             }
-            }
-           }
-          ]
-         },
-         "cx": {
-          "type": "number"
-         },
-         "cy": {
+         "tracking": {
           "type": "number"
          },
          "w": {
           "type": "number"
          },
-         "h": {
-          "type": "number"
-         },
-         "zoomAt": {
-          "type": "number"
-         },
-         "markAt": {
-          "type": "number"
-         },
-         "fill": {
-          "type": "number"
+         "cps": {
+          "type": "number",
+          "description": "Zeichen pro Frame beim Tippen (gemessen 5,5)"
          }
         }
        },
-       "transition": {
-        "$ref": "#/$defs/transition"
-       }
-      }
-     },
-     {
-      "type": "object",
-      "required": [
-       "block",
-       "at",
-       "dur",
-       "props"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "id": {
-        "type": "string",
-        "description": "frei wählbarer Name des Schritts"
-       },
-       "block": {
-        "const": "Survivor"
-       },
-       "at": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Startzeit in Frames"
-       },
-       "dur": {
-        "type": "integer",
-        "minimum": 1,
-        "description": "Dauer in Frames; danach ist der Schritt weg"
-       },
-       "props": {
+       {
         "type": "object",
+        "description": "Karte (50–70 % der Bildbreite) mit Kicker, Titel, Zeile und optional einem Knopf, der bei „survivor“ übrig bleibt.",
         "required": [
-         "title",
-         "button"
+         "type",
+         "title"
         ],
         "additionalProperties": false,
         "properties": {
+         "type": {
+          "const": "card"
+         },
          "kicker": {
           "type": "string"
          },
@@ -288,166 +199,32 @@
           "type": "string"
          },
          "button": {
-          "type": "string"
-         },
-         "count": {
-          "type": "string"
-         },
-         "card": {
-          "type": "object",
-          "properties": {
-           "x": {
-            "type": "number"
+          "oneOf": [
+           {
+            "type": "string"
            },
-           "y": {
-            "type": "number"
-           },
-           "w": {
-            "type": "number"
-           },
-           "h": {
-            "type": "number"
-           },
-           "r": {
-            "type": "number"
+           {
+            "type": "object",
+            "required": [
+             "label"
+            ],
+            "additionalProperties": false,
+            "properties": {
+             "label": {
+              "type": "string"
+             },
+             "count": {
+              "type": "string"
+             },
+             "icon": {
+              "enum": [
+               "star",
+               "none"
+              ]
+             }
+            }
            }
-          }
-         },
-         "from": {
-          "type": "array",
-          "items": {
-           "type": "number"
-          },
-          "minItems": 2,
-          "maxItems": 2
-         },
-         "to": {
-          "type": "array",
-          "items": {
-           "type": "number"
-          },
-          "minItems": 2,
-          "maxItems": 2
-         },
-         "buttonW": {
-          "type": "number"
-         },
-         "moveDur": {
-          "type": "integer",
-          "description": "Dauer der Bewegung in Frames, Original 47"
-         },
-         "shine": {
-          "type": "boolean"
-         }
-        }
-       },
-       "transition": {
-        "$ref": "#/$defs/transition"
-       }
-      }
-     },
-     {
-      "type": "object",
-      "required": [
-       "block",
-       "at",
-       "dur",
-       "props"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "id": {
-        "type": "string",
-        "description": "frei wählbarer Name des Schritts"
-       },
-       "block": {
-        "const": "TipToButton"
-       },
-       "at": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Startzeit in Frames"
-       },
-       "dur": {
-        "type": "integer",
-        "minimum": 1,
-        "description": "Dauer in Frames; danach ist der Schritt weg"
-       },
-       "props": {
-        "type": "object",
-        "required": [
-         "text",
-         "button"
-        ],
-        "additionalProperties": false,
-        "properties": {
-         "hint": {
-          "type": "string"
-         },
-         "text": {
-          "type": "string"
-         },
-         "button": {
-          "type": "string"
-         },
-         "textWidth": {
-          "type": "number"
-         },
-         "buttonW": {
-          "type": "number"
-         },
-         "hand": {
-          "type": "boolean"
-         }
-        }
-       },
-       "transition": {
-        "$ref": "#/$defs/transition"
-       }
-      }
-     },
-     {
-      "type": "object",
-      "required": [
-       "block",
-       "at",
-       "dur",
-       "props"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "id": {
-        "type": "string",
-        "description": "frei wählbarer Name des Schritts"
-       },
-       "block": {
-        "const": "KeyShrink"
-       },
-       "at": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Startzeit in Frames"
-       },
-       "dur": {
-        "type": "integer",
-        "minimum": 1,
-        "description": "Dauer in Frames; danach ist der Schritt weg"
-       },
-       "props": {
-        "type": "object",
-        "required": [
-         "label"
-        ],
-        "additionalProperties": false,
-        "properties": {
-         "label": {
-          "type": "string"
-         },
-         "cx": {
-          "type": "number"
-         },
-         "cy": {
-          "type": "number"
+          ]
          },
          "w": {
           "type": "number"
@@ -455,57 +232,281 @@
          "h": {
           "type": "number"
          },
-         "fs": {
+         "r": {
           "type": "number"
          },
-         "baseDy": {
-          "type": "number"
+         "bg": {
+          "type": "string"
          },
-         "hold": {
-          "type": "integer",
-          "description": "Frames Ruhe vor dem Schrumpfen"
+         "click": {
+          "$ref": "#/$defs/anchor",
+          "description": "Zeiger fährt an den Knopf, wird zur Hand und drückt an diesem Wort"
+         },
+         "textAt": {
+          "$ref": "#/$defs/anchor",
+          "description": "die Zeile unter dem Titel erscheint erst an diesem Wort"
          }
         }
        },
-       "transition": {
-        "$ref": "#/$defs/transition"
-       }
-      }
-     },
-     {
-      "type": "object",
-      "required": [
-       "block",
-       "at",
-       "dur",
-       "props"
-      ],
-      "additionalProperties": false,
-      "properties": {
-       "id": {
-        "type": "string",
-        "description": "frei wählbarer Name des Schritts"
-       },
-       "block": {
-        "const": "Outro"
-       },
-       "at": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Startzeit in Frames"
-       },
-       "dur": {
-        "type": "integer",
-        "minimum": 1,
-        "description": "Dauer in Frames; danach ist der Schritt weg"
-       },
-       "props": {
+       {
         "type": "object",
+        "description": "Pille mit einem Wort.",
         "required": [
-         "word"
+         "type",
+         "label"
         ],
         "additionalProperties": false,
         "properties": {
+         "type": {
+          "const": "pill"
+         },
+         "label": {
+          "type": "string"
+         },
+         "tone": {
+          "enum": [
+           "accent",
+           "dark",
+           "light"
+          ],
+          "description": "accent = Akzentfarbe mit weißer Schrift, dark = fast schwarz, light = hellgraue Fläche"
+         },
+         "color": {
+          "type": "string"
+         },
+         "icon": {
+          "enum": [
+           "star",
+           "dot"
+          ]
+         },
+         "count": {
+          "type": "string"
+         },
+         "w": {
+          "type": "number"
+         },
+         "h": {
+          "type": "number"
+         }
+        }
+       },
+       {
+        "type": "object",
+        "description": "Knopf: Pille in Akzentfarbe mit Stern.",
+        "required": [
+         "type",
+         "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "type": {
+          "const": "button"
+         },
+         "label": {
+          "type": "string"
+         },
+         "tone": {
+          "enum": [
+           "accent",
+           "dark",
+           "light"
+          ],
+          "description": "accent = Akzentfarbe mit weißer Schrift, dark = fast schwarz, light = hellgraue Fläche"
+         },
+         "color": {
+          "type": "string"
+         },
+         "icon": {
+          "enum": [
+           "star",
+           "dot"
+          ]
+         },
+         "count": {
+          "type": "string"
+         },
+         "w": {
+          "type": "number"
+         },
+         "h": {
+          "type": "number"
+         }
+        }
+       },
+       {
+        "type": "object",
+        "description": "Quellen-Karte: echter Screenshot, Kamera fährt auf die markierte Stelle, Markierung läuft darüber, Adresse der Quelle darunter.",
+        "required": [
+         "type",
+         "shot"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "type": {
+          "const": "window"
+         },
+         "shot": {
+          "description": "Screenshot: Name aus plan.shots / plan.proof / eingebaut (\"stars\", \"works\") oder das Objekt direkt (Format von toolnews/engine/proof.mjs)",
+          "oneOf": [
+           {
+            "type": "string"
+           },
+           {
+            "$ref": "#/$defs/shot"
+           }
+          ]
+         },
+         "w": {
+          "type": "number"
+         },
+         "h": {
+          "type": "number"
+         },
+         "r": {
+          "type": "number"
+         },
+         "zoomAt": {
+          "type": "number",
+          "description": "Frames nach der Ankunft, an denen die Heranfahrt beginnt (Standard 4)"
+         },
+         "markAt": {
+          "$ref": "#/$defs/anchor"
+         },
+         "fill": {
+          "type": "number",
+          "description": "Anteil der Kartenbreite, den die markierte Stelle nach dem Zoom füllt (Standard 0,42)"
+         },
+         "comet": {
+          "type": "boolean"
+         }
+        }
+       },
+       {
+        "type": "object",
+        "description": "Kleines App-Symbol (Fokus-Objekt, 10–25 % der Bildbreite) mit kurzem Zeichen.",
+        "required": [
+         "type"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "type": {
+          "const": "square"
+         },
+         "glyph": {
+          "type": "string"
+         },
+         "size": {
+          "type": "number"
+         },
+         "color": {
+          "type": "string"
+         },
+         "fg": {
+          "type": "string"
+         },
+         "r": {
+          "type": "number"
+         },
+         "glyphSize": {
+          "type": "number"
+         }
+        }
+       },
+       {
+        "type": "object",
+        "description": "Mehrere kleine Pillen; jede erscheint an ihrem Wort (Staffelung).",
+        "required": [
+         "type",
+         "items"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "type": {
+          "const": "chips"
+         },
+         "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+           "type": "object",
+           "required": [
+            "label"
+           ],
+           "additionalProperties": false,
+           "properties": {
+            "label": {
+             "type": "string"
+            },
+            "icon": {
+             "enum": [
+              "star",
+              "dot"
+             ]
+            },
+            "at": {
+             "$ref": "#/$defs/anchor"
+            }
+           }
+          }
+         },
+         "tone": {
+          "enum": [
+           "accent",
+           "dark",
+           "light"
+          ],
+          "description": "accent = Akzentfarbe mit weißer Schrift, dark = fast schwarz, light = hellgraue Fläche"
+         },
+         "perRow": {
+          "type": "integer",
+          "minimum": 1
+         },
+         "gap": {
+          "type": "number"
+         },
+         "appearDur": {
+          "type": "number"
+         }
+        }
+       },
+       {
+        "type": "object",
+        "description": "Tasten-Pille (weiße Fläche, schwarzer Rand, Sockel) – Aussehen aus Stelle X3.",
+        "required": [
+         "type",
+         "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "type": {
+          "const": "key"
+         },
+         "label": {
+          "type": "string"
+         },
+         "w": {
+          "type": "number"
+         },
+         "h": {
+          "type": "number"
+         },
+         "size": {
+          "type": "number"
+         }
+        }
+       },
+       {
+        "type": "object",
+        "description": "Abspann: Wortmarke und eine Zeile darunter. Im Video nur „ULTRA“.",
+        "required": [
+         "type"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "type": {
+          "const": "outro"
+         },
          "word": {
           "type": "string"
          },
@@ -515,47 +516,307 @@
          "size": {
           "type": "number"
          },
-         "cx": {
-          "type": "number"
-         },
-         "cy": {
-          "type": "number"
-         },
-         "wordW": {
-          "type": "number"
-         },
          "fadeAt": {
+          "type": "number"
+         },
+         "noteSize": {
           "type": "number"
          }
         }
+       }
+      ]
+     },
+     "at": {
+      "$ref": "#/$defs/anchor"
+     },
+     "place": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Versatz der Objekt-Mitte zur Mitte der Station",
+      "properties": {
+       "x": {
+        "type": "number"
        },
-       "transition": {
-        "$ref": "#/$defs/transition"
+       "y": {
+        "type": "number"
+       }
+      }
+     },
+     "move": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "nur nach einem Übergang „camera“: Verschiebung der Station in der Welt und Maßstab der Kamera dort",
+      "properties": {
+       "dx": {
+        "type": "number"
+       },
+       "dy": {
+        "type": "number"
+       },
+       "zoom": {
+        "type": "number"
+       }
+      }
+     },
+     "enter": {
+      "$ref": "#/$defs/transition"
+     },
+     "transition": {
+      "$ref": "#/$defs/transition"
+     },
+     "flash": {
+      "description": "Farbblitz bei Ankunft dieses Objekts: false = aus, Farbe = eigene Farbe",
+      "oneOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "string"
+       }
+      ]
+     },
+     "drift": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Dauerdrift in der Ruhe (STIL Regel 2.1), pro Frame. Richtung wechselt von Schritt zu Schritt.",
+      "properties": {
+       "zoom": {
+        "type": "number",
+        "description": "Maßstab-Zuwachs pro Frame (Standard 0,0006)"
+       },
+       "dx": {
+        "type": "number",
+        "description": "px pro Frame (Standard 0,18)"
+       },
+       "dy": {
+        "type": "number"
        }
       }
      }
-    ]
+    }
    }
+  },
+  "note": {
+   "type": "string",
+   "description": "freie Anmerkung zum Plan (z. B. Herkunft von Stimme und Wortzeiten)"
   }
  },
  "$defs": {
+  "anchor": {
+   "description": "Zeitpunkt: Frame (Zahl) oder ein Wort der Stimme. Bei Schritten gilt align \"end\" (Standard): das Objekt STEHT an diesem Wort, der Übergang beginnt entsprechend früher. \"start\": der Übergang beginnt am Wort.",
+   "oneOf": [
+    {
+     "type": "integer",
+     "minimum": 0
+    },
+    {
+     "type": "object",
+     "required": [
+      "word"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "word": {
+       "type": "string",
+       "description": "Wort aus den Wortzeiten (Groß/Klein und Satzzeichen egal)"
+      },
+      "nth": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "das wievielte Vorkommen (Standard 1)"
+      },
+      "offset": {
+       "type": "integer",
+       "description": "Frames dazu (negativ = früher)"
+      },
+      "align": {
+       "enum": [
+        "start",
+        "end"
+       ]
+      }
+     }
+    }
+   ]
+  },
   "transition": {
    "type": "object",
+   "description": "Übergang zum nächsten Objekt. Regel aus STIL.md: Jeder Übergang nimmt etwas mit; cut/fade nur als Ausnahme.",
    "required": [
     "type"
    ],
-   "additionalProperties": false,
-   "description": "Übergang zum nächsten Schritt. none = harter Wechsel; fade = dieser Schritt blendet in den letzten `frames` aus, der nächste in seinen ersten `frames` ein. Objekt-zu-Objekt-Übergänge sind eigene Bausteine (Survivor, TipToButton).",
    "properties": {
     "type": {
-     "enum": [
-      "none",
-      "fade"
+     "oneOf": [
+      {
+       "const": "survivor",
+       "description": "T3 · Teil überlebt: Karte fliegt weg, ihr Knopf bleibt und wird das nächste Objekt. A = card mit button, B = button/pill. Optionen: shine (Glanz, Standard true), tilt."
+      },
+      {
+       "const": "tipButton",
+       "description": "T3b · Cursor wird Knopf: der Cursor am Zeilenende kippt um und wird zum Knopf. A = text, B = button/pill. Optionen: hand (false = ohne Zeigerhand), glow."
+      },
+      {
+       "const": "cardToPill",
+       "description": "T6 · Karte wird Pille: Karte/Fenster klappt zur Pille zusammen, Pille federt nach. A = card/window, B = pill/button. Optionen: glow, ghostLabel (Pillen-Wort steht wie im Original schon blass in der Karte)."
+      },
+      {
+       "const": "pillToWindow",
+       "description": "T1 · Pille wird Fenster: Pille/Knopf wächst zum Fenster/zur Karte auf. A = pill/button, B = window/card. Optionen: chrome, chromeWidth."
+      },
+      {
+       "const": "camera",
+       "description": "K1 · Kamera-Fahrt zur nächsten Station; beide Objekte stehen in der Welt. Der nächste Schritt braucht move {dx, dy, zoom}."
+      },
+      {
+       "const": "textSwap",
+       "description": "R1 · Text-Ersetzen: das Wort in der Pille wird hart ersetzt, das neue steigt in 4–5 f an seinen Platz. A und B = pill ohne Symbol. Optionen: series (\"a\" 14 f mit Vorlauf | \"b\" 10 f)."
+      },
+      {
+       "const": "fallOut",
+       "description": "X1 · Herausfallen: A schrumpft kurz und fällt immer schneller heraus; B erscheint gestaffelt (E1). Optionen: stagger, fallDur."
+      },
+      {
+       "const": "shrink",
+       "description": "X3 · Schrumpfen: A wird kurz breiter und schrumpft weg; B erscheint gestaffelt (E1). Optionen: stagger, shrinkDur."
+      },
+      {
+       "const": "appear",
+       "description": "E1 · Erscheinen: B fährt hoch, blendet ein (Quadrate drehen ein). Nur als Auftritt des ersten Objekts gedacht. Optionen: spin, ghosts, from."
+      },
+      {
+       "const": "type",
+       "description": "Auftritt einer Textzeile: sie tippt sich selbst."
+      },
+      {
+       "const": "fade",
+       "description": "Ausnahme: Überblenden."
+      },
+      {
+       "const": "cut",
+       "description": "Ausnahme: harter Schnitt (STIL.md Regel 3.1: fast nie)."
+      }
      ]
     },
     "frames": {
      "type": "integer",
-     "minimum": 1
+     "minimum": 1,
+     "description": "Dauer in Frames; Standard = Länge der Messreihe (survivor 47, tipButton 18, cardToPill 28, pillToWindow 26, camera 26, textSwap 10/14, fallOut 30+5, shrink 27+5, appear 27). Die Messreihe wird auf diese Dauer umgerechnet."
+    },
+    "shine": {
+     "type": "boolean"
+    },
+    "tilt": {
+     "type": "number"
+    },
+    "hand": {
+     "type": "boolean"
+    },
+    "glow": {
+     "oneOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "string"
+      }
+     ]
+    },
+    "ghostLabel": {
+     "type": "boolean"
+    },
+    "chrome": {
+     "type": "boolean"
+    },
+    "chromeWidth": {
+     "type": "number"
+    },
+    "series": {
+     "enum": [
+      "a",
+      "b"
+     ]
+    },
+    "stagger": {
+     "type": "integer",
+     "description": "Frames, die B nach A startet (Standard 5; STIL Regel 7.1: 4–7 f)"
+    },
+    "fallDur": {
+     "type": "number"
+    },
+    "shrinkDur": {
+     "type": "number"
+    },
+    "spin": {
+     "type": "boolean"
+    },
+    "ghosts": {
+     "type": "boolean"
+    },
+    "from": {
+     "enum": [
+      "bottom",
+      "top",
+      "left",
+      "right"
+     ]
+    },
+    "floor": {
+     "type": "number",
+     "description": "fallOut: Unterkante, bis zu der A fällt (Standard: Bildunterkante)"
+    }
+   },
+   "additionalProperties": false
+  },
+  "shot": {
+   "type": "object",
+   "required": [
+    "file",
+    "w",
+    "h",
+    "rects",
+    "url"
+   ],
+   "properties": {
+    "file": {
+     "type": "string",
+     "description": "Bild unter public/ (mit oder ohne „public/“ davor)"
+    },
+    "w": {
+     "type": "number"
+    },
+    "h": {
+     "type": "number"
+    },
+    "url": {
+     "type": "string"
+    },
+    "rects": {
+     "type": "array",
+     "description": "markierte Stelle(n) in Bild-Pixeln",
+     "items": {
+      "type": "object",
+      "required": [
+       "x",
+       "y",
+       "w",
+       "h"
+      ],
+      "properties": {
+       "x": {
+        "type": "number"
+       },
+       "y": {
+        "type": "number"
+       },
+       "w": {
+        "type": "number"
+       },
+       "h": {
+        "type": "number"
+       }
+      }
+     }
     }
    }
   }

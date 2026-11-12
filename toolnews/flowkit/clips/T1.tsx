@@ -56,3 +56,6 @@ export const T1Clip: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+/** Bildunterschrift der Stelle allein (für die Gegenprobe des Bausteins PillToWindow – die Unterschrift gehört nicht zum Baustein). */
+export const T1Caption: React.FC = () => { const c = D[Math.max(0, Math.min(T1_FRAMES - 1, useCurrentFrame()))].cap; return c ? <Caption c={c} /> : null; };

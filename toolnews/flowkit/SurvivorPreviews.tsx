@@ -1,5 +1,6 @@
 // Vorschau des Bausteins „Teil überlebt“: (1) Probe mit Original-Maßen gegen den abgenommenen T3-Nachbau, (2) eigener Inhalt in 1080×1920.
 import React from 'react';
+import {FONT} from './kit';
 import {AbsoluteFill, Composition, Folder, useCurrentFrame} from 'remotion';
 import {Stage, THEME, txt} from './blocks';
 import {SURVIVOR_ORIG as O, Survivor} from './survivor';
@@ -26,7 +27,7 @@ export const SURVIVOR_OWN = {accent: '#2F6BFF', card: {x: 120, y: 510, w: 480, h
 export const SurvivorOwn: React.FC<{shine?: boolean}> = ({shine = true}) => {
   const C = SURVIVOR_OWN;
   return (
-    <Stage bg="#FFFFFF">
+    <Stage bg="#FFFFFF" font={FONT}>
       <Survivor at={12} dur={47}
         card={{...C.card, bg: THEME.card, children: (
           <>

@@ -13,6 +13,7 @@
 import React from 'react';
 import {clamp, hexRgb} from './curves';
 import {useF} from './blocks';
+import {HandCursor} from './pointer';
 import tr from './fixtures/t3b_tracks.json';
 
 const D = tr as unknown as {mag: number[][]; hand: (number[] | null)[]; label: number[]};
@@ -53,8 +54,15 @@ const at = (g: number): Nm => {
   return {along: num('along'), across: num('across'), len: num('len'), thick: num('thick'), core: num('core'), rot: num('rot'), sig: num('sig'), label: num('label'), col: A.col.map((v, k) => mixN(v, B.col[k], p)),
     hand: A.hand && B.hand ? {along: mixN(A.hand.along, B.hand.along, p), across: mixN(A.hand.across, B.hand.across, p), size: mixN(A.hand.size, B.hand.size, p)} : B.hand && p > 0.5 ? B.hand : A.hand};
 };
-/** gemessene Farbe → Farbe für eine andere Endfarbe (je Kanal gleicher Anteil Richtung Weiß bzw. Schwarz) */
-const tint = (c: number[], to: number[]) => c.map((v, k) => { const b = END_COL[k], t = to[k]; return v >= b ? t + ((v - b) / Math.max(1, 255 - b)) * (255 - t) : t + ((v - b) / Math.max(1, b)) * t; });
+/** gemessene Farbe → Farbe für eine andere Endfarbe. Übertragen wird EIN Helligkeits-Anteil (Weg von der Endfarbe nach Weiß bzw. Schwarz,
+ *  Projektion der Messung auf diese Strecke) – für alle Kanäle gleich, damit der Farbton der neuen Farbe bleibt (blau bleibt blau).
+ *  Der Farbton-Rest des Originals (Messung minus Strecke) kommt nur mit `hue` dazu: damit ergibt die Originalfarbe exakt die Messung. */
+const tint = (c: number[], to: number[], hue: boolean) => {
+  const up = c.reduce((a, v, k) => a + (v - END_COL[k]) * (255 - END_COL[k]), 0) >= 0;
+  const den = END_COL.reduce((a, b) => a + (up ? (255 - b) ** 2 : b ** 2), 0);
+  const w = c.reduce((a, v, k) => a + (v - END_COL[k]) * (up ? 255 - END_COL[k] : -END_COL[k]), 0) / Math.max(1, den);
+  return c.map((v, k) => { const b = END_COL[k], t = to[k], rest = v - (b + w * (up ? 255 - b : -b)); return Math.max(0, Math.min(255, t + w * (up ? 255 - t : -t) + (hue ? rest : 0))); });
+};
 const HAND = 'M7 1.2 C7 0.3 9.6 0.3 9.6 1.2 L9.6 9.5 C9.6 8.3 12.1 8.4 12.1 9.6 L12.1 10.6 C12.1 9.4 14.6 9.6 14.6 10.8 L14.6 11.8 C14.6 10.8 17 11 17 12.2 L17 17.5 C17 21.5 15 24 11.5 24 L9.8 24 C7.5 24 6.2 22.8 4.9 20.6 L1.6 15.2 C0.9 14 2.6 12.8 3.6 13.9 L7 17.5 Z';
 
 export type TipToButtonProps = {
@@ -70,9 +78,13 @@ export type TipToButtonProps = {
   label?: (opacity: number) => React.ReactNode;
   /** Zeigerhand: Spitze am Anfang und am Ende, Endgröße in Pixeln; false = keine Hand */
   hand?: {from: [number, number]; to: [number, number]; size?: number} | false;
+  /** Zeiger-Form: 'vector' = gemessene Vektor-Hand aus pointer.tsx (Standard), 'orig' = die Hand des T3b-Nachbaus (nur für die Gegenprobe) */
+  pointer?: 'vector' | 'orig';
+  /** Farbton-Rest des Originals mitnehmen (nur für die Gegenprobe mit der Originalfarbe) */
+  hue?: boolean;
 };
 
-export const TipToButton: React.FC<TipToButtonProps> = ({at: start = 0, dur = O.dur, from, to, caret = O.caret, btn = O.btn, color = O.color, glow = O.glow, label, hand = false}) => {
+export const TipToButton: React.FC<TipToButtonProps> = ({at: start = 0, dur = O.dur, from, to, caret = O.caret, btn = O.btn, color = O.color, glow = O.glow, label, hand = false, pointer = 'vector', hue = false}) => {
   const t = useF(start);
   if (t < 0) return null;
   const n = at((t * (N - 1)) / Math.max(1, dur - 1));
@@ -80,7 +92,7 @@ export const TipToButton: React.FC<TipToButtonProps> = ({at: start = 0, dur = O.
   const mx = from[0] + n.along * bx - n.across * by, my = from[1] + n.along * by + n.across * bx;
   const ml = caret.len + n.len * (btn.w - caret.len), ms = caret.w + n.thick * (btn.h - caret.w), mw = ms + n.core * caret.w;
   const gs = btn.h / O.btn.h, msO = O.caret.w + n.thick * (O.btn.h - O.caret.w);             // Schein und Unschärfe wachsen mit der Knopfgröße
-  const blur = Math.max(0, n.sig - 0.3) * 10 * gs, c = tint(n.col, hexRgb(color));
+  const blur = Math.max(0, n.sig - 0.3) * 10 * gs, c = tint(n.col, hexRgb(color), hue);
   const hs = hand && n.hand ? n.hand.size * (hand.size ?? O.hand.size) : 0;
   const hx = hand && n.hand ? hand.from[0] + n.hand.along * (hand.to[0] - hand.from[0]) - n.hand.across * (hand.to[1] - hand.from[1]) : 0;
   const hy = hand && n.hand ? hand.from[1] + n.hand.along * (hand.to[1] - hand.from[1]) + n.hand.across * (hand.to[0] - hand.from[0]) : 0;
@@ -90,11 +102,14 @@ export const TipToButton: React.FC<TipToButtonProps> = ({at: start = 0, dur = O.
       <div style={{position: 'absolute', left: mx - ml / 2, top: my - mw / 2, width: ml, height: mw, borderRadius: Math.min(mw / 2, btn.r ?? 7), background: `rgb(${c[0]},${c[1]},${c[2]})`, transform: `rotate(${-90 + n.rot * 90}deg)`, boxShadow: `0 0 ${(12 + msO * 0.5) * gs}px ${glow}`, filter: blur > 0.15 ? `blur(${blur}px)` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 * gs, overflow: 'hidden'}}>
         {n.label > 0 && label ? label(n.label) : null}
       </div>
-      {hand && n.hand ? (
+      {hand && n.hand ? (pointer === 'orig' ? (
         <svg width={19 * (hs / 17)} height={26 * (hs / 17)} viewBox="-1 -1 19 26" style={{position: 'absolute', left: hx - hs / 17, top: hy - hs / 17, overflow: 'visible', filter: `drop-shadow(0 ${2 * hk}px ${3 * hk}px rgba(0,0,0,.35)) blur(${clamp((30 - hs / hk) / 6) * 1.5 * hk}px)`}}>
           <path d={HAND} fill="#fff" stroke="#000" strokeWidth={1.5} strokeLinejoin="round" />
         </svg>
-      ) : null}
+      ) : (
+        // Vektor-Hand: Kuppe des Zeigefingers liegt dort, wo die Original-Hand ihre Fingerspitze hat (8,3/17 der Breite rechts vom Messpunkt)
+        <HandCursor x={hx + (hs / 17) * 7.3} y={hy - hs / 17} size={hs * (26 / 17)} style={{filter: `drop-shadow(0 ${2 * hk}px ${3 * hk}px rgba(0,0,0,.18)) blur(${clamp((30 - hs / hk) / 6) * 1.5 * hk}px)`}} shadow={false} />
+      )) : null}
     </>
   );
 };

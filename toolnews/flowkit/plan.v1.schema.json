@@ -1,0 +1,563 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "flowkit/plan.schema.json",
+ "title": "Flow-Regieplan",
+ "description": "Ein Video nur aus dieser Datei: Liste von Schritten (Baustein, Inhalte, Startzeit, Dauer, Übergang zum nächsten). Koordinaten in Bühnen-Pixeln: Bühne 720 breit (1080×1920 → 720×1280). Zeiten in Frames.",
+ "type": "object",
+ "required": [
+  "width",
+  "height",
+  "fps",
+  "steps"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "title": {
+   "type": "string"
+  },
+  "width": {
+   "type": "integer"
+  },
+  "height": {
+   "type": "integer"
+  },
+  "fps": {
+   "type": "integer"
+  },
+  "bg": {
+   "type": "string",
+   "description": "Hintergrundfarbe, Standard #FFFFFF"
+  },
+  "accent": {
+   "type": "string",
+   "description": "Akzentfarbe für Knöpfe, Rahmen, Markierungen"
+  },
+  "audio": {
+   "type": "object",
+   "required": [
+    "src"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "src": {
+     "type": "string",
+     "description": "Tondatei unter public/, z. B. flowkit_local/stimme.mp3"
+    },
+    "volume": {
+     "type": "number"
+    },
+    "startFrom": {
+     "type": "integer",
+     "description": "Frames, die am Anfang der Tondatei übersprungen werden"
+    }
+   }
+  },
+  "steps": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "oneOf": [
+     {
+      "type": "object",
+      "required": [
+       "block",
+       "at",
+       "dur",
+       "props"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "description": "frei wählbarer Name des Schritts"
+       },
+       "block": {
+        "const": "TypedTravel"
+       },
+       "at": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Startzeit in Frames"
+       },
+       "dur": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Dauer in Frames; danach ist der Schritt weg"
+       },
+       "props": {
+        "type": "object",
+        "required": [
+         "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "text": {
+          "type": "string"
+         },
+         "x": {
+          "type": "number"
+         },
+         "y": {
+          "type": "number"
+         },
+         "anchor": {
+          "type": "integer"
+         },
+         "size": {
+          "type": "number"
+         },
+         "hold": {
+          "type": "number"
+         },
+         "exit": {
+          "type": "boolean"
+         }
+        }
+       },
+       "transition": {
+        "$ref": "#/$defs/transition"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "required": [
+       "block",
+       "at",
+       "dur",
+       "props"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "description": "frei wählbarer Name des Schritts"
+       },
+       "block": {
+        "const": "SourceCard"
+       },
+       "at": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Startzeit in Frames"
+       },
+       "dur": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Dauer in Frames; danach ist der Schritt weg"
+       },
+       "props": {
+        "type": "object",
+        "required": [
+         "shot"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "shot": {
+          "oneOf": [
+           {
+            "enum": [
+             "stars",
+             "works"
+            ],
+            "description": "vorhandener Screenshot aus fixtures/proof_*.json"
+           },
+           {
+            "type": "object",
+            "required": [
+             "file",
+             "w",
+             "h",
+             "rects",
+             "url"
+            ],
+            "properties": {
+             "file": {
+              "type": "string",
+              "description": "Pfad unter public/"
+             },
+             "w": {
+              "type": "number"
+             },
+             "h": {
+              "type": "number"
+             },
+             "url": {
+              "type": "string"
+             },
+             "rects": {
+              "type": "array",
+              "items": {
+               "type": "object",
+               "required": [
+                "x",
+                "y",
+                "w",
+                "h"
+               ],
+               "properties": {
+                "x": {
+                 "type": "number"
+                },
+                "y": {
+                 "type": "number"
+                },
+                "w": {
+                 "type": "number"
+                },
+                "h": {
+                 "type": "number"
+                }
+               }
+              }
+             }
+            }
+           }
+          ]
+         },
+         "cx": {
+          "type": "number"
+         },
+         "cy": {
+          "type": "number"
+         },
+         "w": {
+          "type": "number"
+         },
+         "h": {
+          "type": "number"
+         },
+         "zoomAt": {
+          "type": "number"
+         },
+         "markAt": {
+          "type": "number"
+         },
+         "fill": {
+          "type": "number"
+         }
+        }
+       },
+       "transition": {
+        "$ref": "#/$defs/transition"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "required": [
+       "block",
+       "at",
+       "dur",
+       "props"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "description": "frei wählbarer Name des Schritts"
+       },
+       "block": {
+        "const": "Survivor"
+       },
+       "at": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Startzeit in Frames"
+       },
+       "dur": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Dauer in Frames; danach ist der Schritt weg"
+       },
+       "props": {
+        "type": "object",
+        "required": [
+         "title",
+         "button"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "kicker": {
+          "type": "string"
+         },
+         "title": {
+          "type": "string"
+         },
+         "text": {
+          "type": "string"
+         },
+         "button": {
+          "type": "string"
+         },
+         "count": {
+          "type": "string"
+         },
+         "card": {
+          "type": "object",
+          "properties": {
+           "x": {
+            "type": "number"
+           },
+           "y": {
+            "type": "number"
+           },
+           "w": {
+            "type": "number"
+           },
+           "h": {
+            "type": "number"
+           },
+           "r": {
+            "type": "number"
+           }
+          }
+         },
+         "from": {
+          "type": "array",
+          "items": {
+           "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+         },
+         "to": {
+          "type": "array",
+          "items": {
+           "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+         },
+         "buttonW": {
+          "type": "number"
+         },
+         "moveDur": {
+          "type": "integer",
+          "description": "Dauer der Bewegung in Frames, Original 47"
+         },
+         "shine": {
+          "type": "boolean"
+         }
+        }
+       },
+       "transition": {
+        "$ref": "#/$defs/transition"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "required": [
+       "block",
+       "at",
+       "dur",
+       "props"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "description": "frei wählbarer Name des Schritts"
+       },
+       "block": {
+        "const": "TipToButton"
+       },
+       "at": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Startzeit in Frames"
+       },
+       "dur": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Dauer in Frames; danach ist der Schritt weg"
+       },
+       "props": {
+        "type": "object",
+        "required": [
+         "text",
+         "button"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "hint": {
+          "type": "string"
+         },
+         "text": {
+          "type": "string"
+         },
+         "button": {
+          "type": "string"
+         },
+         "textWidth": {
+          "type": "number"
+         },
+         "buttonW": {
+          "type": "number"
+         },
+         "hand": {
+          "type": "boolean"
+         }
+        }
+       },
+       "transition": {
+        "$ref": "#/$defs/transition"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "required": [
+       "block",
+       "at",
+       "dur",
+       "props"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "description": "frei wählbarer Name des Schritts"
+       },
+       "block": {
+        "const": "KeyShrink"
+       },
+       "at": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Startzeit in Frames"
+       },
+       "dur": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Dauer in Frames; danach ist der Schritt weg"
+       },
+       "props": {
+        "type": "object",
+        "required": [
+         "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "label": {
+          "type": "string"
+         },
+         "cx": {
+          "type": "number"
+         },
+         "cy": {
+          "type": "number"
+         },
+         "w": {
+          "type": "number"
+         },
+         "h": {
+          "type": "number"
+         },
+         "fs": {
+          "type": "number"
+         },
+         "baseDy": {
+          "type": "number"
+         },
+         "hold": {
+          "type": "integer",
+          "description": "Frames Ruhe vor dem Schrumpfen"
+         }
+        }
+       },
+       "transition": {
+        "$ref": "#/$defs/transition"
+       }
+      }
+     },
+     {
+      "type": "object",
+      "required": [
+       "block",
+       "at",
+       "dur",
+       "props"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "id": {
+        "type": "string",
+        "description": "frei wählbarer Name des Schritts"
+       },
+       "block": {
+        "const": "Outro"
+       },
+       "at": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Startzeit in Frames"
+       },
+       "dur": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Dauer in Frames; danach ist der Schritt weg"
+       },
+       "props": {
+        "type": "object",
+        "required": [
+         "word"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "word": {
+          "type": "string"
+         },
+         "note": {
+          "type": "string"
+         },
+         "size": {
+          "type": "number"
+         },
+         "cx": {
+          "type": "number"
+         },
+         "cy": {
+          "type": "number"
+         },
+         "wordW": {
+          "type": "number"
+         },
+         "fadeAt": {
+          "type": "number"
+         }
+        }
+       },
+       "transition": {
+        "$ref": "#/$defs/transition"
+       }
+      }
+     }
+    ]
+   }
+  }
+ },
+ "$defs": {
+  "transition": {
+   "type": "object",
+   "required": [
+    "type"
+   ],
+   "additionalProperties": false,
+   "description": "Übergang zum nächsten Schritt. none = harter Wechsel; fade = dieser Schritt blendet in den letzten `frames` aus, der nächste in seinen ersten `frames` ein. Objekt-zu-Objekt-Übergänge sind eigene Bausteine (Survivor, TipToButton).",
+   "properties": {
+    "type": {
+     "enum": [
+      "none",
+      "fade"
+     ]
+    },
+    "frames": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  }
+ }
+}

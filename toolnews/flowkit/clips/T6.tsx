@@ -10,7 +10,7 @@ import tr from '../fixtures/t6_tracks.json';
 import type {ClipDef} from './Views';
 
 export const T6_START = tr.start, T6_FRAMES = tr.frames;
-type Txt = {cx: number; base: number; tw: number; fs: number; a: number};
+export type Txt = {cx: number; base: number; tw: number; fs: number; a: number};
 type Card = {l: number; t: number; r: number; b: number; rad: number; bx: number; by: number};
 type P = {card: Card; portrait: number[] | null; note: number[] | null; rew: number[] | null; play: number[] | null; ffw: number[] | null; sub: Txt | null; title: Txt | null};
 const D = tr.p as unknown as P[];
@@ -73,68 +73,83 @@ const RoundTris: React.FC<{d: string}> = ({d}) => (
   </g>
 );
 
+/** Karteninhalt (alles, was in der Karte liegt und mit ihr beschnitten wird) – eigene Komponente, damit der Baustein CardToPill ihn wiederverwenden kann. */
+export type T6P = P;
+export const T6Content: React.FC<{p: P}> = ({p}) => {
+  const K = T6_LOOK, po = K.portrait;
+  return (
+    <>
+      <defs>
+        <filter id="t6box" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation={K.boxSoft} /></filter>
+        <clipPath id="t6pc"><rect x={po.clip[0]} y={po.clip[1]} width={po.clip[2]} height={po.clip[3]} rx={po.clip[4]} /></clipPath>
+      </defs>
+      {p.portrait ? (
+        <g opacity={p.portrait[2]} transform={`translate(${po.x + p.portrait[0]} ${po.y + p.portrait[1]})`}>
+          <image href={staticFile('ref_local/t6_portrait.png')} x={0} y={0} width={po.w} height={po.h} clipPath="url(#t6pc)" preserveAspectRatio="none" />
+        </g>
+      ) : null}
+      {/* Knopf-Felder: kaum heller als der Grund, weiche Kanten */}
+      <g filter="url(#t6box)" fill={K.box}>
+        {p.rew ? <rect opacity={p.rew[2]} x={110.3 + p.rew[0]} y={231.2 + p.rew[1]} width={43} height={27} rx={5} /> : null}
+        {p.ffw ? <rect opacity={p.ffw[2]} x={209.8 + p.ffw[0]} y={231.2 + p.ffw[1]} width={43} height={27} rx={5} /> : null}
+      </g>
+      <g strokeLinejoin="round">
+        {p.note ? (
+          <g opacity={p.note[2]} transform={`translate(${p.note[0] + 0.3} ${p.note[1]})`} fill={K.ink} stroke={K.halo} strokeWidth={K.ring} style={{paintOrder: 'stroke'}}>
+            <path d="M232.9 111.2 L243.15 110.05 L243.15 116.4 L235.25 117.6 L235.25 137.5 L232.9 137.5 Z" />
+            <rect x={223.25} y={131.65} width={12} height={8.85} rx={5.2} ry={4.3} />
+            <rect x={233.4} y={117} width={1.4} height={18} stroke="none" />
+          </g>
+        ) : null}
+        {p.rew ? (
+          <g opacity={p.rew[2]} transform={`translate(${p.rew[0] + 0.27} ${p.rew[1]})`}>
+            <RoundTris d={tri(131.1, 123.95, 245.07, 3.57) + tri(138.9, 131.75, 245.07, 3.57)} />
+          </g>
+        ) : null}
+        {p.ffw ? (
+          <g opacity={p.ffw[2]} transform={`translate(${p.ffw[0]} ${p.ffw[1]})`}>
+            <RoundTris d={tri(224.73, 231.88, 244.65, 3.57) + tri(231.73, 238.88, 244.65, 3.57)} />
+          </g>
+        ) : null}
+        {p.play ? (
+          <g opacity={p.play[2]} transform={`translate(${p.play[0]} ${p.play[1]})`}>
+            <rect x={159.1} y={231.1} width={45} height={28.6} rx={9} fill={K.orangeShade} />
+            <rect x={159.6} y={231.6} width={44} height={27.6} rx={8.5} fill={K.orangeRim} />
+            <rect x={160.3} y={233.2} width={42.6} height={23.5} rx={7.5} fill={K.orange} />
+            <path d="M177.8 241.1 L186.2 245.45 L177.8 249.8 Z" fill={K.tri} stroke={K.tri} strokeWidth={3} />
+          </g>
+        ) : null}
+      </g>
+    </>
+  );
+};
+/** Die beiden Schriftzeilen: „Bach“ (blendet aus) und der Untertitel (wird zum Inhalt der Pille). */
+export const T6Title: React.FC<{t: Txt | null}> = ({t}) => (t ? <SubPixelLine t={t} label="Bach" fill={T6_LOOK.ink} id="t6tt" w={tr.size[0]} h={tr.size[1]} trim={T6_LOOK.trim} halo={T6_LOOK.halo} /> : null);
+export const T6Sub: React.FC<{t: Txt | null}> = ({t}) => (t ? <SubPixelLine t={t} label="Violin Sonata No.1 in G minor" fill={T6_LOOK.subInk} id="t6ts" w={tr.size[0]} h={tr.size[1]} trim={T6_LOOK.trim} halo={T6_LOOK.halo} /> : null);
+
 export const T6Clip: React.FC = () => {
   const i = Math.max(0, Math.min(T6_FRAMES - 1, useCurrentFrame()));
-  const p = D[i], c = p.card, K = T6_LOOK, W = tr.size[0], H = tr.size[1];
-  const po = K.portrait;
+  const p = D[i], c = p.card, W = tr.size[0], H = tr.size[1];
   return (
     <AbsoluteFill style={{background: T6_BG, overflow: 'hidden'}}>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{position: 'absolute', left: 0, top: 0}}>
         <defs>
           <filter id="t6mb" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation={`${c.bx} ${c.by}`} /></filter>
-          <filter id="t6box" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation={K.boxSoft} /></filter>
           <mask id="t6card" maskUnits="userSpaceOnUse" x={0} y={0} width={W} height={H}>
             <rect x={c.l} y={c.t} width={c.r - c.l} height={c.b - c.t} rx={c.rad} fill="#fff" filter="url(#t6mb)" />
           </mask>
-          <clipPath id="t6pc"><rect x={po.clip[0]} y={po.clip[1]} width={po.clip[2]} height={po.clip[3]} rx={po.clip[4]} /></clipPath>
         </defs>
         <g mask="url(#t6card)">
           <GlowPlate base={PL.base} glows={PL.g} w={W} h={H} id="t6" />
-          {p.portrait ? (
-            <g opacity={p.portrait[2]} transform={`translate(${po.x + p.portrait[0]} ${po.y + p.portrait[1]})`}>
-              <image href={staticFile('ref_local/t6_portrait.png')} x={0} y={0} width={po.w} height={po.h} clipPath="url(#t6pc)" preserveAspectRatio="none" />
-            </g>
-          ) : null}
-          {/* Knopf-Felder: kaum heller als der Grund, weiche Kanten */}
-          <g filter="url(#t6box)" fill={K.box}>
-            {p.rew ? <rect opacity={p.rew[2]} x={110.3 + p.rew[0]} y={231.2 + p.rew[1]} width={43} height={27} rx={5} /> : null}
-            {p.ffw ? <rect opacity={p.ffw[2]} x={209.8 + p.ffw[0]} y={231.2 + p.ffw[1]} width={43} height={27} rx={5} /> : null}
-          </g>
-          <g strokeLinejoin="round">
-            {p.note ? (
-              <g opacity={p.note[2]} transform={`translate(${p.note[0] + 0.3} ${p.note[1]})`} fill={K.ink} stroke={K.halo} strokeWidth={K.ring} style={{paintOrder: 'stroke'}}>
-                <path d="M232.9 111.2 L243.15 110.05 L243.15 116.4 L235.25 117.6 L235.25 137.5 L232.9 137.5 Z" />
-                <rect x={223.25} y={131.65} width={12} height={8.85} rx={5.2} ry={4.3} />
-                <rect x={233.4} y={117} width={1.4} height={18} stroke="none" />
-              </g>
-            ) : null}
-            {p.rew ? (
-              <g opacity={p.rew[2]} transform={`translate(${p.rew[0] + 0.27} ${p.rew[1]})`}>
-                <RoundTris d={tri(131.1, 123.95, 245.07, 3.57) + tri(138.9, 131.75, 245.07, 3.57)} />
-              </g>
-            ) : null}
-            {p.ffw ? (
-              <g opacity={p.ffw[2]} transform={`translate(${p.ffw[0]} ${p.ffw[1]})`}>
-                <RoundTris d={tri(224.73, 231.88, 244.65, 3.57) + tri(231.73, 238.88, 244.65, 3.57)} />
-              </g>
-            ) : null}
-            {p.play ? (
-              <g opacity={p.play[2]} transform={`translate(${p.play[0]} ${p.play[1]})`}>
-                <rect x={159.1} y={231.1} width={45} height={28.6} rx={9} fill={K.orangeShade} />
-                <rect x={159.6} y={231.6} width={44} height={27.6} rx={8.5} fill={K.orangeRim} />
-                <rect x={160.3} y={233.2} width={42.6} height={23.5} rx={7.5} fill={K.orange} />
-                <path d="M177.8 241.1 L186.2 245.45 L177.8 249.8 Z" fill={K.tri} stroke={K.tri} strokeWidth={3} />
-              </g>
-            ) : null}
-          </g>
+          <T6Content p={p} />
         </g>
       </svg>
       {/* Schrift liegt nie am Kartenrand, deshalb außerhalb der Maske */}
       <svg style={{position: 'absolute', left: 0, top: 0, overflow: 'visible'}} width={1} height={1}>
         <g>
-            {p.title ? <SubPixelLine t={p.title} label="Bach" fill={K.ink} id="t6tt" w={W} h={H} trim={K.trim} halo={K.halo} /> : null}
-            {p.sub ? <SubPixelLine t={p.sub} label="Violin Sonata No.1 in G minor" fill={K.subInk} id="t6ts" w={W} h={H} trim={K.trim} halo={K.halo} /> : null}
-          </g>
+          <T6Title t={p.title} />
+          <T6Sub t={p.sub} />
+        </g>
       </svg>
     </AbsoluteFill>
   );

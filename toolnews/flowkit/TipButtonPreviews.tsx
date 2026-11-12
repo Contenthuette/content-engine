@@ -2,13 +2,14 @@
 import React from 'react';
 import {AbsoluteFill, Composition, Folder, useCurrentFrame} from 'remotion';
 import {SANS, Stage, THEME, txt} from './blocks';
+import {FONT} from './kit';
 import {TIP_NORM, TIP_ORIG as O, TipToButton} from './tipbutton';
 import {T3bClip, T3bScene, T3B_FRAMES, T3B_START} from './clips/T3b';
 
 export const TipProbe: React.FC = () => (
   <AbsoluteFill style={{background: '#000', overflow: 'hidden'}}>
     <T3bScene />
-    <TipToButton dur={O.dur} from={O.from} to={O.to} caret={O.caret} btn={O.btn} color={O.color} glow={O.glow} hand={O.hand}
+    <TipToButton dur={O.dur} from={O.from} to={O.to} caret={O.caret} btn={O.btn} color={O.color} glow={O.glow} hand={O.hand} pointer="orig" hue
       label={(o) => <><span style={{fontFamily: "'Inter Variable', 'Inter', system-ui, sans-serif", fontSize: 21, fontWeight: 500, color: '#FFF4FB', lineHeight: 1, letterSpacing: '-0.01em', opacity: o}}>Send</span><svg width={20} height={18} viewBox="0 0 17 15" style={{opacity: o}}><path d="M1 1 L16 7.5 L1 14 L4.5 7.5 Z" fill="#FFF4FB" /></svg></>} />
   </AbsoluteFill>
 );
@@ -30,7 +31,7 @@ export const TipOwn: React.FC = () => {
   const g = Math.max(0, Math.min(O.dur - 1, f)), n = TIP_NORM[Math.floor(g)], caretX = C.from[0] + n.along * (TO[0] - C.from[0]) - n.across * (TO[1] - C.from[1]);
   const reveal = Math.min(C.textEnd, f < 0 ? C.from[0] - 4 : caretX - 4);
   return (
-    <Stage bg="#FFFFFF">
+    <Stage bg="#FFFFFF" font={FONT}>
       <div style={{position: 'absolute', left: C.card.x, top: C.card.y, width: C.card.w, height: C.card.h, borderRadius: C.card.r, background: THEME.card}} />
       <div style={{...txt(15.5, 450, THEME.sub), position: 'absolute', left: C.textX, top: C.card.y + 26}}>Nachricht an Claude</div>
       <div style={{position: 'absolute', left: 0, top: 0, width: reveal, height: 1280, overflow: 'hidden'}}>

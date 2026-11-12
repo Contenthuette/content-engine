@@ -14,7 +14,7 @@ import tr from './fixtures/x3_tracks.json';
 type P = {cx: number; cy: number; w: number; h: number; bw: number; depth: number; rad: number; tcx: number; base: number; tw: number; fs: number};
 const D = (tr.p as unknown as (P | null)[]).filter(Boolean) as P[];          // 19 sichtbare Messpunkte (172–190)
 const N = tr.frames, NV = D.length, P0 = D[0];
-const SANS = "'Inter Variable', 'Inter', system-ui, sans-serif";
+const SANS = "var(--flow-font, 'Inter Variable'), 'Inter', system-ui, sans-serif";   // eigene Inhalte: <Stage font={FONT}>
 
 /** Original-Maße am ersten Frame (Pixel im Original, Kachel-Ausschnitt ab x 360 / y 640). */
 export const KEYSHRINK_ORIG = {dur: N, start: P0, crop: tr.crop as number[], ink: '#07080D', base: '#414245', face: '#FFFFFF', weight: 318, label: 'now'};

@@ -5,8 +5,10 @@ import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
 import {CameraMotionBlur} from '@remotion/motion-blur';
 import '@fontsource-variable/inter/opsz.css';
 import {FLOW, clamp, lin, mix, mixCol, seg, track} from './curves';
+import {ArrowCursor, HandCursor} from './pointer';
 
-export const SANS = "'Inter Variable', 'Inter', system-ui, sans-serif";
+// Schrift: Standard Inter (so sind die 1:1-Nachbauten vermessen). Eigene Inhalte setzen über <Stage font={FONT}> die Variable --flow-font (Inter Tight).
+export const SANS = "var(--flow-font, 'Inter Variable'), 'Inter', system-ui, sans-serif";
 export type Theme = {ink: string; sub: string; card: string; cardSel: string; accent: string; typeBlue: string; border: string; borderHover: string; borderPress: string; fill: string; btn: string; btnActive: string};
 export const THEME: Theme = {ink: '#0B0B0F', sub: '#77797C', card: '#F3F3F3', cardSel: '#F9F9FB', accent: '#5B8FF7', typeBlue: '#7FA3EE', border: '#B4C3F2', borderHover: '#9DB4F0', borderPress: '#8FA9EE', fill: '#C4D0F0', btn: '#EEEEEE', btnActive: '#AFCAFD'};
 /** Farbwelt aus einer Akzentfarbe ableiten (für eigene Marken). */
@@ -40,11 +42,11 @@ export const MotionBlur: React.FC<{active: boolean; speed?: number; dir?: 'x' | 
 };
 
 // ---------- Bühne: 720 breit, Höhe folgt dem Format (1080×1920 → 720×1280) ----------
-export const Stage: React.FC<{size?: number; h?: number; bg?: string; children: React.ReactNode}> = ({size, h, bg = '#FFFFFF', children}) => {
+export const Stage: React.FC<{size?: number; h?: number; bg?: string; font?: string; children: React.ReactNode}> = ({size, h, bg = '#FFFFFF', font, children}) => {
   const cfg = useVideoConfig();
   const width = size ?? cfg.width;
   return (
-    <AbsoluteFill style={{background: bg, overflow: 'hidden'}}>
+    <AbsoluteFill style={{background: bg, overflow: 'hidden', ...(font ? ({'--flow-font': font} as React.CSSProperties) : {})}}>
       <div style={{position: 'absolute', left: 0, top: 0, width: 720, height: h ?? (720 * cfg.height) / cfg.width, transform: `scale(${width / 720})`, transformOrigin: '0 0'}}>{children}</div>
     </AbsoluteFill>
   );
@@ -254,7 +256,6 @@ export const FlowList: React.FC<FlowListProps> = (p) => {
 // =====================================================================================================
 // 6) Mauszeiger: fährt an, wird zur Hand, drückt, klickt
 // =====================================================================================================
-const HAND = 'M7 1.2 C7 0.3 9.6 0.3 9.6 1.2 L9.6 9.5 C9.6 8.3 12.1 8.4 12.1 9.6 L12.1 10.6 C12.1 9.4 14.6 9.6 14.6 10.8 L14.6 11.8 C14.6 10.8 17 11 17 12.2 L17 17.5 C17 21.5 15 24 11.5 24 L9.8 24 C7.5 24 6.2 22.8 4.9 20.6 L1.6 15.2 C0.9 14 2.6 12.8 3.6 13.9 L7 17.5 Z';
 export type PointerProps = {at?: number; from: [number, number]; to: [number, number]; /** Zeiger wird zur Hand */ handAt?: number; pressAt?: number; /** nach dem Klick verblassen */ outAt?: number; scale?: number};
 export const Pointer: React.FC<PointerProps> = ({at = 0, from, to, handAt, pressAt, outAt, scale = 1}) => {
   const f = useF(at);
@@ -265,15 +266,11 @@ export const Pointer: React.FC<PointerProps> = ({at = 0, from, to, handAt, press
   const hand = handAt != null ? lin(f, handAt - at, handAt - at + 1) : 0;
   const press = pressAt != null ? lin(f, pressAt - at, pressAt - at + 4) : 0;
   const fade = lin(f, 0.3, 1.3) * (outAt != null ? 1 - 0.5 * lin(f, outAt - at, outAt - at + 2) : 1);
-  const HS = 2.9 * scale, AS = 2.6 * scale;
+  // Zeiger aus pointer.tsx (an mobbin.mp4 gemessene Konturen): Pfeil 49,2 px, Hand 71,5 px hoch bei Maßstab 1; Schatten gemessen.
   return (
     <div style={{position: 'absolute', left: 0, top: 0, opacity: fade, filter: v > 4 ? `blur(${0.1 * v}px)` : 'none', zIndex: 20}}>
-      <svg width={15 * AS} height={21 * AS} viewBox="-1 -1 15 21" style={{position: 'absolute', left: x - AS, top: y - AS, opacity: 1 - hand, filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,.3))', overflow: 'visible'}}>
-        <path d="M0 0 L0 17 L4.6 13 L7.7 20 L10.3 18.8 L7.3 12 L13.2 12 Z" fill="#000" stroke="#fff" strokeWidth={1} strokeLinejoin="round" />
-      </svg>
-      <svg width={19 * HS * 1.2} height={26 * HS} viewBox="-1 -1 19 26" preserveAspectRatio="none" style={{position: 'absolute', left: to[0] - 5 - 9.3 * HS * 1.2, top: to[1] - 9 - 1.5 * HS, opacity: hand, transform: `scale(${1 - 0.1 * press})`, transformOrigin: '50% 60%', filter: 'drop-shadow(0 2px 3px rgba(0,0,0,.25))', overflow: 'visible'}}>
-        <path d={HAND} fill="#fff" stroke="#000" strokeWidth={1.6} strokeLinejoin="round" />
-      </svg>
+      <ArrowCursor x={x} y={y} size={49.23 * scale} opacity={1 - hand} />
+      <HandCursor x={to[0] - 5} y={to[1] - 9} size={71.51 * scale} scale={1 - 0.1 * press} opacity={hand} />
     </div>
   );
 };

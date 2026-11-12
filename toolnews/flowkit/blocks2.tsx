@@ -109,8 +109,8 @@ export const IconStrip: React.FC<IconStripProps> = ({cx, cy, icons, size = 108, 
 // =====================================================================================================
 // 12) Abspann: Wortmarke fällt ein, rückt zur Seite, Logo wischt davor herein, Zeile darunter, Ausblenden
 // =====================================================================================================
-export type OutroProps = {cx: number; cy: number; word: string; logo?: React.ReactNode; logoW?: number; gap?: number; note?: string; size?: number; at?: number; slideAt?: number; fadeAt?: number; theme?: Theme; wordW?: number};
-export const Outro: React.FC<OutroProps> = ({cx, cy, word, logo, logoW = 94, gap = 8, note, size = 50, at = 0, slideAt = 16, fadeAt = 51, theme = THEME, wordW}) => {
+export type OutroProps = {cx: number; cy: number; word: string; logo?: React.ReactNode; logoW?: number; gap?: number; note?: string; size?: number; at?: number; slideAt?: number; fadeAt?: number; theme?: Theme; wordW?: number; /** Schriftgröße der Zeile (Standard 20 % der Wortmarke) */ noteSize?: number};
+export const Outro: React.FC<OutroProps> = ({cx, cy, word, logo, logoW = 94, gap = 8, note, size = 50, at = 0, slideAt = 16, fadeAt = 51, theme = THEME, wordW, noteSize}) => {
   const f = useF(at);
   if (f < -5.5) return null;
   const dy = track(f, REFS.outroDropY);
@@ -127,7 +127,7 @@ export const Outro: React.FC<OutroProps> = ({cx, cy, word, logo, logoW = 94, gap
         <div style={{position: 'absolute', left: cx - ww / 2 + shift - gap - logoW, top: cy - size * 0.55, width: logoW, height: size * 1.1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
           WebkitMaskImage: `linear-gradient(90deg, transparent ${(1 - wipe) * 100 - 40}%, #000 ${(1 - wipe) * 100}%)`, maskImage: `linear-gradient(90deg, transparent ${(1 - wipe) * 100 - 40}%, #000 ${(1 - wipe) * 100}%)`, opacity: wipe > 0 ? 1 : 0, filter: `blur(${3 * (1 - wipe)}px)`}}>{logo}</div>
       ) : null}
-      {note ? <div style={{position: 'absolute', left: 0, width: cx * 2, top: cy + size * 0.62, textAlign: 'center', ...txt(size * 0.2, 450, '#9A9AA0', 0), opacity: lin(f, slideAt + 5, slideAt + 15)}}>{note}</div> : null}
+      {note ? <div style={{position: 'absolute', left: 0, width: cx * 2, top: cy + size * 0.62, textAlign: 'center', ...txt(noteSize ?? size * 0.2, 450, noteSize ? theme.sub : '#9A9AA0', 0), opacity: lin(f, slideAt + 5, slideAt + 15)}}>{note}</div> : null}
     </div>
   );
 };
@@ -139,9 +139,8 @@ export const outroTint = (f: number) => track(f, [[-9, 0], [-5, 0.5], [1, 0.55],
 // =====================================================================================================
 export type Shot = {file: string; w: number; h: number; rects: {x: number; y: number; w: number; h: number}[]; url: string};
 export type SourceCardProps = {shot: Shot; cx: number; cy: number; w?: number; h?: number; r?: number; at?: number; zoomAt?: number; markAt?: number; /** Anteil der Kartenbreite, den der Satz nach dem Zoom füllt */ fill?: number; maxZoom?: number; theme?: Theme; comet?: boolean};
-export const SourceCard: React.FC<SourceCardProps> = ({shot, cx, cy, w = 520, h = 300, r = 28, at = 0, zoomAt = 14, markAt, fill = 0.42, maxZoom = 4.5, theme = THEME, comet = true}) => {
-  const f = useF(at);
-  if (f < -1) return null;
+/** Inneres der Quellen-Karte: Screenshot, Kamerafahrt auf den Satz, Markierung. Füllt eine Fläche w×h (links oben = 0/0); f = Frames seit dem Start der Karte. */
+export const SourceInner: React.FC<{shot: Shot; w: number; h: number; f: number; zoomAt?: number; markAt?: number; fill?: number; maxZoom?: number; theme?: Theme}> = ({shot, w, h, f, zoomAt = 14, markAt, fill = 0.42, maxZoom = 4.5, theme = THEME}) => {
   const R = shot.rects;
   const x0 = Math.min(...R.map((q) => q.x)), x1 = Math.max(...R.map((q) => q.x + q.w)), y0 = Math.min(...R.map((q) => q.y)), y1 = Math.max(...R.map((q) => q.y + q.h));
   const k0 = Math.max(w / shot.w, h / shot.h) * 1.9;                               // Start: Ausschnitt um den Satz, noch gut als Seite erkennbar
@@ -151,25 +150,38 @@ export const SourceCard: React.FC<SourceCardProps> = ({shot, cx, cy, w = 520, h 
   const sx = (x0 + x1) / 2, sy = (y0 + y1) / 2;
   // am Anfang so verschoben, dass der Satz im rechten/oberen Drittel liegt und Umgebung zu sehen ist; am Ende mittig
   const fx = mix(clamp(sx, (w / 2) / k0, shot.w - (w / 2) / k0), sx, z), fy = mix(clamp(sy, (h / 2) / k0, shot.h - (h / 2) / k0), sy, z);
-  const appear = seg(f, 0, REFS.cardIn);
   const ms = markAt ?? zoomAt + 11;
   const total = R.reduce((a, q) => a + q.w, 0);
   let done = seg(f, ms, FLOW.cometHead) * total;                                   // Markierung läuft mit der Komet-Kurve über die Zeilen
-  const host = (() => { try { const u = new URL(shot.url); return u.host + u.pathname.replace(/\/$/, ''); } catch { return shot.url; } })();
   const src = shot.file.replace(/^public\//, '');
+  return (
+    <div style={{position: 'absolute', left: w / 2 - fx * k, top: h / 2 - fy * k, width: shot.w * k, height: shot.h * k}}>
+      <Img src={staticFile(src)} style={{width: '100%', height: '100%', display: 'block'}} />
+      {R.map((q, i) => { const part = clamp(done / q.w); done -= q.w; return part > 0 ? <div key={i} style={{position: 'absolute', left: (q.x - 3) * k, top: (q.y - 1) * k, width: (q.w + 6) * k * part, height: (q.h + 2) * k, background: rgba(theme.accent, 0.2), borderRadius: 3 * k, boxShadow: `inset 0 ${-1.5 * k}px 0 ${theme.accent}`}} /> : null; })}
+    </div>
+  );
+};
+export const shotHost = (url: string) => { try { const u = new URL(url); return u.host + u.pathname.replace(/\/$/, ''); } catch { return url; } };
+/** Zeile unter der Karte: Schloss + Adresse der Quelle */
+export const SourceHost: React.FC<{url: string; theme?: Theme}> = ({url, theme = THEME}) => (
+  <>
+    <svg width={11} height={13} viewBox="0 0 11 13"><rect x={0.5} y={5.5} width={10} height={7} rx={2} fill={theme.sub} /><path d="M2.8 5.5 V3.6 a2.7 2.7 0 0 1 5.4 0 V5.5" stroke={theme.sub} strokeWidth={1.4} fill="none" /></svg>
+    {shotHost(url)}
+  </>
+);
+export const SourceCard: React.FC<SourceCardProps> = ({shot, cx, cy, w = 520, h = 300, r = 28, at = 0, zoomAt = 14, markAt, fill = 0.42, maxZoom = 4.5, theme = THEME, comet = true}) => {
+  const f = useF(at);
+  if (f < -1) return null;
+  const appear = seg(f, 0, REFS.cardIn);
   return (
     <div style={{position: 'absolute', left: 0, top: 0}}>
       <div style={{position: 'absolute', left: cx - w / 2, top: cy - h / 2, width: w, height: h, borderRadius: r, overflow: 'hidden', background: '#fff', boxShadow: '0 24px 60px rgba(20,30,70,.12), 0 4px 14px rgba(20,30,70,.06)',
         opacity: lin(f, -1, 3), transform: `scale(${mix(1.24, 1, appear)})`, filter: `blur(${8 * (1 - lin(f, 0, 9))}px)`}}>
-        <div style={{position: 'absolute', left: w / 2 - fx * k, top: h / 2 - fy * k, width: shot.w * k, height: shot.h * k}}>
-          <Img src={staticFile(src)} style={{width: '100%', height: '100%', display: 'block'}} />
-          {R.map((q, i) => { const part = clamp(done / q.w); done -= q.w; return part > 0 ? <div key={i} style={{position: 'absolute', left: (q.x - 3) * k, top: (q.y - 1) * k, width: (q.w + 6) * k * part, height: (q.h + 2) * k, background: rgba(theme.accent, 0.2), borderRadius: 3 * k, boxShadow: `inset 0 ${-1.5 * k}px 0 ${theme.accent}`}} /> : null; })}
-        </div>
+        <SourceInner shot={shot} w={w} h={h} f={f} zoomAt={zoomAt} markAt={markAt} fill={fill} maxZoom={maxZoom} theme={theme} />
       </div>
       {comet ? <div style={{position: 'absolute', left: cx, top: cy}}><CometFrame at={4} w={w} h={h} r={r} color={theme.accent} /></div> : null}
       <div style={{position: 'absolute', left: cx - w / 2, width: w, top: cy + h / 2 + 18, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, ...txt(15, 500, theme.sub, -0.01), opacity: lin(f, 8, 14), filter: `blur(${3 * (1 - lin(f, 8, 14))}px)`}}>
-        <svg width={11} height={13} viewBox="0 0 11 13"><rect x={0.5} y={5.5} width={10} height={7} rx={2} fill={theme.sub} /><path d="M2.8 5.5 V3.6 a2.7 2.7 0 0 1 5.4 0 V5.5" stroke={theme.sub} strokeWidth={1.4} fill="none" /></svg>
-        {host}
+        <SourceHost url={shot.url} theme={theme} />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 // Vorschau des Bausteins „Schrumpfen“: (1) Probe mit Original-Maßen gegen den abgenommenen X3-Nachbau, (2) eigener Inhalt in 1080×1920.
 import React from 'react';
+import {FONT} from './kit';
 import {AbsoluteFill, Composition, Folder, useCurrentFrame} from 'remotion';
 import {Stage} from './blocks';
 import {KEYSHRINK_ORIG as O, KeyShrink} from './keyshrink';
@@ -21,7 +22,7 @@ const ProbeDifferenz: React.FC = () => <AbsoluteFill style={{background: '#000'}
 
 /** Eigener Inhalt (Bühne 720×1280): Wort-Pille „fertig“ in der Bildmitte, 22 % der Breite. */
 export const KeyShrinkOwn: React.FC = () => (
-  <Stage bg="#FFFFFF">
+  <Stage bg="#FFFFFF" font={FONT}>
     <KeyShrink at={14} cx={360} cy={640} w={158} h={86} label="fertig" fs={50} baseDy={11} />
   </Stage>
 );

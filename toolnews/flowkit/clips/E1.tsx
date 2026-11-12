@@ -32,7 +32,7 @@ export const SoftSquare: React.FC<{l: E1Layer; id: string; color?: string; child
 );
 
 /** Beschriftung: blendet von links nach rechts ein – Deckkraft je 3-Hundertstel-Streifen (stops) pro Frame gemessen, dazu eine Weichzeichnung b. */
-const Label: React.FC<{t: E1Text; l: E1Layer}> = ({t, l}) => {
+export const E1Label: React.FC<{t: E1Text; l: E1Layer}> = ({t, l}) => {
   const sc = l.w / 100, fs = ((t.v1 - t.v0) * sc) / (E1_FONT.asc + E1_FONT.desc), x = t.u0 * sc, base = -l.h / 2 + t.v0 * sc + E1_FONT.asc * fs, tw = (t.u1 - t.u0) * sc;
   const gx = (u: number) => (u * sc - x) * 8;      // Streifenmitte im achtfachen Schrift-Koordinatensystem
   return (
@@ -54,7 +54,7 @@ export const E1Clip: React.FC = () => {
     <AbsoluteFill style={{background: `rgb(${p.bg[0]},${p.bg[1]},${p.bg[2]})`, overflow: 'hidden'}}>
       <svg width={E1_W} height={E1_H} viewBox={`0 0 ${E1_W} ${E1_H}`} style={{position: 'absolute', left: 0, top: 0}}>
         {/* hinten die Geisterkopien (schwächste zuerst), vorn das Quadrat mit der Beschriftung */}
-        {p.layers.map((_, k) => { const j = n - 1 - k, l = p.layers[j]; return <SoftSquare key={j} l={l} id={`e1b${j}`}>{j === 0 && p.text ? <Label t={p.text} l={l} /> : null}</SoftSquare>; })}
+        {p.layers.map((_, k) => { const j = n - 1 - k, l = p.layers[j]; return <SoftSquare key={j} l={l} id={`e1b${j}`}>{j === 0 && p.text ? <E1Label t={p.text} l={l} /> : null}</SoftSquare>; })}
       </svg>
     </AbsoluteFill>
   );

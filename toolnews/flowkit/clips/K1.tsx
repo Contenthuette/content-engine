@@ -13,13 +13,13 @@ import type {ClipDef} from './Views';
 
 export const K1_START = tr.start, K1_FRAMES = tr.frames, K1_MASK = tr.mask as number;
 export const K1_SOFT = tr.soft as number;   // Grund-Weichheit in px (Video ist weicher als Browser-Schrift), an Frame 256 über die Bildabweichung gewählt
-type Cam = {s: number; tx: number; ty: number};
-type Lay = {label: string; X: number; Y: number; k: number; fs: number; tw: number; base: number; weight: number; opsz: number; cuts: number[]};
-type Word = {mask: boolean; ds: number; dx: number; dy: number; sx: number; sy: number; let: {dy: number; c: number[]}[]} | null;
-type Line = {x0: number; x1: number; y: number; th: number; sx: number; sy: number; c: number[]} | null;
-const CAM = tr.cam as Cam[], LAY = tr.lay as unknown as Record<string, Lay>, WORDS = tr.words as unknown as Record<string, Word[]>, LINE = tr.line as unknown as Line[], BG = tr.bg as number[][];
-const SANS = "'Inter Variable', 'Inter', system-ui, sans-serif";
-const ink = (c: number[]) => `rgb(${c.map((v) => Math.max(0, Math.min(255, 255 - v)).toFixed(1)).join(',')})`;   // c = gemessene Dunkelheit je Kanal (0 = weiß)
+export type Cam = {s: number; tx: number; ty: number};
+export type Lay = {label: string; X: number; Y: number; k: number; fs: number; tw: number; base: number; weight: number; opsz: number; cuts: number[]};
+export type Word = {mask: boolean; ds: number; dx: number; dy: number; sx: number; sy: number; let: {dy: number; c: number[]}[]} | null;
+export type Line = {x0: number; x1: number; y: number; th: number; sx: number; sy: number; c: number[]} | null;
+export const CAM = tr.cam as Cam[], LAY = tr.lay as unknown as Record<string, Lay>, WORDS = tr.words as unknown as Record<string, Word[]>, LINE = tr.line as unknown as Line[], BG = tr.bg as number[][];
+export const SANS = "'Inter Variable', 'Inter', system-ui, sans-serif";
+export const ink = (c: number[]) => `rgb(${c.map((v) => Math.max(0, Math.min(255, 255 - v)).toFixed(1)).join(',')})`;   // c = gemessene Dunkelheit je Kanal (0 = weiß)
 
 /** Weichzeichner in Bildpixeln (sx waagerecht, sy senkrecht) – getrennt, weil die Fahrt nur waagerecht verwischt. */
 const Soft: React.FC<{id: string; sx: number; sy: number; children: React.ReactNode}> = ({id, sx, sy, children}) =>

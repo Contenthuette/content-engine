@@ -1,0 +1,18 @@
+{
+  "title": "Reverse API Engineer (Beispiel-Regieplan)",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "bg": "#FFFFFF",
+  "accent": "#2F6BFF",
+  "audio": {"src": "flowkit_local/reverse_api_vo.mp3", "volume": 1},
+  "steps": [
+    {"id": "hook", "block": "TypedTravel", "at": 0, "dur": 87, "props": {"text": "Jede Website wird zur API.", "x": 96, "y": 612, "size": 40, "hold": 60}, "transition": {"type": "fade", "frames": 5}},
+    {"id": "beleg-sterne", "block": "SourceCard", "at": 87, "dur": 73, "props": {"shot": "stars", "cx": 360, "cy": 640, "w": 500, "h": 290}, "transition": {"type": "fade", "frames": 5}},
+    {"id": "karte-star", "block": "Survivor", "at": 160, "dur": 60, "props": {"kicker": "kalil0321 / reverse-api-engineer", "title": "Reverse API Engineer", "text": "Macht aus jeder Website einen API-Client.", "button": "Star", "count": "3.4k"}, "transition": {"type": "fade", "frames": 5}},
+    {"id": "prompt", "block": "TipToButton", "at": 220, "dur": 78, "props": {"hint": "Nachricht an Claude", "text": "Bau daraus einen API-Client.", "button": "Senden"}, "transition": {"type": "fade", "frames": 5}},
+    {"id": "fertig", "block": "KeyShrink", "at": 298, "dur": 48, "props": {"label": "fertig", "hold": 24}, "transition": {"type": "none"}},
+    {"id": "beleg-lizenz", "block": "SourceCard", "at": 346, "dur": 54, "props": {"shot": "works", "cx": 360, "cy": 640, "w": 500, "h": 290}, "transition": {"type": "fade", "frames": 5}},
+    {"id": "abspann", "block": "Outro", "at": 400, "dur": 76, "props": {"word": "ULTRA", "note": "Kommentier API – ich schick dir den Link", "size": 60}, "transition": {"type": "none"}}
+  ]
+}
